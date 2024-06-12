@@ -10,9 +10,6 @@ help: ## Show list of available commands
 	@echo "  make downgrade  - Revert the last migration"
 	@echo "  make revision   - Create a new migration with a message"
 
-run: ## Start the application
-	source .env && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-
 migrate: ## Apply all migrations to the current database state
 	source .env && alembic $(ALEMBIC_CONFIG) upgrade head
 
@@ -28,3 +25,6 @@ revision: ## Create a new migration with a message
 		exit 1; \
 	fi
 	source .env && alembic $(ALEMBIC_CONFIG) revision --autogenerate -m "$(msg)"
+
+run: migrate ## Start the application
+	source .env &&  python main.py
