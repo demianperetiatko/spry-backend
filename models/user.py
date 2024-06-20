@@ -7,11 +7,9 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100))
     email = Column(String(100), nullable=False, unique=True)
-    password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)
-    calendar_id = Column(String(255), nullable=True)
+    invite_token = Column(String(100))
 
     subordinates = relationship("Hierarchy", back_populates="manager", foreign_keys='Hierarchy.manager_id')
     managed_by = relationship("Hierarchy", back_populates="employee", foreign_keys='Hierarchy.employee_id')
