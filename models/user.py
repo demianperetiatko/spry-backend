@@ -10,9 +10,14 @@ class User(Base):
     name = Column(String(100))
     email = Column(String(100), nullable=False, unique=True)
     invite_token = Column(String(100))
+    status = Column(String(100))
 
     subordinates = relationship("Hierarchy", back_populates="manager", foreign_keys='Hierarchy.manager_id')
     managed_by = relationship("Hierarchy", back_populates="employee", foreign_keys='Hierarchy.employee_id')
+
+    STATUS_NEW = "new"
+    STATUS_ACTIVE = "active"
+    STATUS_INACTIVE = "inactive"
 
 class Hierarchy(Base):
     __tablename__ = 'hierarchy'
