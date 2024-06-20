@@ -30,7 +30,7 @@ async def user_invite(email_request: EmailRequest, user: User = Depends(get_user
         raise HTTPException(status_code=400, detail="New user already exists")
 
     invite_token = generate_unique_token()
-    new_user = User(email=email_request.new_email, invite_token=invite_token, status=User.STATUS_NEW)
+    new_user = User(email=email_request.email, invite_token=invite_token, status=User.STATUS_NEW)
     user_repository.create(new_user)
 
     hierarchy = Hierarchy(manager_id=user.id, employee_id=new_user.id)
@@ -39,9 +39,26 @@ async def user_invite(email_request: EmailRequest, user: User = Depends(get_user
 
 
 @router.get("/user/create")
-async def get_user_create(invite_token: str, db: Session = Depends(get_db)):
+async def user_create(invite_token: str, db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
     new_user = user_repository.find_by_invite_token(invite_token)
     if not new_user:
         raise HTTPException(status_code=400, detail="User already exists")
     return {"email": new_user.email}
+
+class UserRequest(BaseModel):
+    invite_token: str
+    name: str
+
+@router.post("/user/create")
+async def user_create(user_request: UserRequest, db: Session = Depends(get_db)):
+    user_repository = UserRepository(db)
+    new_user = user_repository.find_by_invite_token(user_request.invite_token)
+
+    if not new_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+
+    new_user.name = user_request.name
+    new_user.status = User.STATUS_ACTIVE
+
+    user_repository.update(new_user)
