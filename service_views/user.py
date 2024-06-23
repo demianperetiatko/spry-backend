@@ -21,7 +21,7 @@ class EmailRequest(BaseModel):
     email: str
 
 
-@router.post("/user/invite")
+@router.post("/user/invite/")
 async def user_invite(email_request: EmailRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
     hierarchy_repository = HierarchyRepository(db)
@@ -38,7 +38,7 @@ async def user_invite(email_request: EmailRequest, user: User = Depends(get_user
     return {"token": invite_token}
 
 
-@router.get("/user/create")
+@router.get("/user/create/")
 async def user_create(invite_token: str, db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
     new_user = user_repository.find_by_invite_token(invite_token)
@@ -50,7 +50,7 @@ class UserRequest(BaseModel):
     invite_token: str
     name: str
 
-@router.post("/user/create")
+@router.post("/user/create/")
 async def user_create(user_request: UserRequest, db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
     new_user = user_repository.find_by_invite_token(user_request.invite_token)
