@@ -1,5 +1,5 @@
 
-# Sprty Backend
+# Spry Backend
 
 ## Start Docker Container
 
