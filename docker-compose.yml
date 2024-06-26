@@ -10,6 +10,17 @@ services:
       POSTGRES_PASSWORD: spry_pwd
     ports:
       - "5432:5432"
+  backend:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --reload
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
 
 volumes:
   postgres_data:
