@@ -31,8 +31,8 @@ jobs:
 
       - name: Prepare app.yaml
         run: |
-          sed -i 's/\${DATABASE_URL}/'${{ secrets.SQLALCHEMY_DATABASE_URI }}'/g' app.yaml
-          sed -i 's/\${API_KEY}/'${{ secrets.FIREBASE_API_KEY }}'/g' app.yaml
+          sed -i 's|${DATABASE_URL}|'${{ secrets.SQLALCHEMY_DATABASE_URI }}'|g' app.yaml
+          sed -i 's|${API_KEY}|'${{ secrets.FIREBASE_API_KEY }}'|g' app.yaml
 
       - name: Deploy to App Engine
         run: gcloud app deploy
