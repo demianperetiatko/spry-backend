@@ -12,4 +12,5 @@ COPY ./utils /code/utils
 
 COPY main.py /code/main.py
 
-CMD [ "uvicorn", "main:app", "--reload", "--host", "0.0.0.0" ]
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
