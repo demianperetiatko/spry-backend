@@ -1,3 +1,4 @@
+service: spry-backend
 runtime: custom
 env: flex
 
