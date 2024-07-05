@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Hierarchy
-from models.repositories.user_repository import UserRepository, HierarchyRepository
+from models import get_db, User
+from models.repositories.user_repository import UserRepository
 from utils.auth import get_user
 
 router = APIRouter()
@@ -24,7 +24,7 @@ class EmailRequest(BaseModel):
 @router.post("/user/invite/")
 async def user_invite(email_request: EmailRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
-    hierarchy_repository = HierarchyRepository(db)
+
     new_user = user_repository.find_by_email(email_request.email)
     if new_user:
         raise HTTPException(status_code=400, detail="New user already exists")
@@ -32,9 +32,6 @@ async def user_invite(email_request: EmailRequest, user: User = Depends(get_user
     invite_token = generate_unique_token()
     new_user = User(email=email_request.email)
     user_repository.create(new_user)
-
-    hierarchy = Hierarchy(manager_id=user.id, employee_id=new_user.id)
-    hierarchy_repository.create(hierarchy)
-    return {"token": invite_token}
+    return
 
 
