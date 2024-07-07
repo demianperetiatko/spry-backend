@@ -1,0 +1,38 @@
+name: Deploy to Google App Engine
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.4.0
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Set environment variables
+        run: |
+          echo "DATABASE_URL=${{ secrets.SQLALCHEMY_DATABASE_URI }}" >> $GITHUB_ENV
+          echo "API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        run: gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/spry-backend:latest
+
+      - name: Prepare app.yaml
+        run: |
+          sed -i 's|${DATABASE_URL}|'${{ secrets.SQLALCHEMY_DATABASE_URI }}'|g' app.yaml
+          sed -i 's|${API_KEY}|'${{ secrets.FIREBASE_API_KEY }}'|g' app.yaml
+
+      - name: Deploy to App Engine
+        run: gcloud app deploy
