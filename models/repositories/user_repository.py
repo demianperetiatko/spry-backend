@@ -2,7 +2,7 @@ import uuid
 from typing import TypeVar
 
 from models.repositories import BaseRepo
-from models import User
+from models import User, InvitedUser
 
 T = TypeVar("T")
 
@@ -13,3 +13,7 @@ class UserRepository(BaseRepo[User]):
 
     def find_by_email(self, email: str) -> User:
         return self.session.query(User).filter(User.email == email).first()
+
+class InvitedUserRepository(BaseRepo[InvitedUser]):
+    def __init__(self, session):
+        super().__init__(session, InvitedUser)

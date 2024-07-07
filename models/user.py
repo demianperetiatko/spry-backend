@@ -11,7 +11,7 @@ class User(Base):
     email = Column(String(100), nullable=False, unique=True)
 
 class InvitedUser(Base):
-    __tablename__ = 'inviteduser'
+    __tablename__ = 'invited_user'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     rate = Column(String(255))
