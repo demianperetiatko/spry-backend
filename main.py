@@ -1,10 +1,27 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from service_views import (
+    user as user_view,
+)
+
+ORIGINS = [
+    "http://localhost:3000",
+    "https://spry-frontend-dot-spry-398908.lm.r.appspot.com/"
+]
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+app.include_router(user_view.router, tags=["user"])
 
 if __name__ == "__main__":
     import uvicorn
