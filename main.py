@@ -6,7 +6,7 @@ from service_views import (
 
 ORIGINS = [
     "http://localhost:3000",
-    "https://spry-frontend-dot-spry-398908.lm.r.appspot.com/"
+    "https://app.spryplan.com/"
 ]
 
 app = FastAPI()
