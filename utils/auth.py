@@ -16,9 +16,7 @@ def get_user(token: str = Header(None, convert_underscores=False), db: Session =
         raise HTTPException(status_code=401, detail="Invalid auth token")
 
     user = user_repository.find_by_email(email)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid auth token")
-    else:
+    if not user:
         user = User(email=email)
         user_repository.create(user)
     return user
