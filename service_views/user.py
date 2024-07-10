@@ -27,14 +27,11 @@ async def user_invite(email_request: EmailRequest, user: User = Depends(get_user
     user_repository = UserRepository(db)
     invited_user_repository = InvitedUserRepository(db)
 
-
     new_user = User(email=email_request.email)
+    user_repository.create(new_user)
+
     invited_user = InvitedUser(
         user_id=new_user.id,
         added_by_id=user.id
     )
-
-    user_repository.create(new_user)
     invited_user_repository.create(invited_user)
-
-
