@@ -6,7 +6,7 @@ from service_views import (
 
 ORIGINS = [
     "http://localhost:3000",
-    "https://app.spryplan.com/"
+    "https://app.spryplan.com"
 ]
 
 app = FastAPI()
