@@ -4,16 +4,11 @@ from service_views import (
     user as user_view,
 )
 
-ORIGINS = [
-    "http://localhost:3000",
-    "https://app.spryplan.com/"
-]
-
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
