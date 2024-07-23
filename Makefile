@@ -40,3 +40,6 @@ revision:
 		exit 1; \
 	fi
 	docker-compose run --rm  web alembic $(ALEMBIC_CONFIG) revision --autogenerate -m "$(msg)"
+
+downgrade:
+	docker-compose run --rm  web alembic $(ALEMBIC_CONFIG) downgrade -1
