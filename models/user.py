@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from models import Base
 
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -10,13 +11,24 @@ class User(Base):
     name = Column(String(100))
     email = Column(String(100), nullable=False, unique=True)
 
-class InvitedUser(Base):
-    __tablename__ = 'invited_user'
+
+class Team(Base):
+    __tablename__ = 'teams'
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    create_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+
+    create_user = relationship('User', backref='teams_created')
+
+
+class TeamMember(Base):
+    __tablename__ = 'team_members'
+
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey('teams.id'))
+    email = Column(String(100), nullable=False, unique=True)
     rate = Column(String(255))
     type_rate = Column(String(255))
     added_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
-    user = relationship("User", foreign_keys=[user_id])
-    added_by = relationship("User", foreign_keys=[added_by_id])
+    team = relationship('Team', backref='members')
+    added_by = relationship('User', backref='team_members_added')
