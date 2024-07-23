@@ -12,7 +12,7 @@ Base = declarative_base()
 engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from .user import User , InvitedUser
+from .user import User, Team, TeamMember
 
 
 def get_db():
