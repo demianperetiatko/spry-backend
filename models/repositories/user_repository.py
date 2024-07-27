@@ -23,7 +23,8 @@ class TeamRepository(BaseRepo[Team]):
         return self.session.query(Team).filter(Team.create_user_id == user_id).first()
 
     def find_by_team_member(self, team_id: str) -> List[TeamMember]:
-        return self.session.query(TeamMember).filter(TeamMember.team_id == team_id).all()
+        # return self.session.query(TeamMember).filter(TeamMember.team_id == team_id).all()
+        return self.session.query(TeamMember).all()
 
 
 class TeamMemberRepository(BaseRepo[TeamMember]):
