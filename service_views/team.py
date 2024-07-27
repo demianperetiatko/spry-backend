@@ -12,10 +12,11 @@ router = APIRouter()
 @router.get("/team/")
 def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
     team_repository = TeamRepository(db)
-    team = team_repository.find_by_create_user_id(user.id)
-    if team is None:
-        return []
-    return team_repository.find_by_team_member(team.id)
+    # team = team_repository.find_by_create_user_id(user.id)
+    # if team is None:
+    #     return []
+    # return team_repository.find_by_team_member(team.id)
+    return team_repository.find_by_team_member("")
 
 
 
