@@ -22,7 +22,7 @@ def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
 @router.get("/team/chart/")
 def team_chart():
     return {"data": [
-        {"Date": "Jun 19", "Recurring": 70, "One-time": 30},
+        {"Date": "Jun 19", "Recurring": 90, "One-time": 30},
         {"Date": "Jun 20", "Recurring": 80, "One-time": 20},
         {"Date": "Jun 21", "Recurring": 50, "One-time": 20},
         {"Date": "Jul 16", "Recurring": 40, "One-time": 60},
