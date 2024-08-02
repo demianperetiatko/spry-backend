@@ -6,8 +6,8 @@ from models import get_db, User, Team, TeamMember
 from models.repositories.user_repository import UserRepository, TeamRepository, TeamMemberRepository
 from utils.auth import get_user
 
-
 router = APIRouter()
+
 
 @router.get("/team/")
 def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
@@ -19,16 +19,14 @@ def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
     return team_repository.find_by_team_member("")
 
 
-
 @router.get("/team/chart/")
 def team_chart():
     return {"data": [
-        ['Date', 'Recurring', 'One-time'],
-        ['Jun 19', 70, 30],
-        ['Jun 20', 80, 20],
-        ['Jun 21', 50, 20],
-        ['Jul 16', 40, 60],
-        ['Jul 18', 40, 10],
-        ['Jul 19', 40, 30],
-        ['Jul 24', 40, 60]
+        {"Date": "Jun 19", "Recurring": 70, "One-time": 30},
+        {"Date": "Jun 20", "Recurring": 80, "One-time": 20},
+        {"Date": "Jun 21", "Recurring": 50, "One-time": 20},
+        {"Date": "Jul 16", "Recurring": 40, "One-time": 60},
+        {"Date": "Jul 18", "Recurring": 40, "One-time": 10},
+        {"Date": "Jul 19", "Recurring": 40, "One-time": 30},
+        {"Date": "Jul 24", "Recurring": 40, "One-time": 60}
     ]}
