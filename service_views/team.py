@@ -22,18 +22,28 @@ def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
     return team_repository.find_by_team_member("")
 
 
-def generate_data(num_days):
+def generate_data(start_date: datetime, end_date: datetime, view_type: str):
     data = []
-    start_date = datetime.now() - timedelta(days=int(num_days/2))
+    current_date = start_date
 
-    for i in range(num_days):
-        date = start_date + timedelta(days=i)
-        formatted_date = date.strftime("%b %d")
+    while current_date <= end_date:
+        if view_type == "day":
+            formatted_date = current_date.strftime("%b %d")  # формат yyyy-MM-dd
+            current_date += timedelta(days=1)
+        elif view_type == "week":
+            week_start = current_date
+            week_end = min(current_date + timedelta(days=6), end_date)
+            formatted_date = f"{week_start.strftime('%b %d')} - {week_end.strftime('%b %d')}"
+            current_date += timedelta(weeks=1)
+
         recurring = random.randint(30, 90)
         one_time = random.randint(10, 60)
         data.append({"Date": formatted_date, "Recurring": recurring, "One-time": one_time})
 
     return {"data": data}
 @router.get("/team/chart/")
-def team_chart():
-    return generate_data(30)
+def team_chart(start_date: str, end_date: str, type: str):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+    return generate_data(start_date_dt, end_date_dt, type)
