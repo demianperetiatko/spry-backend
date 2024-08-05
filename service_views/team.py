@@ -28,12 +28,12 @@ def generate_data(start_date: datetime, end_date: datetime, view_type: str):
 
     while current_date <= end_date:
         if view_type == "day":
-            formatted_date = current_date.strftime("%b %d")  # формат yyyy-MM-dd
+            formatted_date = current_date.strftime("%b %-d")  # формат yyyy-MM-dd
             current_date += timedelta(days=1)
         elif view_type == "week":
             week_start = current_date
             week_end = min(current_date + timedelta(days=6), end_date)
-            formatted_date = f"{week_start.strftime('%b %d')} - {week_end.strftime('%b %d')}"
+            formatted_date = f"{week_start.strftime('%b %-d')} - {week_end.strftime('%b %-d')}"
             current_date += timedelta(weeks=1)
 
         recurring = random.randint(30, 90)
