@@ -2,6 +2,7 @@ import random
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Form
+from pydantic import BaseModel
 
 from sqlalchemy.orm import Session
 
@@ -15,11 +16,30 @@ router = APIRouter()
 @router.get("/team/")
 def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
     team_repository = TeamRepository(db)
-    # team = team_repository.find_by_create_user_id(user.id)
-    # if team is None:
-    #     return []
-    # return team_repository.find_by_team_member(team.id)
-    return team_repository.find_by_team_member("")
+    team = team_repository.find_by_create_user_id(user.id)
+    if team is None:
+        return []
+    return team_repository.find_by_team_member(team.id)
+
+class MemberRequest(BaseModel):
+    email: str
+@router.post("/team/")
+def add_member_to_team(member_info: MemberRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
+    team_repository = TeamRepository(db)
+    team_member_repository = TeamMemberRepository(db)
+
+    team = team_repository.find_by_create_user_id(user.id)
+    if not team:
+        team = Team(create_user_id=user.id)
+        team_repository.create(team)
+
+    team_member = TeamMember(
+        team_id=team.id,
+        email=member_info.email,
+        added_by_id=user.id
+    )
+    team_member_repository.create(team_member)
+
 
 
 def generate_data(start_date: datetime, end_date: datetime, view_type: str):

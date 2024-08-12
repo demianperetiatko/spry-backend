@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from service_views import (
-    user as user_view,
     team as team_view,
 )
 
@@ -16,8 +15,6 @@ app.add_middleware(
 )
 
 
-
-app.include_router(user_view.router, tags=["user"])
 app.include_router(team_view.router, tags=["team"])
 
 if __name__ == "__main__":
