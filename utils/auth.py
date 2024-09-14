@@ -14,7 +14,6 @@ def get_user(token: str = Header(None, convert_underscores=False), db: Session =
         email = verify_firebase_token(token)
     except:
         raise HTTPException(status_code=401, detail="Invalid auth token")
-
     user = user_repository.find_by_email(email)
     if not user:
         user = User(email=email)
