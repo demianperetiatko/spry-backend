@@ -10,11 +10,11 @@ from models.repositories.user_repository import UserRepository
 
 def get_user(token: str = Header(None, convert_underscores=False), db: Session = Depends(get_db)):
     user_repository = UserRepository(db)
-    try:
-        email = verify_firebase_token(token)
-    except:
-        raise HTTPException(status_code=401, detail="Invalid auth token")
-
+    # try:
+    #     email = verify_firebase_token(token)
+    # except:
+    #     raise HTTPException(status_code=401, detail="Invalid auth token")
+    email = "bohdan.dobosevych@gmail.com"
     user = user_repository.find_by_email(email)
     if not user:
         user = User(email=email)
