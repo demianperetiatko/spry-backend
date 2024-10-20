@@ -37,7 +37,7 @@ class AgendaRequest(BaseModel):
     @field_validator('title', 'description')
     def not_empty(cls, value, info):
         if not value or value.strip() == '':
-            raise ValueError(f'{info.field_name.capitalize()} cannot be empty')
+            raise ValueError('This field can’t be empty')
         return value
 
 
