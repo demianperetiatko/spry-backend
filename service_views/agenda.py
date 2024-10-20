@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator
 
 from models import get_db, User, AgendaTemplate
 from models.repositories.agenda_repository import AgendaTemplateRepository
@@ -33,6 +33,13 @@ def get_agenda_templates(
 class AgendaRequest(BaseModel):
     title: str
     description: str
+
+    @field_validator('title', 'description')
+    def not_empty(cls, value, info):
+        if not value or value.strip() == '':
+            raise ValueError(f'{info.field_name.capitalize()} cannot be empty')
+        return value
+
 
 @router.post('/agenda/')
 def create_agenda_item(agenda_info: AgendaRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
