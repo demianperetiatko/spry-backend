@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from datetime import datetime
-from typing import List
 
-from models import get_db, User, AgendaItem
-from models.repositories.agenda_repository import AgendaItemRepository
+from pydantic import BaseModel, model_validator
+
+from models import get_db, User, AgendaTemplate
+from models.repositories.agenda_repository import AgendaTemplateRepository
 
 from utils.auth import get_user
 
@@ -13,31 +13,36 @@ router = APIRouter()
 
 
 @router.get('/agenda/')
-def get_agenda_items(user: User = Depends(get_user), db: Session = Depends(get_db)):
-    agenda_repository = AgendaItemRepository(db)
-    agenda_items = agenda_repository.find_by_create_user_id(user.id)
-    if agenda_items is None or len(agenda_items) == 0:
-        return [{
-            "title": "[Template name]",
-            "description": "Display text from the template in the same way how it works in message preview in Gmail"
-        } for _ in range(7)]
-    return agenda_items
+def get_agenda_templates(
+        template_id: Optional[int] = None,
+        user: User = Depends(get_user),
+        db: Session = Depends(get_db)
+):
+    agenda_repository = AgendaTemplateRepository(db)
+
+    if template_id:
+        template = agenda_repository.find_by_id_and_user_id(template_id, user.id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return template
+
+    templates = agenda_repository.find_by_create_user_id(user.id)
+    return templates
 
 
 class AgendaRequest(BaseModel):
     title: str
     description: str
 
-
 @router.post('/agenda/')
 def create_agenda_item(agenda_info: AgendaRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
-    agenda_repository = AgendaItemRepository(db)
-    new_agenda = AgendaItem(
+    agenda_repository = AgendaTemplateRepository(db)
+    new_template = AgendaTemplate(
         title=agenda_info.title,
         description=agenda_info.description,
         create_user_id=user.id,
     )
-    return agenda_repository.create(new_agenda)
+    return agenda_repository.create(new_template)
 
 
 @router.put('/agenda/{agenda_id}/')
@@ -47,7 +52,7 @@ def update_agenda_item(
         user: User = Depends(get_user),
         db: Session = Depends(get_db)
 ):
-    agenda_repository = AgendaItemRepository(db)
+    agenda_repository = AgendaTemplateRepository(db)
     agenda_item = agenda_repository.find_by_id(agenda_id)
 
     if agenda_item is None or agenda_item.create_user_id != user.id:
@@ -64,7 +69,7 @@ def update_agenda_item(
 
 @router.delete('/agenda/{agenda_id}/')
 def delete_agenda_item(agenda_id: int, user: User = Depends(get_user), db: Session = Depends(get_db)):
-    agenda_repository = AgendaItemRepository(db)
+    agenda_repository = AgendaTemplateRepository(db)
     agenda_item = agenda_repository.find_by_id(agenda_id)
     if agenda_item and agenda_item.create_user_id == user.id:
         agenda_repository.delete(agenda_item)

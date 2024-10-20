@@ -7,7 +7,7 @@ from .user import User
 from models import Base
 
 
-class AgendaItem(Base):
+class AgendaTemplate(Base):
     __tablename__ = 'agenda_items'
 
     id = Column(Integer, primary_key=True, autoincrement=True)

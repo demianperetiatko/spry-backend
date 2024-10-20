@@ -13,7 +13,7 @@ engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from .user import User, Team, TeamMember
-from .agenda import AgendaItem
+from .agenda import AgendaTemplate
 
 
 def get_db():
