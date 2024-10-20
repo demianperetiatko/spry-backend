@@ -71,7 +71,6 @@ def update_agenda_item(
 
     agenda_repository.update(agenda_item)
 
-    return {"message": "Agenda item updated successfully", "agenda_item": agenda_item}
 
 
 @router.delete('/agenda/{agenda_id}/')
@@ -80,5 +79,4 @@ def delete_agenda_item(agenda_id: int, user: User = Depends(get_user), db: Sessi
     agenda_item = agenda_repository.find_by_id(agenda_id)
     if agenda_item and agenda_item.create_user_id == user.id:
         agenda_repository.delete(agenda_item)
-        return {"message": "Agenda item deleted successfully"}
     raise HTTPException(status_code=404, detail="Agenda item not found")
