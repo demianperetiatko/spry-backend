@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from sqlalchemy.orm import Session
-
+from bs4 import BeautifulSoup
 from pydantic import BaseModel, field_validator
 
 from models import get_db, User, AgendaTemplate
@@ -34,10 +34,20 @@ class AgendaRequest(BaseModel):
     title: str
     description: str
 
-    @field_validator('title', 'description')
-    def not_empty(cls, value, info):
+    @field_validator('title')
+    def title_not_empty(cls, value, info):
         if not value or value.strip() == '':
             raise ValueError('This field can’t be empty')
+        return value
+
+    @field_validator('description')
+    def description_not_empty(cls, value, info):
+        soup = BeautifulSoup(value, 'html.parser')
+        stripped_text = soup.get_text().strip()
+
+        if not stripped_text:
+            raise ValueError('This field can’t be empty')
+
         return value
 
 
