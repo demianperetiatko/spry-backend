@@ -14,20 +14,23 @@ router = APIRouter()
 
 @router.get('/agenda/')
 def get_agenda_templates(
-        template_id: Optional[int] = None,
         user: User = Depends(get_user),
         db: Session = Depends(get_db)
 ):
     agenda_repository = AgendaTemplateRepository(db)
+    templates = agenda_repository.find_by_create_user_id(user.id)
+    return templates
 
-    if template_id:
-        template = agenda_repository.find_by_id_and_user_id(template_id, user.id)
+
+@router.get('/agenda/{agenda_id}')
+def get_agenda_template(agenda_id: int, user: User = Depends(get_user), db: Session = Depends(get_db)):
+    agenda_repository = AgendaTemplateRepository(db)
+
+    if agenda_id:
+        template = agenda_repository.find_by_id_and_user_id(agenda_id, user.id)
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
         return template
-
-    templates = agenda_repository.find_by_create_user_id(user.id)
-    return templates
 
 
 class AgendaRequest(BaseModel):
@@ -52,7 +55,7 @@ class AgendaRequest(BaseModel):
 
 
 @router.post('/agenda/')
-def create_agenda_item(agenda_info: AgendaRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
+def create_agenda_template(agenda_info: AgendaRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
     agenda_repository = AgendaTemplateRepository(db)
     new_template = AgendaTemplate(
         title=agenda_info.title,
@@ -63,7 +66,7 @@ def create_agenda_item(agenda_info: AgendaRequest, user: User = Depends(get_user
 
 
 @router.put('/agenda/{agenda_id}/')
-def update_agenda_item(
+def update_agenda_template(
         agenda_id: int,
         agenda_info: AgendaRequest,
         user: User = Depends(get_user),
@@ -82,9 +85,8 @@ def update_agenda_item(
     agenda_repository.update(agenda_item)
 
 
-
 @router.delete('/agenda/{agenda_id}/')
-def delete_agenda_item(agenda_id: int, user: User = Depends(get_user), db: Session = Depends(get_db)):
+def delete_agenda_template(agenda_id: int, user: User = Depends(get_user), db: Session = Depends(get_db)):
     agenda_repository = AgendaTemplateRepository(db)
     agenda_item = agenda_repository.find_by_id(agenda_id)
     if agenda_item is None or agenda_item.create_user_id != user.id:
