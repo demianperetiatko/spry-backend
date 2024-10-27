@@ -8,11 +8,11 @@ from models import Base
 
 
 class AgendaTemplate(Base):
-    __tablename__ = 'agenda_items'
+    __tablename__ = 'agenda_templates'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     create_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    create_user = relationship(User, backref='agenda_items_created')
+    create_user = relationship(User, backref='agenda_template_created')
 
     created_at = Column(DateTime, default=datetime.utcnow)
     title = Column(String(255), nullable=False)
