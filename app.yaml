@@ -1,5 +1,8 @@
 service: spry-backend
-env: standard
+runtime: custom
+env: flex
+
+instance_class: F1 
 
 env_variables:
   SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI}
