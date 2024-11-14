@@ -23,13 +23,10 @@ jobs:
           echo "SQLALCHEMY_DATABASE_URI=${{ secrets.SQLALCHEMY_DATABASE_URI }}" >> $GITHUB_ENV
           echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
 
-      - name: Build and push Docker image
-        run: gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/spry-backend:latest
-
       - name: Prepare app.yaml
         run: |
           sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI }}|g" app.yaml
           sed -i "s|\${FIREBASE_API_KEY}|${{ secrets.FIREBASE_API_KEY }}|g" app.yaml
 
       - name: Deploy to App Engine
-        run: gcloud app deploy
+        run: gcloud app deploy --quiet
