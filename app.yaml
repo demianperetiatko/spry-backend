@@ -4,6 +4,12 @@ env: flex
 
 instance_class: F1 
 
+automatic_scaling:
+  min_num_instances: 0
+  max_num_instances: 10
+  cool_down_period_sec: 120
+  max_idle_instances: 1
+  
 env_variables:
   SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI}
   FIREBASE_API_KEY: ${FIREBASE_API_KEY}
