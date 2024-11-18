@@ -1,8 +1,8 @@
 import random
 from datetime import datetime, timedelta
-
-from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter, Form
-from pydantic import BaseModel
+from typing import List
+from fastapi import Depends, APIRouter
+from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
@@ -22,9 +22,14 @@ def team(user: User = Depends(get_user), db: Session = Depends(get_db)):
     return team_repository.find_by_team_member(team.id)
 
 class MemberRequest(BaseModel):
-    email: str
+    emails: List[EmailStr]
+
 @router.post("/team/")
-def add_member_to_team(member_info: MemberRequest, user: User = Depends(get_user), db: Session = Depends(get_db)):
+def add_members_to_team(
+    member_info: MemberRequest,
+    user: User = Depends(get_user),
+    db: Session = Depends(get_db)
+):
     team_repository = TeamRepository(db)
     team_member_repository = TeamMemberRepository(db)
 
@@ -33,12 +38,13 @@ def add_member_to_team(member_info: MemberRequest, user: User = Depends(get_user
         team = Team(create_user_id=user.id)
         team_repository.create(team)
 
-    team_member = TeamMember(
-        team_id=team.id,
-        email=member_info.email,
-        added_by_id=user.id
-    )
-    team_member_repository.create(team_member)
+    for email in member_info.emails:
+        team_member = TeamMember(
+            team_id=team.id,
+            email=email,
+            added_by_id=user.id
+        )
+        team_member_repository.create(team_member)
 
 
 
