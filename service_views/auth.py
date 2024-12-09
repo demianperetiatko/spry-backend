@@ -35,6 +35,10 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
     state = request.query_params.get("state")
     authorization_response = str(request.url)
     user = update_user_after_google_login(state, authorization_response, db)
+    if user is None:
+        return {
+            "status": "error",
+        }
     request.session["user_id"] = user.id
     return RedirectResponse(FRONTEND_URL)
 

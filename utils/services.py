@@ -11,7 +11,8 @@ from authlib.integrations.requests_client import OAuth2Session
 AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
-GOOGLE_REDIRECT_URI = "https://app.spryplan.com/auth/callback/google" if os.getenv('APP_ENV') =="prod" else "http://localhost:8000/auth/callback/google"
+GOOGLE_REDIRECT_URI = "https://app.spryplan.com/auth/callback/google" if os.getenv(
+    'APP_ENV') == "prod" else "http://localhost:8000/auth/callback/google"
 SCOPE = [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -49,6 +50,16 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     google_refresh_token = token.get("refresh_token", None)
     user_info = client.get(USERINFO_ENDPOINT).json()
     email = user_info.get("email")
+    if email not in [
+        "bohdan.dobosevych@gmail.com",
+        "demian.peretiatko@gmail.com",
+        "kostyantin1408@gmail.com",
+        "dobosevych@gmail.com",
+        "o.dobosevych@geniusee.com",
+        "dudeson26@gmail.com",
+        "demian@flowlity.com"
+    ]:
+        return None
     user = user_repository.find_by_email(email)
     if not user:
         user = User(
