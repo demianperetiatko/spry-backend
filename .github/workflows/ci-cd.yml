@@ -20,13 +20,19 @@ jobs:
 
       - name: Set environment variables
         run: |
+          echo "APP_ENV=develop" >> $GITHUB_ENV
           echo "SQLALCHEMY_DATABASE_URI=${{ secrets.SQLALCHEMY_DATABASE_URI }}" >> $GITHUB_ENV
-          echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> $GITHUB_ENV
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
 
       - name: Prepare app.yaml
         run: |
+          sed -i "s|\${APP_ENV}|develop|g" app.yaml
           sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI }}|g" app.yaml
-          sed -i "s|\${FIREBASE_API_KEY}|${{ secrets.FIREBASE_API_KEY }}|g" app.yaml
+          sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY }}|g" app.yaml
+          sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
+          sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
 
       - name: Deploy to App Engine
         run: gcloud app deploy --quiet

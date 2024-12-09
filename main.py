@@ -17,7 +17,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-SECRET_KEY = os.getenv("SECRET_KEY","")
+SECRET_KEY = os.getenv("SECRET_KEY")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.include_router(auth_view.router, tags=["auth"])
