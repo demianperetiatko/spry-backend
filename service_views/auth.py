@@ -13,7 +13,7 @@ router = APIRouter(
     tags=['auth']
 )
 
-FRONTEND_URL = "https://app.spryplan.com/" if os.getenv('APP_ENV') =="prod" else "http://localhost:8000/"
+FRONTEND_URL = "https://app.spryplan.com/" if os.getenv('APP_ENV') == "prod" else "http://localhost:3000/"
 
 
 @router.get("/google")
