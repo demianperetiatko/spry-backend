@@ -11,7 +11,7 @@ from authlib.integrations.requests_client import OAuth2Session
 AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
-GOOGLE_REDIRECT_URI = "https://app.spryplan.com/auth/callback/google/" if os.getenv(
+GOOGLE_REDIRECT_URI = "https://api.spryplan.com/auth/callback/google/" if os.getenv(
     'APP_ENV') == "prod" else "http://localhost:8000/auth/callback/google/"
 SCOPE = [
     "https://www.googleapis.com/auth/calendar",
