@@ -61,6 +61,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     ]:
         return None
     user = user_repository.find_by_email(email)
+    is_new_user = user is None
     if not user:
         user = User(
             name=user_info.get('name'),
@@ -74,7 +75,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
         user.google_refresh_token = google_refresh_token
         user_repository.update(user)
 
-    return user
+    return user, is_new_user
 
 
 def authenticated_user(request: Request, db: Session = Depends(get_db)):
