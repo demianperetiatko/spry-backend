@@ -13,7 +13,7 @@ router = APIRouter(
     tags=['auth']
 )
 
-FRONTEND_DOMAIN = "https://app.spryplan.com/" if os.getenv('APP_ENV') == "prod" else "http://localhost:3000/"
+FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" else "http://localhost:3000"
 
 @router.get("/")
 async def auth(user: User = Depends(authenticated_user)):
