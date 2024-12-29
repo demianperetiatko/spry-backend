@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from models import get_db, User, Team, TeamMember
 from models.repositories.user_repository import UserRepository, TeamRepository, TeamMemberRepository
 from utils.services import authenticated_user
+from utils.send_message import send_email
 
 router = APIRouter()
 
@@ -21,14 +22,16 @@ def team(user: User = Depends(authenticated_user), db: Session = Depends(get_db)
         return []
     return team_repository.find_by_team_member(team.id)
 
+
 class MemberRequest(BaseModel):
     emails: List[EmailStr]
 
+
 @router.post("/team/")
 def add_members_to_team(
-    member_info: MemberRequest,
-    user: User = Depends(authenticated_user),
-    db: Session = Depends(get_db)
+        member_info: MemberRequest,
+        user: User = Depends(authenticated_user),
+        db: Session = Depends(get_db)
 ):
     team_repository = TeamRepository(db)
     team_member_repository = TeamMemberRepository(db)
@@ -44,8 +47,19 @@ def add_members_to_team(
             email=email,
             added_by_id=user.id
         )
+        send_email(to_email=email,
+                   subject="Welcome to SPTY!",
+                   html_content="""
+                       <h1>Welcome to SPTY!</h1>
+                       <p>You have been invited to join SPTY.</p>
+                       <p>
+                           Please click the link below to log in and get started:
+                           <br>
+                           <a href="https://app.spryplan.com/login" target="_blank">Log In</a>
+                       </p>
+                       <p>If you have any questions, feel free to contact us.</p>
+                   """)
         team_member_repository.create(team_member)
-
 
 
 def generate_data(start_date: datetime, end_date: datetime, view_type: str):
@@ -67,6 +81,8 @@ def generate_data(start_date: datetime, end_date: datetime, view_type: str):
         data.append({"Date": formatted_date, "Recurring": recurring, "One-time": one_time})
 
     return {"data": data}
+
+
 @router.get("/team/chart/")
 def team_chart(start_date: str, end_date: str, type: str):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
