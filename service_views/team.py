@@ -6,8 +6,8 @@ from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Team, TeamMember
-from models.repositories.user_repository import UserRepository, TeamRepository, TeamMemberRepository
+from models import get_db, User, Organization, OrganizationMember
+from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 from utils.services import authenticated_user
 from utils.send_message import send_email
 
@@ -16,11 +16,11 @@ router = APIRouter()
 
 @router.get("/team/")
 def team(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
-    team_repository = TeamRepository(db)
+    team_repository = OrganizationRepository(db)
     team = team_repository.find_by_create_user_id(user.id)
     if team is None:
         return []
-    return team_repository.find_by_team_member(team.id)
+    return team_repository.find_by_member(team.id)
 
 
 class MemberRequest(BaseModel):
@@ -33,17 +33,17 @@ def add_members_to_team(
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
-    team_repository = TeamRepository(db)
-    team_member_repository = TeamMemberRepository(db)
+    team_repository = OrganizationRepository(db)
+    team_member_repository = OrganizationMemberRepository(db)
 
     team = team_repository.find_by_create_user_id(user.id)
     if not team:
-        team = Team(create_user_id=user.id)
+        team = Organization(create_user_id=user.id)
         team_repository.create(team)
 
     for email in member_info.emails:
-        team_member = TeamMember(
-            team_id=team.id,
+        team_member = OrganizationMember(
+            organization_id=team.id,
             email=email,
             added_by_id=user.id
         )
