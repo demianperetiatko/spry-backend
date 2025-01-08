@@ -67,6 +67,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     if not user:
         user = User(
             name=user_info.get('name'),
+            photo_url=user_info.get('picture'),
             email=email,
             google_access_token=google_access_token,
             google_refresh_token=google_refresh_token,

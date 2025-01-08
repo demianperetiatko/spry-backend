@@ -12,3 +12,4 @@ class User(Base):
     email = Column(String(100), nullable=False, unique=True)
     google_access_token = Column(Text)
     google_refresh_token = Column(Text)
+    photo_url = Column(String(255))
