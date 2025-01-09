@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, File, UploadFile
+from fastapi import Depends, APIRouter, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -17,7 +17,7 @@ def get_profile(user: User = Depends(authenticated_user)):
 
 @router.put("/profile/")
 def update_profile(
-        name: str | None = None,
+        name: str | None = Form(default=None),
         photo_file: UploadFile | None = File(None),
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
