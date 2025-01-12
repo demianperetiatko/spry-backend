@@ -37,6 +37,9 @@ def add_members_to_organization(
     organization_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
     org = organization_repository.find_organization(user.id)
+    if not org:
+        org = Organization(create_user_id=user.id)
+        organization_repository.create(org)
     for email in member_info.emails:
         member = OrganizationMember(
             organization_id=org.id,
