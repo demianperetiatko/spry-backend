@@ -14,7 +14,7 @@ class OrganizationRepository(BaseRepo[Organization]):
         super().__init__(session, Organization)
 
     def find_organization(self, user_id: int) -> Organization:
-        return self.session.query(Organization).filter(Organization.create_user_id == 2).first()
+        return self.session.query(Organization).filter(Organization.create_user_id == user_id).first()
 
 
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
