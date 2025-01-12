@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
@@ -15,10 +15,13 @@ router = APIRouter()
 @router.get("/member/")
 def get_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
-    org = org_repository.find_by_create_user_id(user.id)
-    if org is None:
-        return []
-    return org_repository.find_by_member(org.id)
+    organization_member_repository = OrganizationMemberRepository(db)
+    org = org_repository.find_organization(user.id)
+    members = organization_member_repository.find_member(org.id)
+    return {
+        'data': members,
+        'total_count': len(members)
+    }
 
 
 class MemberRequest(BaseModel):
@@ -33,12 +36,7 @@ def add_members_to_organization(
 ):
     organization_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
-
-    org = organization_repository.find_by_create_user_id(user.id)
-    if not org:
-        org = Organization(create_user_id=user.id)
-        organization_repository.create(org)
-
+    org = organization_repository.find_organization(user.id)
     for email in member_info.emails:
         member = OrganizationMember(
             organization_id=org.id,
