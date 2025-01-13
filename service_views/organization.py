@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from models import get_db, User, Organization, OrganizationMember
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 from utils.services import authenticated_user
-from utils.send_message import send_email
+from utils.organization import send_invitation
 
 router = APIRouter()
 
@@ -23,10 +23,8 @@ def get_member(user: User = Depends(authenticated_user), db: Session = Depends(g
         'total_count': len(members)
     }
 
-
 class MemberRequest(BaseModel):
     emails: List[EmailStr]
-
 
 @router.post("/member/")
 def add_members_to_organization(
@@ -46,36 +44,22 @@ def add_members_to_organization(
             email=email,
             added_by_id=user.id
         )
-        send_email(to_email=email,
-                   subject="Welcome to SPTY!",
-                   html_content="""
-                       <h1>Welcome to SPTY!</h1>
-                       <p>You have been invited to join SPTY.</p>
-                       <p>
-                           Please click the link below to log in and get started:
-                           <br>
-                           <a href="https://app.spryplan.com/login" target="_blank">Log In</a>
-                       </p>
-                       <p>If you have any questions, feel free to contact us.</p>
-                   """)
+        send_invitation(email)
         organization_member_repository.create(member)
-
 
 class UpdateMemberRequest(BaseModel):
     email: EmailStr
 
-
-@router.put("/member/{member_id}")
+@router.put("/member/{member_id}/")
 def update_member(
         member_id: int,
         member_info: UpdateMemberRequest,
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
-    return
+    pass
 
-
-@router.delete("/member/{member_id}")
+@router.delete("/member/{member_id}/")
 def delete_member_from_organization(
         member_id: int,
         user: User = Depends(authenticated_user),
@@ -90,3 +74,19 @@ def delete_member_from_organization(
     if not member or member.organization_id != org.id:
         raise HTTPException(status_code=404, detail="Member not found")
     organization_member_repository.delete(member)
+
+@router.post("/member/{member_id}/resend-invitation")
+def resend_invitation(
+        member_id: int,
+        user: User = Depends(authenticated_user),
+        db: Session = Depends(get_db)
+):
+    organization_repository = OrganizationRepository(db)
+    organization_member_repository = OrganizationMemberRepository(db)
+    org = organization_repository.find_organization(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    member = organization_member_repository.find_member(org.id, member_id)
+    if not member or member.organization_id != org.id:
+        raise HTTPException(status_code=404, detail="Member not found")
+    send_invitation(member.email)
