@@ -84,13 +84,11 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
 def authenticated_user(
     request: Request,
     db: Session = Depends(get_db),
-    user_id_header: str | None = Header(None, alias="X-User-ID")
 ):
-    user_id = user_id_header
+    user_id = request.session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_repository = UserRepository(db)
-    print(user_id)
     user = user_repository.find_by_id(int(user_id))
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
