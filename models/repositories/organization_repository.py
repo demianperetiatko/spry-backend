@@ -32,7 +32,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def find_member(self, organization_id: int, member_id: int) -> OrganizationMember:
         return (
             self.session.query(OrganizationMember)
-            .filter(OrganizationMember.create_user_id == member_id)
+            .filter(OrganizationMember.id == member_id)
             .filter(OrganizationMember.organization_id == organization_id)
             .first()
         )
