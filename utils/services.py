@@ -1,5 +1,5 @@
 import os
-from fastapi import Request, HTTPException, Depends
+from fastapi import Request, HTTPException, Depends, Header
 
 from sqlalchemy.orm import Session
 
@@ -81,12 +81,17 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     return user, is_new_user
 
 
-def authenticated_user(request: Request, db: Session = Depends(get_db)):
-    user_id = request.session.get("user_id")
+def authenticated_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id_header: str | None = Header(None, alias="X-User-ID")
+):
+    user_id = user_id_header
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_repository = UserRepository(db)
-    user = user_repository.find_by_id(user_id)
+    print(user_id)
+    user = user_repository.find_by_id(int(user_id))
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
