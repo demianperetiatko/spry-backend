@@ -2,7 +2,7 @@ import uuid
 from typing import TypeVar, List
 
 from models.repositories import BaseRepo
-from models import User, Organization, OrganizationMember
+from models import User, Organization, OrganizationMember, OrganizationMemberStatus
 
 from sqlalchemy.sql import literal
 
@@ -38,6 +38,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         )
 
     def find_members(self, organization_id: int) -> Organization:
+        print(OrganizationMemberStatus.PENDING.value)
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -47,7 +48,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 literal("-").label("department"),
                 literal("-").label("team"),
                 literal("-").label("rate"),
-                literal("active").label("status"),
+                literal(OrganizationMemberStatus.PENDING.value).label("status"),
             )
             .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationMember.organization_id == organization_id)
