@@ -3,8 +3,9 @@ from fastapi import Request, HTTPException, Depends, Header
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User
+from models import get_db, User, Organization
 from models.repositories.user_repository import UserRepository
+from models.repositories.organization_repository import OrganizationRepository
 
 from authlib.integrations.requests_client import OAuth2Session
 
@@ -63,7 +64,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     ]:
         return None
     user = user_repository.find_by_email(email)
-    is_new_user = user is None
+    is_new_user = False
     if not user:
         user = User(
             name=user_info.get('name'),
@@ -78,6 +79,12 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
         user.google_refresh_token = google_refresh_token
         user_repository.update(user)
 
+    organization_repository = OrganizationRepository(db)
+    org = organization_repository.find_by_user(user)
+    if org is None:
+        is_new_user = True
+        org = Organization(create_user_id=user.id)
+        organization_repository.create(org)
     return user, is_new_user
 
 

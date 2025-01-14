@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from models import Base, User
 import enum
 
+
 class Organization(Base):
     __tablename__ = 'organizations'
     id = Column(Integer, primary_key=True)
@@ -11,9 +12,11 @@ class Organization(Base):
 
     create_user = relationship('User', backref='organizations_created')
 
-class OrganizationMemberStatus(enum.Enum):
+
+class OrganizationMemberStatus:
     ACTIVE = "active"
     PENDING = "pending"
+
 
 class OrganizationMember(Base):
     __tablename__ = 'organization_members'
@@ -24,7 +27,7 @@ class OrganizationMember(Base):
     rate = Column(String(255))
     type_rate = Column(String(255))
     added_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    # status = Column(Enum(OrganizationMemberStatus), nullable=False, default=OrganizationMemberStatus.PENDING)
+    status = Column(String(20), nullable=False, default=OrganizationMemberStatus.PENDING)
 
     organization = relationship('Organization', backref='members')
     added_by = relationship('User', backref='organization_members_added')

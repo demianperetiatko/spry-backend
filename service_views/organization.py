@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Organization, OrganizationMember
+from models import get_db, User, Organization, OrganizationMember, OrganizationMemberStatus
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 from utils.services import authenticated_user
 from utils.organization import send_invitation
@@ -16,7 +16,7 @@ router = APIRouter()
 def get_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
-    org = org_repository.find_organization(user)
+    org = org_repository.find_by_user(user)
     members = organization_member_repository.find_members(org.id)
     return {
         'data': members,
@@ -34,7 +34,7 @@ def add_members_to_organization(
 ):
     organization_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
-    org = organization_repository.find_organization(user)
+    org = organization_repository.find_by_user(user)
     if not org:
         org = Organization(create_user_id=user.id)
         organization_repository.create(org)
@@ -42,7 +42,8 @@ def add_members_to_organization(
         member = OrganizationMember(
             organization_id=org.id,
             email=email,
-            added_by_id=user.id
+            added_by_id=user.id,
+            status=OrganizationMemberStatus.PENDING,
         )
         send_invitation(email)
         organization_member_repository.create(member)
@@ -67,7 +68,7 @@ def delete_member_from_organization(
 ):
     organization_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
-    org = organization_repository.find_organization(user)
+    org = organization_repository.find_by_user(user)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     member = organization_member_repository.find_member(org.id, member_id)
@@ -83,10 +84,10 @@ def resend_invitation(
 ):
     organization_repository = OrganizationRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
-    org = organization_repository.find_organization(user)
+    org = organization_repository.find_by_user(user)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     member = organization_member_repository.find_member(org.id, member_id)
-    if not member or member.organization_id != org.id:
+    if not member:
         raise HTTPException(status_code=404, detail="Member not found")
     send_invitation(member.email)
