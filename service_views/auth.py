@@ -44,7 +44,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
     request.session["user_id"] = user.id
     if user.email == "sazhagutalin@gmail.com":
         return RedirectResponse("http://localhost:3000/")
-    redirect_url = f"{FRONTEND_DOMAIN}/invite-members" if is_new_user else FRONTEND_DOMAIN
+    redirect_url = f"{FRONTEND_DOMAIN}/onboarding/profile" if is_new_user else FRONTEND_DOMAIN
     return RedirectResponse(redirect_url)
 
 
