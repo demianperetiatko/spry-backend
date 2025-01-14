@@ -3,9 +3,9 @@ from fastapi import Request, HTTPException, Depends, Header
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Organization
+from models import get_db, User, Organization, OrganizationMember, OrganizationMemberStatus
 from models.repositories.user_repository import UserRepository
-from models.repositories.organization_repository import OrganizationRepository
+from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from authlib.integrations.requests_client import OAuth2Session
 
@@ -83,8 +83,16 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     org = organization_repository.find_by_user(user)
     if org is None:
         is_new_user = True
+        organization_member_repository = OrganizationMemberRepository(db)
         org = Organization(create_user_id=user.id)
         organization_repository.create(org)
+        member = OrganizationMember(
+            organization_id=org.id,
+            email=user.email,
+            status=OrganizationMemberStatus.ACTIVE,
+            added_by_id=user.id,
+        )
+        organization_member_repository.create(member)
     return user, is_new_user
 
 
