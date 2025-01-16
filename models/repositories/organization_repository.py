@@ -3,7 +3,7 @@ from typing import TypeVar, List
 
 from models.repositories import BaseRepo
 from models import User, Organization, OrganizationMember, OrganizationMemberStatus
-
+from models import OrganizationTeam, OrganizationTeamMember
 from sqlalchemy.sql import literal
 
 T = TypeVar("T")
@@ -29,7 +29,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationMember)
 
-    def find_member(self, organization_id: int, member_id: int) -> OrganizationMember:
+    def find_by_member_id(self, organization_id: int, member_id: int) -> OrganizationMember:
         return (
             self.session.query(OrganizationMember)
             .filter(OrganizationMember.id == member_id)
@@ -37,7 +37,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
 
-    def find_members(self, organization_id: int) -> Organization:
+    def find_by_organization_id(self, organization_id: int) -> Organization:
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -53,3 +53,18 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .filter(OrganizationMember.organization_id == organization_id)
             .all()
         )
+
+class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
+    def __init__(self, session):
+        super().__init__(session, OrganizationTeam)
+
+    def find_by_organization_id(self, organization_id: int) -> List[OrganizationTeam]:
+        return self.session.query(OrganizationTeam).filter(OrganizationTeam.organization_id == organization_id).all()
+
+
+class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
+    def __init__(self, session):
+        super().__init__(session, OrganizationTeamMember)
+
+    def find_by_team_id(self, team_id: int) -> List[OrganizationTeamMember]:
+        return self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).all()

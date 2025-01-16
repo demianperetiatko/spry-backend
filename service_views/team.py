@@ -14,53 +14,6 @@ from utils.send_message import send_email
 router = APIRouter()
 
 
-@router.get("/team/")
-def team(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
-    team_repository = OrganizationRepository(db)
-    team = team_repository.find_by_create_user_id(user.id)
-    if team is None:
-        return []
-    return team_repository.find_by_member(team.id)
-
-
-class MemberRequest(BaseModel):
-    emails: List[EmailStr]
-
-
-@router.post("/team/")
-def add_members_to_team(
-        member_info: MemberRequest,
-        user: User = Depends(authenticated_user),
-        db: Session = Depends(get_db)
-):
-    team_repository = OrganizationRepository(db)
-    team_member_repository = OrganizationMemberRepository(db)
-
-    team = team_repository.find_by_create_user_id(user.id)
-    if not team:
-        team = Organization(create_user_id=user.id)
-        team_repository.create(team)
-
-    for email in member_info.emails:
-        team_member = OrganizationMember(
-            organization_id=team.id,
-            email=email,
-            added_by_id=user.id
-        )
-        send_email(to_email=email,
-                   subject="Welcome to SPTY!",
-                   html_content="""
-                       <h1>Welcome to SPTY!</h1>
-                       <p>You have been invited to join SPTY.</p>
-                       <p>
-                           Please click the link below to log in and get started:
-                           <br>
-                           <a href="https://app.spryplan.com/login" target="_blank">Log In</a>
-                       </p>
-                       <p>If you have any questions, feel free to contact us.</p>
-                   """)
-        team_member_repository.create(team_member)
-
 
 def generate_data(start_date: datetime, end_date: datetime, view_type: str):
     data = []

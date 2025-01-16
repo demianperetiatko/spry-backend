@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from models import Base, User
-import enum
 
 
 class Organization(Base):
@@ -22,12 +21,31 @@ class OrganizationMember(Base):
     __tablename__ = 'organization_members'
 
     id = Column(Integer, primary_key=True)
-    organization_id = Column(Integer, ForeignKey('organizations.id'))
+    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
     email = Column(String(100), nullable=False, unique=True)
     rate = Column(String(255))
     type_rate = Column(String(255))
-    added_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     status = Column(String(20), nullable=False, default=OrganizationMemberStatus.PENDING)
-
     organization = relationship('Organization', backref='members')
-    added_by = relationship('User', backref='organization_members_added')
+
+
+class OrganizationTeam(Base):
+    __tablename__ = 'organization_teams'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
+
+    organization = relationship('Organization', backref='teams')
+
+
+class OrganizationTeamMember(Base):
+    __tablename__ = 'organization_team_members'
+
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey('organization_teams.id'), nullable=False)
+    member_id = Column(Integer, ForeignKey('organization_members.id'), nullable=False)
+
+    team = relationship('OrganizationTeam', backref='team_members')
+    member = relationship('OrganizationMember', backref='teams')
+
