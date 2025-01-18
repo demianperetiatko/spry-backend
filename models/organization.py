@@ -38,6 +38,9 @@ class OrganizationTeam(Base):
 
     organization = relationship('Organization', backref='teams')
 
+class OrganizationTeamMemberType:
+    MEMBER = "member"
+    MANAGER = "manager"
 
 class OrganizationTeamMember(Base):
     __tablename__ = 'organization_team_members'
@@ -45,6 +48,7 @@ class OrganizationTeamMember(Base):
     id = Column(Integer, primary_key=True)
     team_id = Column(Integer, ForeignKey('organization_teams.id'), nullable=False)
     member_id = Column(Integer, ForeignKey('organization_members.id'), nullable=False)
+    type = Column(String(20), nullable=False, default=OrganizationTeamMemberType.MEMBER)
 
     team = relationship('OrganizationTeam', backref='team_members')
     member = relationship('OrganizationMember', backref='teams')

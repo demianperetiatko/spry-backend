@@ -15,9 +15,14 @@ from utils.services import authenticated_user
 router = APIRouter()
 
 
+class TeamMemberRequest(BaseModel):
+    member_id: int
+    type: str
+
+
 class TeamRequest(BaseModel):
     name: str
-    member_ids: List[int]
+    team_members: List[TeamMemberRequest]
 
 
 @router.get("/team/")
@@ -36,20 +41,23 @@ def get_teams(user: User = Depends(authenticated_user), db: Session = Depends(ge
 
 @router.post("/team/")
 def create_team(
-        team_info: TeamRequest,
-        user: User = Depends(authenticated_user),
-        db: Session = Depends(get_db)
+    team_info: TeamRequest,
+    user: User = Depends(authenticated_user),
+    db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
     org = org_repository.find_by_user(user)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    team = OrganizationTeam(
-        name=team_info.name,
-        organization_id=org.id,
-    )
+
+    team = OrganizationTeam(name=team_info.name, organization_id=org.id)
     team_repository.create(team)
-    for member_id in team_info.member_ids:
-        team_repository.create(OrganizationTeamMember(team_id=team.id, member_id=member_id))
-    return
+
+    for member_info in team_info.team_members:
+        team_member = OrganizationTeamMember(
+            team_id=team.id,
+            member_id=member_info.member_id,
+            type=member_info.type,
+        )
+        team_repository.create(team_member)
