@@ -60,7 +60,8 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
         "dudeson26@gmail.com",
         "demian@flowlity.com",
         "sazhagutalin@gmail.com",
-        "nastyalada@gmail.com"
+        "nastyalada@gmail.com",
+        "darka.azhnyuk@gmail.com"
     ]:
         return None
     user = user_repository.find_by_email(email)
