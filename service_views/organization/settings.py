@@ -16,6 +16,8 @@ class UpdateCostSettings(BaseModel):
     currency: Optional[str] = None
     cost_period: Optional[str] = None
     cost_visibility: Optional[str] = None
+    cost_type: Optional[str] = None
+    average_cost: Optional[float] = None
 
 @router.get('/cost')
 def get_settings_cost(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
@@ -26,6 +28,8 @@ def get_settings_cost(user: User = Depends(authenticated_user), db: Session = De
         'currency': org.currency,
         'cost_period': org.cost_period,
         'cost_visibility': org.cost_visibility,
+        'cost_type': org.cost_type,
+        'average_cost': org.average_cost,
     }
 
 @router.put('/cost')
@@ -44,5 +48,7 @@ def update_settings_cost(
     org.currency = settings.currency
     org.cost_period = settings.cost_period
     org.cost_visibility = settings.cost_visibility
+    org.cost_type = settings.cost_type
+    org.average_cost = settings.average_cost
     org_repository.update(org)
     return

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey,Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey,Boolean, Float
 from sqlalchemy.orm import relationship
 
 from models import Base, User
@@ -10,10 +10,13 @@ class OrganizationCostPeriod:
     HOUR = "hour"
 
 class OrganizationCostVisibility:
-
     OWNER = "owner"
     MANAGER = "manager"
     ALL = "all"
+
+class OrganizationCostType:
+    PER_MEMBER = "per_member"
+    AVERAGE = "average"
 
 class Organization(Base):
     __tablename__ = 'organizations'
@@ -22,6 +25,8 @@ class Organization(Base):
     currency = Column(String(3),default='USD')
     cost_period = Column(String(20), default=OrganizationCostPeriod.MONTH)
     cost_visibility = Column(String(20), default=OrganizationCostVisibility.OWNER)
+    cost_type = Column(String(20), default=OrganizationCostType.AVERAGE)
+    average_cost = Column(Float, nullable=True)
     create_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     create_user = relationship('User', backref='organizations_created')
