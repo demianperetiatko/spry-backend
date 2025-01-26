@@ -23,8 +23,8 @@ class UpdateCostSettings(BaseModel):
     def validate_currency(cls, value, info):
         if info.data.get('cost_is_active') and value is None:
             raise ValueError("Currency must not be None when cost_is_active is True.")
-        if info.data.get('cost_visibility') is False and value is not None:
-            raise ValueError("Currency must be None when cost_visibility is False.")
+        if info.data.get('cost_is_active') is False and value is not None:
+            raise ValueError("Currency must be None when cost_is_active is False.")
         return value
 
     @field_validator("cost_period")
@@ -33,8 +33,8 @@ class UpdateCostSettings(BaseModel):
             raise ValueError(
                 f"Invalid value for cost_period. Allowed values are: {', '.join(OrganizationCostPeriod.ALLOWED_PERIODS)}"
             )
-        if info.data.get('cost_visibility') is False and value is not None:
-            raise ValueError("cost_period must be None when cost_visibility is False.")
+        if info.data.get('cost_is_active') is False and value is not None:
+            raise ValueError("cost_period must be None when cost_is_active is False.")
         return value
 
     @field_validator("cost_visibility")
@@ -43,6 +43,8 @@ class UpdateCostSettings(BaseModel):
             raise ValueError(
                 f"Invalid value for cost_visibility. Allowed values are: {', '.join(OrganizationCostVisibility.ALLOWED_PERIODS)}"
             )
+        if info.data.get('cost_is_active') is False and value is not None:
+            raise ValueError("cost_visibility must be None when cost_is_active is False.")
         return value
 
     @field_validator("cost_type")
@@ -51,16 +53,14 @@ class UpdateCostSettings(BaseModel):
             raise ValueError(
                 f"Invalid value for cost_type. Allowed values are: {', '.join(OrganizationCostType.ALLOWED_PERIODS)}"
             )
-        if info.data.get('cost_visibility') is False and value is not None:
-            raise ValueError("cost_type must be None when cost_visibility is False.")
+        if info.data.get('cost_is_active') is False and value is not None:
+            raise ValueError("cost_type must be None when cost_is_active is False.")
         return value
 
     @field_validator("average_cost")
     def validate_average_cost(cls, value, info):
         if info.data.get("cost_type") == OrganizationCostType.AVERAGE and value is None:
             raise ValueError("average_cost must not be None when cost_type is 'average'")
-        if info.data.get('cost_visibility') is False and value is not None:
-            raise ValueError("average_cost must be None when cost_visibility is False.")
         return value
 
 @router.get('/cost')
