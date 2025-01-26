@@ -22,7 +22,7 @@ def get_settings_cost(user: User = Depends(authenticated_user), db: Session = De
     org_repository = OrganizationRepository(db)
     org = org_repository.find_by_user(user)
     return {
-        'cost_is_active': org.cost_is_active,
+        'cost_is_active': org.cost_is_active or False,
         'currency': org.currency,
         'cost_period': org.cost_period,
         'cost_visibility': org.cost_visibility,
