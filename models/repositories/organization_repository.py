@@ -37,6 +37,14 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
 
+    def find_by_member_email(self, organization_id: int, email: str) -> OrganizationMember:
+        return (
+            self.session.query(OrganizationMember)
+            .filter(OrganizationMember.email == email)
+            .filter(OrganizationMember.organization_id == organization_id)
+            .first()
+        )
+
     def find_by_organization_id(self, organization_id: int) -> Organization:
         return (
             self.session.query(
