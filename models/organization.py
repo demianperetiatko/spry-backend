@@ -38,6 +38,7 @@ class Organization(Base):
 class OrganizationMemberStatus:
     ACTIVE = "active"
     PENDING = "pending"
+    ALLOWED_PERIODS = {ACTIVE, PENDING}
 
 
 class OrganizationMember(Base):
@@ -64,6 +65,7 @@ class OrganizationTeam(Base):
 class OrganizationTeamMemberType:
     MEMBER = "member"
     MANAGER = "manager"
+    ALLOWED_PERIODS = {MEMBER, MANAGER}
 
 class OrganizationTeamMember(Base):
     __tablename__ = 'organization_team_members'

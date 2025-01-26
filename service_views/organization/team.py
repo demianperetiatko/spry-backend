@@ -1,13 +1,13 @@
 from typing import List
 from fastapi import Depends, APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, field_validator, model_validator
 
 from sqlalchemy.orm import Session
 
 from models import get_db, User
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from models import OrganizationTeam, OrganizationTeamMember
+from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
 from utils.services import authenticated_user
@@ -19,10 +19,27 @@ class TeamMemberRequest(BaseModel):
     member_id: int
     type: str
 
+    @field_validator("type")
+    def validate_currency(cls, value):
+        if value not in OrganizationTeamMemberType.ALLOWED_PERIODS:
+            raise ValueError(
+                f"Invalid value for type. Allowed values are: {', '.join(OrganizationTeamMemberType.ALLOWED_PERIODS)}"
+            )
+        return value
 
 class TeamRequest(BaseModel):
     name: str
     team_members: List[TeamMemberRequest]
+
+    @model_validator(mode='before')
+    def validate_manager(cls, values):
+        team_members = values.get('team_members', [])
+        manager_count = sum(1 for member in team_members if member.get('type') == OrganizationTeamMemberType.MANAGER)
+
+        if manager_count != 1:
+            raise ValueError(f"There must be exactly one member with type '{OrganizationTeamMemberType.MANAGER}'.")
+
+        return values
 
 
 @router.get("/team/")
