@@ -8,15 +8,18 @@ class OrganizationCostPeriod:
     YEAR = "year"
     MONTH = "month"
     HOUR = "hour"
+    ALLOWED_PERIODS = {YEAR, MONTH, HOUR}
 
 class OrganizationCostVisibility:
     OWNER = "owner"
     MANAGER = "manager"
     ALL = "all"
+    ALLOWED_PERIODS = {OWNER, MANAGER, ALL}
 
 class OrganizationCostType:
     PER_MEMBER = "per_member"
     AVERAGE = "average"
+    ALLOWED_PERIODS = {PER_MEMBER, AVERAGE}
 
 class Organization(Base):
     __tablename__ = 'organizations'

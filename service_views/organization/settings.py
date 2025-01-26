@@ -1,10 +1,10 @@
 from typing import Optional
 from fastapi import Depends, APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, field_validator, model_validator
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User
+from models import get_db, User, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
 from models.repositories.organization_repository import OrganizationRepository
 
 from utils.services import authenticated_user
@@ -18,6 +18,50 @@ class UpdateCostSettings(BaseModel):
     cost_visibility: Optional[str] = None
     cost_type: Optional[str] = None
     average_cost: Optional[float] = None
+
+    @field_validator("currency")
+    def validate_currency(cls, value, info):
+        if info.data.get('cost_is_active') and value is None:
+            raise ValueError("Currency must not be None when cost_is_active is True.")
+        if info.data.get('cost_visibility') is False and value is not None:
+            raise ValueError("Currency must be None when cost_visibility is False.")
+        return value
+
+    @field_validator("cost_period")
+    def validate_cost_period(cls, value, info):
+        if info.data.get('cost_is_active') and value not in OrganizationCostPeriod.ALLOWED_PERIODS:
+            raise ValueError(
+                f"Invalid value for cost_period. Allowed values are: {', '.join(OrganizationCostPeriod.ALLOWED_PERIODS)}"
+            )
+        if info.data.get('cost_visibility') is False and value is not None:
+            raise ValueError("cost_period must be None when cost_visibility is False.")
+        return value
+
+    @field_validator("cost_visibility")
+    def validate_cost_visibility(cls, value, info):
+        if info.data.get('cost_is_active') and value not in OrganizationCostVisibility.ALLOWED_PERIODS:
+            raise ValueError(
+                f"Invalid value for cost_visibility. Allowed values are: {', '.join(OrganizationCostVisibility.ALLOWED_PERIODS)}"
+            )
+        return value
+
+    @field_validator("cost_type")
+    def validate_cost_type(cls, value, info):
+        if info.data.get('cost_is_active') and value not in OrganizationCostType.ALLOWED_PERIODS:
+            raise ValueError(
+                f"Invalid value for cost_type. Allowed values are: {', '.join(OrganizationCostType.ALLOWED_PERIODS)}"
+            )
+        if info.data.get('cost_visibility') is False and value is not None:
+            raise ValueError("cost_type must be None when cost_visibility is False.")
+        return value
+
+    @field_validator("average_cost")
+    def validate_average_cost(cls, value, info):
+        if info.data.get("cost_type") == OrganizationCostType.AVERAGE and value is None:
+            raise ValueError("average_cost must not be None when cost_type is 'average'")
+        if info.data.get('cost_visibility') is False and value is not None:
+            raise ValueError("average_cost must be None when cost_visibility is False.")
+        return value
 
 @router.get('/cost')
 def get_settings_cost(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
