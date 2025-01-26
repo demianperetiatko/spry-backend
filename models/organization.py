@@ -1,12 +1,27 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey,Boolean
 from sqlalchemy.orm import relationship
 
 from models import Base, User
 
 
+class OrganizationCostPeriod:
+    YEAR = "year"
+    MONTH = "month"
+    HOUR = "hour"
+
+class OrganizationCostVisibility:
+
+    OWNER = "owner"
+    MANAGER = "manager"
+    ALL = "all"
+
 class Organization(Base):
     __tablename__ = 'organizations'
     id = Column(Integer, primary_key=True)
+    cost_is_active = Column(Boolean, default=False)
+    currency = Column(String(3),default='USD')
+    cost_period = Column(String(20), default=OrganizationCostPeriod.MONTH)
+    cost_visibility = Column(String(20), default=OrganizationCostVisibility.OWNER)
     create_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     create_user = relationship('User', backref='organizations_created')
