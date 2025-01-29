@@ -11,5 +11,6 @@ def send_email(to_email, subject, html_content, from_email='hello@spryplan.com')
             html_content=html_content)
         sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
         response = sg.send(message)
+
     except Exception as e:
         print(e)
