@@ -84,7 +84,7 @@ def update_settings_cost(
 ):
     org_repository = OrganizationRepository(db)
     org = org_repository.find_by_user(user)
-
+    print(settings)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -95,4 +95,6 @@ def update_settings_cost(
     org.cost_type = settings.cost_type
     org.average_cost = settings.average_cost
     org_repository.update(org)
+    print(org.id)
+    print(org.cost_is_active)
     return
