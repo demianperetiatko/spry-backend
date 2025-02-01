@@ -2,9 +2,10 @@ import uuid
 from typing import TypeVar, List
 
 from models.repositories import BaseRepo
-from models import User, Organization, OrganizationMember, OrganizationMemberStatus
+from models import User, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType
 from models import OrganizationTeam, OrganizationTeamMember
 from sqlalchemy.sql import literal
+from sqlalchemy.sql import func
 
 T = TypeVar("T")
 
@@ -67,7 +68,41 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
         super().__init__(session, OrganizationTeam)
 
     def find_by_organization_id(self, organization_id: int) -> List[OrganizationTeam]:
-        return self.session.query(OrganizationTeam).filter(OrganizationTeam.organization_id == organization_id).all()
+        subquery = (
+            self.session.query(
+                OrganizationTeamMember.team_id,
+                func.count(OrganizationTeamMember.member_id).label("member_count")
+            )
+            .group_by(OrganizationTeamMember.team_id)
+            .subquery()
+        )
+
+        return (
+            self.session.query(
+                OrganizationTeam.id,
+                OrganizationTeam.name,
+                OrganizationTeamMember.member_id.label("manager_id"),
+                OrganizationMember.email.label("manager_email"),
+                User.name.label("manager_name"),
+                User.photo_url.label("manager_photo"),
+                func.coalesce(subquery.c.member_count, 0).label("team_members_count")
+            )
+            .join(OrganizationTeamMember, OrganizationTeamMember.team_id == OrganizationTeam.id)
+            .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
+            .join(User, OrganizationMember.email == User.email, isouter=True)
+            .outerjoin(subquery, OrganizationTeam.id == subquery.c.team_id)
+            .filter(OrganizationTeam.organization_id == organization_id)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
+            .all()
+        )
+
+    def find_by_team_id(self, organization_id: int, team_id: int) -> List[OrganizationTeam]:
+        return (
+            self.session.query(OrganizationTeam)
+            .filter(OrganizationTeam.organization_id == organization_id)
+            .filter(OrganizationTeam.id == team_id)
+            .first()
+        )
 
 
 class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
@@ -75,4 +110,19 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
         super().__init__(session, OrganizationTeamMember)
 
     def find_by_team_id(self, team_id: int) -> List[OrganizationTeamMember]:
-        return self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).all()
+        return (
+            self.session.query(
+                OrganizationTeamMember.id,
+                OrganizationTeamMember.member_id,
+                OrganizationMember.email,
+                User.name,
+                User.photo_url,
+            )
+            .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
+            .join(User, OrganizationMember.email == User.email, isouter=True)
+            .filter(OrganizationTeamMember.team_id == team_id)
+            .all()
+        )
+
+    def delete_all_team_member(self, team_id: int) -> None:
+        return self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).delete()

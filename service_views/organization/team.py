@@ -8,7 +8,7 @@ from models import get_db, User
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
-from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
+from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
 from utils.services import authenticated_user
 
@@ -26,6 +26,7 @@ class TeamMemberRequest(BaseModel):
                 f"Invalid value for type. Allowed values are: {', '.join(OrganizationTeamMemberType.ALLOWED_PERIODS)}"
             )
         return value
+
 
 class TeamRequest(BaseModel):
     name: str
@@ -56,11 +57,26 @@ def get_teams(user: User = Depends(authenticated_user), db: Session = Depends(ge
     }
 
 
+@router.get("/team/{team_id}")
+def get_team_by_id(team_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+    org_repository = OrganizationRepository(db)
+    team_repository = OrganizationTeamRepository(db)
+    team_member_repository = OrganizationTeamMemberRepository(db)
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    team = team_repository.find_by_team_id(org.id, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_members = team_member_repository.find_by_team_id(team.id)
+    return {"team_id": team.id, "name": team.name, "team_members": team_members}
+
+
 @router.post("/team/")
 def create_team(
-    team_info: TeamRequest,
-    user: User = Depends(authenticated_user),
-    db: Session = Depends(get_db),
+        team_info: TeamRequest,
+        user: User = Depends(authenticated_user),
+        db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
@@ -78,3 +94,19 @@ def create_team(
             type=member_info.type,
         )
         team_repository.create(team_member)
+
+
+@router.delete("/team/{team_id}")
+def delete_team(team_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+    org_repository = OrganizationRepository(db)
+    team_repository = OrganizationTeamRepository(db)
+    team_member_repository = OrganizationTeamMemberRepository(db)
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    team = team_repository.find_by_team_id(org.id, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_member_repository.delete_all_team_member(team.id)
+    team_repository.delete(team)
+    return
