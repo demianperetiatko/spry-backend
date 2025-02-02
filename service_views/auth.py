@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from models import get_db, User
+from models.repositories.organization_repository import OrganizationRepository
 
 from utils.services import create_google_login_uri, update_user_after_google_login, authenticated_user
 
@@ -16,11 +17,20 @@ FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" e
 
 
 @router.get("/")
-async def auth(user: User = Depends(authenticated_user)):
+async def auth(user: User = Depends(authenticated_user),db: Session = Depends(get_db)):
+    def get_user_type(user, db):
+        organization_repository = OrganizationRepository(db)
+        if organization_repository.is_user_owner_of_organization(user.id):
+            return "owner"
+        elif organization_repository.is_user_manager_of_organization(user.email):
+            return "manager"
+        return "member"
+
     return {
         "id": user.id,
         "email": user.email,
         "name": user.name,
+        "type": get_user_type(user,db),
     }
 
 

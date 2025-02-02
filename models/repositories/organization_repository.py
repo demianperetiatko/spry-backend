@@ -25,6 +25,19 @@ class OrganizationRepository(BaseRepo[Organization]):
             .first()
         )
 
+    def is_user_owner_of_organization(self, user_id: int) -> bool:
+        res = self.session.query(Organization).filter(Organization.create_user_id == user_id).first()
+        return True if res else False
+
+    def is_user_manager_of_organization(self,email: str) -> bool:
+        res = (
+            self.session.query(OrganizationMember)
+            .join(OrganizationTeamMember, OrganizationMember.id == OrganizationTeamMember.member_id)
+            .filter(OrganizationMember.email == email)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
+            .first()
+        )
+        return True if res else False
 
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def __init__(self, session):
