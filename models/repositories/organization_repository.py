@@ -117,6 +117,7 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationMember.email,
                 User.name,
                 User.photo_url,
+                OrganizationTeamMember.type
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .join(User, OrganizationMember.email == User.email, isouter=True)

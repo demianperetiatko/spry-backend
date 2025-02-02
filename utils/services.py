@@ -105,7 +105,7 @@ def authenticated_user(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    user_id = "4"
+    user_id = request.session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
     user_repository = UserRepository(db)
