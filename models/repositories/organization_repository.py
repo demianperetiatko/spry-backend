@@ -109,7 +109,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .all()
         )
 
-    def find_by_team_id(self, organization_id: int, team_id: int) -> List[OrganizationTeam]:
+    def find_by_team_id(self, organization_id: int, team_id: int) -> OrganizationTeam:
         return (
             self.session.query(OrganizationTeam)
             .filter(OrganizationTeam.organization_id == organization_id)

@@ -96,6 +96,40 @@ def create_team(
         team_repository.create(team_member)
 
 
+@router.put("/team/{team_id}")
+def update_team(
+        team_id: int,
+        team_info: TeamRequest,
+        user: User = Depends(authenticated_user),
+        db: Session = Depends(get_db),
+):
+    org_repository = OrganizationRepository(db)
+    team_repository = OrganizationTeamRepository(db)
+    team_member_repository = OrganizationTeamMemberRepository(db)
+
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    team = team_repository.find_by_team_id(org.id, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team.name = team_info.name
+    team_repository.update(team)
+
+    team_member_repository.delete_all_team_member(team.id)
+
+    for member_info in team_info.team_members:
+        team_member = OrganizationTeamMember(
+            team_id=team.id,
+            member_id=member_info.member_id,
+            type=member_info.type,
+        )
+        team_member_repository.create(team_member)
+
+    return {"message": "Team updated successfully"}
+
 @router.delete("/team/{team_id}")
 def delete_team(team_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
