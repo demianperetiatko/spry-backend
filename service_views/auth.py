@@ -28,9 +28,10 @@ async def auth(user: User = Depends(authenticated_user),db: Session = Depends(ge
 
     return {
         "id": user.id,
+        "photo_url": user.photo_url,
         "email": user.email,
         "name": user.name,
-        "type": get_user_type(user,db),
+        "type": get_user_type(user, db),
     }
 
 
