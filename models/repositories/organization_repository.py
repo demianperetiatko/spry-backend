@@ -1,5 +1,5 @@
 import uuid
-from typing import TypeVar, List
+from typing import TypeVar, List, Optional
 
 from models.repositories import BaseRepo
 from models import User, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType
@@ -13,6 +13,14 @@ T = TypeVar("T")
 class OrganizationRepository(BaseRepo[Organization]):
     def __init__(self, session):
         super().__init__(session, Organization)
+
+    def find_by_user_email(self, email: str) -> Organization:
+        return (
+            self.session.query(Organization)
+            .join(OrganizationMember, Organization.id == OrganizationMember.organization_id, isouter=True)
+            .filter(OrganizationMember.email == email)
+            .first()
+        )
 
     def find_by_user(self, user: User) -> Organization:
         return (
@@ -60,6 +68,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         )
 
     def find_by_organization_id(self, organization_id: int) -> Organization:
+
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -67,7 +76,6 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 User.photo_url,
                 OrganizationMember.email,
                 literal("-").label("department"),
-                literal("-").label("team"),
                 literal("-").label("rate"),
                 OrganizationMember.status,
             )
