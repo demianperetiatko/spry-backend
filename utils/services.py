@@ -42,6 +42,7 @@ def create_google_login_uri():
 
 def update_user_after_google_login(state: str, authorization_response: str, db):
     user_repository = UserRepository(db)
+    organization_repository = OrganizationRepository(db)
     token = client.fetch_token(
         TOKEN_ENDPOINT,
         authorization_response=authorization_response,
@@ -50,42 +51,53 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     google_access_token = token["access_token"]
     google_refresh_token = token.get("refresh_token", None)
     user_info = client.get(USERINFO_ENDPOINT).json()
-    email = user_info.get("email")
-    if email not in [
-        "bohdan.dobosevych@gmail.com",
-        "demian.peretiatko@gmail.com",
-        "kostyantin1408@gmail.com",
-        "dobosevych@gmail.com",
-        "o.dobosevych@geniusee.com",
-        "dudeson26@gmail.com",
-        "demian@flowlity.com",
-        "sazhagutalin@gmail.com",
-        "nastyalada@gmail.com",
-        "darka.azhnyuk@gmail.com"
-    ]:
-        return None
-    user = user_repository.find_by_email(email)
     is_new_user = False
-    if not user:
-        user = User(
-            name=user_info.get('name'),
-            photo_url=user_info.get('picture'),
-            email=email,
-            google_access_token=google_access_token,
-            google_refresh_token=google_refresh_token,
-        )
-        user_repository.create(user)
+    email = user_info.get("email")
+    org = organization_repository.find_by_user_email(email)
+    print(org)
+    user = user_repository.find_by_email(email)
+    if org:
+        if not user:
+            user = User(
+                name=user_info.get('name'),
+                photo_url=user_info.get('picture'),
+                email=email,
+                google_access_token=google_access_token,
+                google_refresh_token=google_refresh_token,
+            )
+            user_repository.create(user)
     else:
-        user.google_access_token = google_access_token
-        user.google_refresh_token = google_refresh_token
-        user_repository.update(user)
+        if email not in [
+            "bohdan.dobosevych@gmail.com",
+            "demian.peretiatko@gmail.com",
+            "kostyantin1408@gmail.com",
+            "dobosevych@gmail.com",
+            "o.dobosevych@geniusee.com",
+            "dudeson26@gmail.com",
+            "demian@flowlity.com",
+            "sazhagutalin@gmail.com",
+            "nastyalada@gmail.com",
+            "darka.azhnyuk@gmail.com"
+        ]:
+            return None, False
+        else:
+            is_new_user = True
+            user = User(
 
-    organization_repository = OrganizationRepository(db)
-    org = organization_repository.find_by_user(user)
-    if org is None:
-        is_new_user = True
-        org = Organization(create_user_id=user.id)
-        organization_repository.create(org)
+                name=user_info.get('name'),
+                photo_url=user_info.get('picture'),
+                email=email,
+                google_access_token=google_access_token,
+                google_refresh_token=google_refresh_token,
+            )
+            user_repository.create(user)
+            org = Organization(create_user_id=user.id)
+            organization_repository.create(org)
+
+    user.google_access_token = google_access_token
+    user.google_refresh_token = google_refresh_token
+    user_repository.update(user)
+
     organization_member_repository = OrganizationMemberRepository(db)
     member = organization_member_repository.find_by_member_email(org.id, user.email)
     if member is None:
