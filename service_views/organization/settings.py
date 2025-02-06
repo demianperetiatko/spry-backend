@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from models import get_db, User, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
-from models.repositories.organization_repository import OrganizationRepository
+from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from utils.services import authenticated_user
 
@@ -83,8 +83,8 @@ def update_settings_cost(
     db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
     org = org_repository.find_by_user(user)
-    print(settings)
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
@@ -94,7 +94,7 @@ def update_settings_cost(
     org.cost_visibility = settings.cost_visibility
     org.cost_type = settings.cost_type
     org.average_cost = settings.average_cost
+    if org.average_cost:
+        org_member_repository.update_member_cost(org.id, org.average_cost)
     org_repository.update(org)
-    print(org.id)
-    print(org.cost_is_active)
     return

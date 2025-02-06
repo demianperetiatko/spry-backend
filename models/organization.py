@@ -47,8 +47,7 @@ class OrganizationMember(Base):
     id = Column(Integer, primary_key=True)
     organization_id = Column(Integer, ForeignKey('organizations.id'), nullable=False)
     email = Column(String(100), nullable=False, unique=True)
-    rate = Column(String(255))
-    type_rate = Column(String(255))
+    cost = Column(String(255))
     status = Column(String(20), nullable=False, default=OrganizationMemberStatus.PENDING)
     organization = relationship('Organization', backref='members')
 

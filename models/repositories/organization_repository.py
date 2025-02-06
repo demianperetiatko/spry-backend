@@ -37,7 +37,7 @@ class OrganizationRepository(BaseRepo[Organization]):
         res = self.session.query(Organization).filter(Organization.create_user_id == user_id).first()
         return True if res else False
 
-    def is_user_manager_of_organization(self,email: str) -> bool:
+    def is_user_manager_of_organization(self, email: str) -> bool:
         res = (
             self.session.query(OrganizationMember)
             .join(OrganizationTeamMember, OrganizationMember.id == OrganizationTeamMember.member_id)
@@ -47,9 +47,15 @@ class OrganizationRepository(BaseRepo[Organization]):
         )
         return True if res else False
 
+
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationMember)
+
+    def update_member_cost(self, organization_id: int, average_cost: float):
+        self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id).update(
+            {OrganizationMember.cost: str(average_cost)}, synchronize_session=False)
+        return self.session.commit()
 
     def find_by_member_id(self, organization_id: int, member_id: int) -> OrganizationMember:
         return (
@@ -68,7 +74,6 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         )
 
     def find_by_organization_id(self, organization_id: int) -> Organization:
-
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -76,13 +81,14 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 User.photo_url,
                 OrganizationMember.email,
                 literal("-").label("department"),
-                literal("-").label("rate"),
+                OrganizationMember.cost,
                 OrganizationMember.status,
             )
             .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationMember.organization_id == organization_id)
             .all()
         )
+
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):
