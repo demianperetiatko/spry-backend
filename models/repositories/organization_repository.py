@@ -52,9 +52,11 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationMember)
 
-    def update_member_cost(self, organization_id: int, average_cost: float):
+    def update_member_cost(self, organization_id: int, average_cost: Optional[float]):
+        formatted_cost = f"{average_cost:.2f}" if average_cost is not None else None
         self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id).update(
-            {OrganizationMember.cost: str(average_cost)}, synchronize_session=False)
+            {OrganizationMember.cost: formatted_cost}, synchronize_session=False
+        )
         return self.session.commit()
 
     def find_by_member_id(self, organization_id: int, member_id: int) -> OrganizationMember:
