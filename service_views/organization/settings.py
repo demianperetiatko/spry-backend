@@ -94,6 +94,9 @@ def update_settings_cost(
     org.cost_visibility = settings.cost_visibility
     org.cost_type = settings.cost_type
     org.average_cost = settings.average_cost
-    org_member_repository.update_member_cost(org.id, org.average_cost)
+    if org.cost_type == OrganizationCostType.AVERAGE:
+        org_member_repository.update_member_cost(org.id, org.average_cost)
+    else:
+        org_member_repository.update_member_cost(org.id, None)
     org_repository.update(org)
     return
