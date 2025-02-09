@@ -82,11 +82,14 @@ class UpdateTeamMember(BaseModel):
     team_name: Optional[str] = None
     is_manager: Optional[bool] = False
 
+class UpdateMember(BaseModel):
+    cost: Optional[float]
+    teams:List[UpdateTeamMember]
 
 @router.put("/member/{member_id}/")
 def update_member(
         member_id: int,
-        update_datas: List[UpdateTeamMember],
+        update_member: UpdateMember,
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
@@ -98,10 +101,13 @@ def update_member(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     member = org_member_repository.find_by_member_id(org.id, member_id)
+    member.cost = update_member.cost
+    org_team_member_repository.update(member)
+
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
         OrganizationTeamMember.type != OrganizationTeamMemberType.MEMBER).delete()
 
-    for update_data in update_datas:
+    for update_data in update_member.teams:
         if update_data.is_manager == False:
             team = org_team_repository.find_by_team_id(org.id, update_data.team_id)
             new_team_member = OrganizationTeamMember(
