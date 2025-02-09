@@ -24,7 +24,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.include_router(auth_view.router, tags=["auth"])
 app.include_router(profile_view.router, tags=["profile"])
-app.include_router(organization_view.router, tags=["organization"])
+app.include_router(organization_view.router)
 app.include_router(agenda_view.router, tags=["agenda"])
 app.include_router(team_view.router, tags=["old_team"])
 

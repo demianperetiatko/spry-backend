@@ -1,14 +1,15 @@
-from typing import List
+from typing import List, Optional
 from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
 from models import get_db, User, Organization, OrganizationMember, OrganizationMemberStatus
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
+from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
+    OrganizationTeamMemberRepository
 
-from models import OrganizationTeam, OrganizationTeamMember
-from models.repositories.organization_repository import OrganizationTeamRepository,OrganizationMemberRepository
+from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
+from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
 from utils.services import authenticated_user
 from utils.organization import send_invitation
@@ -27,8 +28,10 @@ def get_member(user: User = Depends(authenticated_user), db: Session = Depends(g
         'total_count': len(members)
     }
 
+
 class MemberRequest(BaseModel):
     emails: List[EmailStr]
+
 
 @router.post("/member/")
 def add_members_to_organization(
@@ -51,17 +54,63 @@ def add_members_to_organization(
         send_invitation(email)
         organization_member_repository.create(member)
 
-class UpdateMemberRequest(BaseModel):
-    email: EmailStr
+
+@router.get("/member/{member_id}/")
+def get_member(member_id: int, db: Session = Depends(get_db), user: User = Depends(authenticated_user)):
+    org_repository = OrganizationRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+    org_team_repository = OrganizationTeamRepository(db)
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if member:
+        return {
+            "id": member.id,
+            "name": member.name,
+            "photo_url": member.photo_url,
+            "email": member.email,
+            "cost": member.cost,
+            "status": member.status,
+            "teams": org_team_repository.find_by_member_id(member.id)
+        }
+    return member
+
+
+class UpdateTeamMember(BaseModel):
+    team_id: Optional[int] = None
+    team_name: Optional[str] = None
+    is_manager: Optional[bool] = False
+
 
 @router.put("/member/{member_id}/")
 def update_member(
         member_id: int,
-        member_info: UpdateMemberRequest,
+        update_datas: List[UpdateTeamMember],
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
-    pass
+    org_repository = OrganizationRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+    org_team_repository = OrganizationTeamRepository(db)
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
+        OrganizationTeamMember.type != OrganizationTeamMemberType.MEMBER).delete()
+
+    for update_data in update_datas:
+        if update_data.is_manager == False:
+            team = org_team_repository.find_by_team_id(org.id, update_data.team_id)
+            new_team_member = OrganizationTeamMember(
+                team_id=team.id,
+                member_id=member.id,
+                type=OrganizationTeamMemberType.MANAGER if update_data.is_manager else OrganizationTeamMemberType.MEMBER
+            )
+            org_team_member_repository.create(new_team_member)
+
 
 @router.delete("/member/{member_id}/")
 def delete_member_from_organization(
@@ -78,6 +127,7 @@ def delete_member_from_organization(
     if not member or member.organization_id != org.id:
         raise HTTPException(status_code=404, detail="Member not found")
     organization_member_repository.delete(member)
+
 
 @router.post("/member/{member_id}/resend-invitation")
 def resend_invitation(
