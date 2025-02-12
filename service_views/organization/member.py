@@ -54,29 +54,6 @@ def add_members_to_organization(
         send_invitation(email)
         organization_member_repository.create(member)
 
-
-@router.get("/member/{member_id}/")
-def get_member(member_id: int, db: Session = Depends(get_db), user: User = Depends(authenticated_user)):
-    org_repository = OrganizationRepository(db)
-    org_member_repository = OrganizationMemberRepository(db)
-    org_team_repository = OrganizationTeamRepository(db)
-    org = org_repository.find_by_user(user)
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    member = org_member_repository.find_by_member_id(org.id, member_id)
-    if member:
-        return {
-            "id": member.id,
-            "name": member.name,
-            "photo_url": member.photo_url,
-            "email": member.email,
-            "cost": member.cost,
-            "status": member.status,
-            "teams": org_team_repository.find_by_member_id(member.id)
-        }
-    return member
-
-
 class UpdateTeamMember(BaseModel):
     team_id: Optional[int] = None
     team_name: Optional[str] = None
