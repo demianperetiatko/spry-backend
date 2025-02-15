@@ -77,7 +77,8 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
             "demian@flowlity.com",
             "sazhagutalin@gmail.com",
             "nastyalada@gmail.com",
-            "darka.azhnyuk@gmail.com"
+            "darka.azhnyuk@gmail.com",
+            "darka.azhnyuk@spryplan.com"
         ]:
             return None, False
         else:
