@@ -82,7 +82,7 @@ def update_member(
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
-        OrganizationTeamMember.type != OrganizationTeamMemberType.MEMBER).delete()
+        OrganizationTeamMember.type == OrganizationTeamMemberType.MEMBER).delete()
 
     for update_data in update_member.teams:
         if update_data.is_manager == False:
