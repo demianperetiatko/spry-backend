@@ -75,10 +75,10 @@ def update_member(
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
     org = org_repository.find_by_user(user)
-    if not org:
+    member = org_member_repository.find_by_id(member_id)
+    if not org or member.organization_id != org.id:
         raise HTTPException(status_code=404, detail="Organization not found")
-    member = org_member_repository.find_by_member_id(org.id, member_id)
-    member.cost = update_member.cost
+    member.cost = str(update_member.cost)
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
