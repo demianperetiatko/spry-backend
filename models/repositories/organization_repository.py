@@ -106,7 +106,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 "name": member.name,
                 "photo_url": member.photo_url,
                 "email": member.email,
-                "cost": member.cost,
+                "cost": float(member.cost) if member.cost else None,
                 "status": member.status,
                 "department": member.department,
                 "teams": org_team_repository.find_by_member_id(member.id)
