@@ -61,7 +61,7 @@ class UpdateTeamMember(BaseModel):
 
 class UpdateMember(BaseModel):
     cost: Optional[float]
-    teams:List[UpdateTeamMember]
+    teams: Optional[List[UpdateTeamMember]]
 
 @router.put("/member/{member_id}/")
 def update_member(
