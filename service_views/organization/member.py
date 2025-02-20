@@ -13,6 +13,7 @@ from models.repositories.organization_repository import OrganizationTeamReposito
 
 from utils.services import authenticated_user
 from utils.organization import send_invitation
+from utils.datatable import DataTable
 
 router = APIRouter()
 
@@ -20,13 +21,23 @@ router = APIRouter()
 @router.get("/member/")
 def get_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
+    org_team_repository = OrganizationTeamRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
+
+    columns = [
+        ("id", "id"),
+        ("name", "name"),
+        ("photo_url", "photo_url"),
+        ("email", "email"),
+        ("cost", "cost", lambda i: float(i.cost) if i.cost else None),
+        ("status", "status"),
+        ("department", "department"),
+        ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
+    ]
+
     org = org_repository.find_by_user(user)
-    members = organization_member_repository.find_by_organization_id(org.id)
-    return {
-        'data': members,
-        'total_count': len(members)
-    }
+    query_members = organization_member_repository.query_find_by_organization_id(org.id)
+    return DataTable(query_members, columns).fetch_dicts()
 
 
 class MemberRequest(BaseModel):
@@ -54,14 +65,17 @@ def add_members_to_organization(
         send_invitation(email)
         organization_member_repository.create(member)
 
+
 class UpdateTeamMember(BaseModel):
     team_id: Optional[int] = None
     team_name: Optional[str] = None
     is_manager: Optional[bool] = False
 
+
 class UpdateMember(BaseModel):
     cost: Optional[float]
     teams: Optional[List[UpdateTeamMember]]
+
 
 @router.put("/member/{member_id}/")
 def update_member(

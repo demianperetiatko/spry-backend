@@ -83,9 +83,8 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
 
-    def find_by_organization_id(self, organization_id: int) -> List[dict]:
-        org_team_repository = OrganizationTeamRepository(self.session)
-        members = (
+    def query_find_by_organization_id(self, organization_id: int):
+        return (
             self.session.query(
                 OrganizationMember.id,
                 User.name,
@@ -97,22 +96,8 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             )
             .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationMember.organization_id == organization_id)
-            .all()
         )
-        res = []
-        for member in members:
-            info = {
-                "id": member.id,
-                "name": member.name,
-                "photo_url": member.photo_url,
-                "email": member.email,
-                "cost": float(member.cost) if member.cost else None,
-                "status": member.status,
-                "department": member.department,
-                "teams": org_team_repository.find_by_member_id(member.id)
-            }
-            res.append(info)
-        return res
+
 
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
