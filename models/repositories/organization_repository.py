@@ -99,21 +99,11 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         )
 
 
-
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):
         super().__init__(session, OrganizationTeam)
 
-    def find_by_organization_id(self, organization_id: int) -> List[OrganizationTeam]:
-        subquery = (
-            self.session.query(
-                OrganizationTeamMember.team_id,
-                func.count(OrganizationTeamMember.member_id).label("member_count")
-            )
-            .group_by(OrganizationTeamMember.team_id)
-            .subquery()
-        )
-
+    def query_find_by_organization_id(self, organization_id: int) -> List[OrganizationTeam]:
         return (
             self.session.query(
                 OrganizationTeam.id,
@@ -122,15 +112,12 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
                 OrganizationMember.email.label("manager_email"),
                 User.name.label("manager_name"),
                 User.photo_url.label("manager_photo"),
-                func.coalesce(subquery.c.member_count, 0).label("team_members_count")
             )
             .join(OrganizationTeamMember, OrganizationTeamMember.team_id == OrganizationTeam.id)
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .join(User, OrganizationMember.email == User.email, isouter=True)
-            .outerjoin(subquery, OrganizationTeam.id == subquery.c.team_id)
             .filter(OrganizationTeam.organization_id == organization_id)
             .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
-            .all()
         )
 
     def find_by_team_id(self, organization_id: int, team_id: int) -> OrganizationTeam:
@@ -158,7 +145,7 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationTeamMember)
 
-    def find_by_team_id(self, team_id: int) -> List[OrganizationTeamMember]:
+    def query_find_by_team_id(self, team_id: int):
         return (
             self.session.query(
                 OrganizationTeamMember.id,
@@ -171,8 +158,10 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationTeamMember.team_id == team_id)
-            .all()
         )
+
+    def find_by_team_id(self, team_id: int):
+        return self.query_find_by_team_id(team_id).all()
 
     def delete_all_team_member(self, team_id: int) -> None:
         return self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).delete()

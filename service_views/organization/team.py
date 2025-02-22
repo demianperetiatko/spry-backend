@@ -11,6 +11,7 @@ from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMem
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
 from utils.services import authenticated_user
+from utils.datatable import DataTable
 
 router = APIRouter()
 
@@ -46,15 +47,26 @@ class TeamRequest(BaseModel):
 @router.get("/team/")
 def get_teams(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
-    team_repository = OrganizationTeamRepository(db)
+    org_team_repository = OrganizationTeamRepository(db)
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
     org = org_repository.find_by_user(user)
+
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    teams = team_repository.find_by_organization_id(org.id)
-    return {
-        'data': teams,
-        'total_count': len(teams)
-    }
+
+    columns = [
+        ("id", "id"),
+        ("name", "name"),
+        ("manager_id", "manager_id"),
+        ("manager_email", "manager_email"),
+        ("manager_name", "manager_name"),
+        ("manager_photo", "manager_photo"),
+        ("members", "members", lambda i: org_team_member_repository.find_by_team_id(i.id)),
+        ("members_count", "members_count", lambda i: org_team_member_repository.query_find_by_team_id(i.id).count()),
+    ]
+    query_teams = org_team_repository.query_find_by_organization_id(org.id)
+    return DataTable(query_teams, columns).fetch_dicts()
+
 
 
 @router.get("/team/{team_id}")
