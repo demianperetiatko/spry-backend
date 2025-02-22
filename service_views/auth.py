@@ -1,10 +1,10 @@
 import os
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from models import get_db, User
-from models.repositories.organization_repository import OrganizationRepository
+from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from utils.services import create_google_login_uri, update_user_after_google_login, authenticated_user
 
@@ -17,7 +17,7 @@ FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" e
 
 
 @router.get("/")
-async def auth(user: User = Depends(authenticated_user),db: Session = Depends(get_db)):
+async def auth(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
     def get_user_type(user, db):
         organization_repository = OrganizationRepository(db)
         if organization_repository.is_user_owner_of_organization(user.id):
@@ -33,6 +33,19 @@ async def auth(user: User = Depends(authenticated_user),db: Session = Depends(ge
         "name": user.name,
         "type": get_user_type(user, db),
     }
+
+
+@router.get("/member/")
+async def auth_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+    org_repository = OrganizationRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+
+    org = org_repository.find_by_user(user)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    query_members = org_member_repository.query_find_by_organization_id(org.id)
+    return query_members.all()
 
 
 @router.get("/google/")
