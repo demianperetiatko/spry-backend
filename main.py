@@ -6,6 +6,7 @@ from service_views import (
     auth as auth_view,
     profile as profile_view,
     organization as organization_view,
+    analytics as analytics_view,
     agenda as agenda_view,
     team as team_view,
 )
@@ -26,6 +27,7 @@ app.include_router(auth_view.router, tags=["auth"])
 app.include_router(profile_view.router, tags=["profile"])
 app.include_router(organization_view.router)
 app.include_router(agenda_view.router, tags=["agenda"])
+app.include_router(analytics_view.router)
 app.include_router(team_view.router, tags=["old_team"])
 
 if __name__ == "__main__":
