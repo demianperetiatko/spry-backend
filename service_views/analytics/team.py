@@ -6,8 +6,9 @@ from models import get_db, User
 
 from utils.services import authenticated_user
 
-
 router = APIRouter()
+
+
 @router.get("/analytic/team/meeting/kpi")
 def get_team_kpi(
         team_id: int = Query(...),
@@ -28,28 +29,18 @@ def get_team_kpi(
         ]
     }
 
+
 import random
 from datetime import datetime, timedelta
-def generate_meetings_time_by_type(start_date: datetime, end_date: datetime, view_type: str):
+
+
+def generate_meetings_time_by_type(start_date: datetime, end_date: datetime):
     data = []
     current_date = start_date
 
     while current_date <= end_date:
-        if view_type == "daily":
-            formatted_date = current_date.strftime("%b %-d")
-            current_date += timedelta(days=1)
-        elif view_type == "weekly":
-            week_start = current_date
-            week_end = min(current_date + timedelta(days=6), end_date)
-            formatted_date = f"{week_start.strftime('%b %-d')} - {week_end.strftime('%b %-d')}"
-            current_date += timedelta(weeks=1)
-        elif view_type == "monthly":
-            month_start = current_date.replace(day=1)
-            # Determine the last day of the month
-            next_month = current_date.replace(day=28) + timedelta(days=4)
-            month_end = next_month - timedelta(days=next_month.day)
-            formatted_date = f"{month_start.strftime('%b')} {month_start.year}"
-            current_date = month_end + timedelta(days=1)
+        formatted_date = current_date.strftime("%Y-%m-%d")
+        current_date += timedelta(days=1)
 
         recurring = random.randint(30, 90)
         one_time = random.randint(10, 60)
@@ -74,14 +65,53 @@ def get_team_meetings(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        type_view: str = Query(...),
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    return generate_meetings_time_by_type(start_date_dt, end_date_dt)
 
-    return generate_meetings_time_by_type(start_date_dt, end_date_dt, type_view)
+
+def generate_meetings_time_ratio(start_date: datetime, end_date: datetime):
+    data = []
+    current_date = start_date
+
+    while current_date <= end_date:
+        formatted_date = current_date.strftime("%Y-%m-%d")
+        current_date += timedelta(days=1)
+
+        ratio = random.randint(5, 15)
+
+        data.append({
+            "date": formatted_date,
+            "ratio": ratio,
+        })
+
+    return {"data": data}
+
+
+# Data for generating participants by meeting size
+def generate_meetings_by_participants(start_date: datetime, end_date: datetime):
+    data = []
+    current_date = start_date
+
+    while current_date <= end_date:
+        formatted_date = current_date.strftime("%Y-%m-%d")
+        current_date += timedelta(days=1)
+
+        participants = {
+            '1-1': random.randint(0, 3),
+            '2-5': random.randint(1, 5),
+            '6+': random.randint(0, 2),
+        }
+
+        data.append({
+            "date": formatted_date,
+            **participants
+        })
+
+    return {"data": data}
 
 
 @router.get("/analytic/team/meeting/time")
@@ -89,20 +119,23 @@ def get_team_meeting_time(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        type_view: str = Query(...),
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
-    pass
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    return generate_meetings_time_ratio(start_date_dt, end_date_dt)
 
 
+# Endpoint to get the team meeting participants
 @router.get("/analytic/team/meeting/participants")
 def get_team_meeting_participants(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        type_view: str = Query(...),
         user: User = Depends(authenticated_user),
         db: Session = Depends(get_db)
 ):
-    pass
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    return generate_meetings_by_participants(start_date_dt, end_date_dt)
