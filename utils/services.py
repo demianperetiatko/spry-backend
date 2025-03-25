@@ -1,4 +1,5 @@
 import os
+import requests
 from fastapi import Request, HTTPException, Depends, Header
 
 from sqlalchemy.orm import Session
@@ -112,6 +113,20 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
         member.status = OrganizationMemberStatus.ACTIVE
         organization_member_repository.update(member)
     return user, is_new_user
+
+def refresh_google_access_token( refresh_token: str) -> str:
+    url = "https://oauth2.googleapis.com/token"
+    payload = {
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+
+    response = requests.post(url, data=payload)
+    token_data = response.json()
+    if "access_token" in token_data:
+        return token_data["access_token"]
 
 
 def authenticated_user(
