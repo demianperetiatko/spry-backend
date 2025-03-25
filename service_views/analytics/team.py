@@ -8,7 +8,8 @@ from models.repositories.user_repository import UserRepository
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.services import authenticated_user, refresh_google_access_token
+from utils.services import refresh_google_access_token
+from utils.middleware import get_auth_user
 from utils.meet import get_calendar_events
 
 router = APIRouter()
@@ -19,7 +20,7 @@ def get_team_kpi(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     return {
@@ -54,7 +55,7 @@ def get_team_meetings(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -177,7 +178,7 @@ def get_team_meeting_time(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -191,7 +192,7 @@ def get_team_meeting_participants(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")

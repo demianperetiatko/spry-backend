@@ -11,7 +11,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 from utils.organization import send_invitation
 from utils.datatable import DataTable
 
@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("/member/")
-def get_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def get_member(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     org_team_repository = OrganizationTeamRepository(db)
     organization_member_repository = OrganizationMemberRepository(db)
@@ -47,7 +47,7 @@ class MemberRequest(BaseModel):
 @router.post("/member/")
 def add_members_to_organization(
         member_info: MemberRequest,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     organization_repository = OrganizationRepository(db)
@@ -81,7 +81,7 @@ class UpdateMember(BaseModel):
 def update_member(
         member_id: int,
         update_member: UpdateMember,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     org_repository = OrganizationRepository(db)
@@ -112,7 +112,7 @@ def update_member(
 @router.delete("/member/{member_id}/")
 def delete_member_from_organization(
         member_id: int,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     organization_repository = OrganizationRepository(db)
@@ -129,7 +129,7 @@ def delete_member_from_organization(
 @router.post("/member/{member_id}/resend-invitation")
 def resend_invitation(
         member_id: int,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     organization_repository = OrganizationRepository(db)

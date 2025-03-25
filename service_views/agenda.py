@@ -6,14 +6,14 @@ from pydantic import BaseModel, field_validator
 from models import get_db, User, AgendaTemplate
 from models.repositories.agenda_repository import AgendaTemplateRepository
 
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 
 router = APIRouter()
 
 
 @router.get('/agenda/')
 def get_agenda_templates(
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     agenda_repository = AgendaTemplateRepository(db)
@@ -22,7 +22,7 @@ def get_agenda_templates(
 
 
 @router.get('/agenda/{agenda_id}')
-def get_agenda_template(agenda_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def get_agenda_template(agenda_id: int, user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     agenda_repository = AgendaTemplateRepository(db)
 
     if agenda_id:
@@ -54,7 +54,7 @@ class AgendaRequest(BaseModel):
 
 
 @router.post('/agenda/')
-def create_agenda_template(agenda_info: AgendaRequest, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def create_agenda_template(agenda_info: AgendaRequest, user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     agenda_repository = AgendaTemplateRepository(db)
     new_template = AgendaTemplate(
         title=agenda_info.title,
@@ -68,7 +68,7 @@ def create_agenda_template(agenda_info: AgendaRequest, user: User = Depends(auth
 def update_agenda_template(
         agenda_id: int,
         agenda_info: AgendaRequest,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     agenda_repository = AgendaTemplateRepository(db)
@@ -85,7 +85,7 @@ def update_agenda_template(
 
 
 @router.delete('/agenda/{agenda_id}/')
-def delete_agenda_template(agenda_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def delete_agenda_template(agenda_id: int, user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     agenda_repository = AgendaTemplateRepository(db)
     agenda_item = agenda_repository.find_by_id(agenda_id)
     if agenda_item is None or agenda_item.create_user_id != user.id:

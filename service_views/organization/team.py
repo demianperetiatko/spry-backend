@@ -10,7 +10,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 from utils.datatable import DataTable
 
 router = APIRouter()
@@ -45,7 +45,7 @@ class TeamRequest(BaseModel):
 
 
 @router.get("/team/")
-def get_teams(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def get_teams(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
@@ -70,7 +70,7 @@ def get_teams(user: User = Depends(authenticated_user), db: Session = Depends(ge
 
 
 @router.get("/team/{team_id}")
-def get_team_by_id(team_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def get_team_by_id(team_id: int, user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
     team_member_repository = OrganizationTeamMemberRepository(db)
@@ -87,7 +87,7 @@ def get_team_by_id(team_id: int, user: User = Depends(authenticated_user), db: S
 @router.post("/team/")
 def create_team(
         team_info: TeamRequest,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
@@ -112,7 +112,7 @@ def create_team(
 def update_team(
         team_id: int,
         team_info: TeamRequest,
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
@@ -143,7 +143,7 @@ def update_team(
     return {"message": "Team updated successfully"}
 
 @router.delete("/team/{team_id}")
-def delete_team(team_id: int, user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def delete_team(team_id: int, user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
     team_member_repository = OrganizationTeamMemberRepository(db)

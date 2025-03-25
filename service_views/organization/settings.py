@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from models import get_db, User, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 
 router = APIRouter(prefix='/settings', tags=['settings'])
 
@@ -64,7 +64,7 @@ class UpdateCostSettings(BaseModel):
         return value
 
 @router.get('/cost')
-def get_settings_cost(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+def get_settings_cost(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     org = org_repository.find_by_user(user)
     return {
@@ -79,7 +79,7 @@ def get_settings_cost(user: User = Depends(authenticated_user), db: Session = De
 @router.put('/cost')
 def update_settings_cost(
     settings: UpdateCostSettings,
-    user: User = Depends(authenticated_user),
+    user: User = Depends(get_auth_user),
     db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)

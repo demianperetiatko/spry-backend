@@ -2,13 +2,14 @@ from fastapi import Depends, APIRouter, HTTPException, Query
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User
+from models import get_db, User, Organization
 
 from models.repositories.user_repository import UserRepository
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
-from utils.services import authenticated_user, refresh_google_access_token
+from utils.services import refresh_google_access_token
+from utils.middleware import get_auth_user, get_organization
 from utils.meet import get_calendar_events
 
 router = APIRouter()
@@ -19,7 +20,8 @@ def get_personal_kpi(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
     return {
@@ -33,7 +35,6 @@ def get_personal_kpi(
     }
 
 
-import random
 from datetime import datetime, timedelta
 
 
@@ -52,7 +53,8 @@ def get_personal_meetings(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -98,7 +100,8 @@ def get_personal_meeting_participants(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -149,7 +152,8 @@ def get_personal_meeting_time(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")

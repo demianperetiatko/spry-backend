@@ -1,8 +1,6 @@
 import os
 import requests
-from fastapi import Request, HTTPException, Depends, Header
 
-from sqlalchemy.orm import Session
 
 from models import get_db, User, Organization, OrganizationMember, OrganizationMemberStatus
 from models.repositories.user_repository import UserRepository
@@ -129,15 +127,3 @@ def refresh_google_access_token( refresh_token: str) -> str:
         return token_data["access_token"]
 
 
-def authenticated_user(
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    user_repository = UserRepository(db)
-    user = user_repository.find_by_id(int(user_id))
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from models import get_db, User, Organization, OrganizationMember
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 from utils.send_message import send_email
 
 router = APIRouter()

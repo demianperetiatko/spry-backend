@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from models import get_db, User
 from models.repositories.user_repository import UserRepository
 
-from utils.services import authenticated_user
+from utils.middleware import get_auth_user
 
 router = APIRouter()
 
 
 @router.get("/profile/")
-def get_profile(user: User = Depends(authenticated_user)):
+def get_profile(user: User = Depends(get_auth_user)):
     return user
 
 
@@ -19,7 +19,7 @@ def get_profile(user: User = Depends(authenticated_user)):
 def update_profile(
         name: str | None = Form(default=None),
         photo_file: UploadFile | None = File(None),
-        user: User = Depends(authenticated_user),
+        user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     user_repository = UserRepository(db)
