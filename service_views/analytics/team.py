@@ -160,8 +160,8 @@ def generate_meetings_by_participants(start_date: datetime, end_date: datetime):
 
         participants = {
             '1:1': random.randint(0, 3),
-            '2:5': random.randint(1, 5),
-            '6+': random.randint(0, 2),
+            '3-5': random.randint(1, 5),
+            '>5': random.randint(0, 2),
         }
 
         data.append({
