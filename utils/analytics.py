@@ -52,9 +52,9 @@ def calculate_event_ratio(events_on_day: List[Dict]) -> float:
     for event in events_on_day:
         start_time = datetime.fromisoformat(event['start']['dateTime'])
         end_time = datetime.fromisoformat(event['end']['dateTime'])
-        total_duration += (end_time - start_time).total_seconds() / 3600  # Перетворюємо у години
+        total_duration += (end_time - start_time).total_seconds() / 3600
 
-    return round(total_duration / 8, 2)
+    return round(total_duration / 8, 2) * 100
 
 def count_recurring_events(events_on_day: List[Dict]) -> int:
     return sum(1 for event in events_on_day if 'recurringEventId' in event)
