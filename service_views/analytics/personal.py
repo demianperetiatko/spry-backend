@@ -93,45 +93,55 @@ def get_personal_meetings(
     return {'data': formatted_analytic}
 
 
-def generate_meetings_time_ratio(start_date: datetime, end_date: datetime):
-    data = []
-    current_date = start_date
+@router.get("/analytic/personal/meeting/participants")
+def get_personal_meeting_participants(
+        member_id: int = Query(...),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        user: User = Depends(authenticated_user),
+        db: Session = Depends(get_db)
+):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    user_repository = UserRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+    member = org_member_repository.find_by_id(member_id)
+    user = user_repository.find_by_email(member.email)
+    access_token = refresh_google_access_token(user.google_refresh_token)
+    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
-    while current_date <= end_date:
-        formatted_date = current_date.strftime("%Y-%m-%d")
+    current_date = start_date_dt
+    events_by_date = {}
+
+    while current_date <= end_date_dt:
+        events_for_day = get_events_for_day(events, current_date)
+        events_by_date[current_date.date()] = events_for_day
         current_date += timedelta(days=1)
 
-        ratio = random.randint(5, 15)
+    formatted_analytic = []
+    for date, events_on_day in events_by_date.items():
+        formatted_date = date.strftime("%Y-%m-%d")
+        one_to_one = 0
+        three_to_five = 0
+        more_than_five = 0
 
-        data.append({
+        for event in events_on_day:
+            count_attendees = len(event.get('attendees'))
+            if count_attendees == 2:
+                one_to_one += 1
+            elif 2 <= count_attendees and count_attendees <= 5:
+                three_to_five += 1
+            elif count_attendees > 5:
+                more_than_five += 1
+
+        formatted_analytic.append({
             "date": formatted_date,
-            "ratio": ratio,
+            "1:1": one_to_one,
+            "3-5": three_to_five,
+            ">5": more_than_five,
         })
 
-    return {"data": data}
-
-
-# Data for generating participants by meeting size
-def generate_meetings_by_participants(start_date: datetime, end_date: datetime):
-    data = []
-    current_date = start_date
-
-    while current_date <= end_date:
-        formatted_date = current_date.strftime("%Y-%m-%d")
-        current_date += timedelta(days=1)
-
-        participants = {
-            '1:1': random.randint(0, 3),
-            '3-5': random.randint(1, 5),
-            '>5': random.randint(0, 2),
-        }
-
-        data.append({
-            "date": formatted_date,
-            **participants
-        })
-
-    return {"data": data}
+    return {'data': formatted_analytic}
 
 
 @router.get("/analytic/personal/meeting/time")
@@ -144,18 +154,33 @@ def get_personal_meeting_time(
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    return generate_meetings_time_ratio(start_date_dt, end_date_dt)
+    user_repository = UserRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+    member = org_member_repository.find_by_id(member_id)
+    user = user_repository.find_by_email(member.email)
+    access_token = refresh_google_access_token(user.google_refresh_token)
+    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
+    current_date = start_date_dt
+    events_by_date = {}
 
+    while current_date <= end_date_dt:
+        events_for_day = get_events_for_day(events, current_date)
+        events_by_date[current_date.date()] = events_for_day
+        current_date += timedelta(days=1)
 
-@router.get("/analytic/personal/meeting/participants")
-def get_personal_meeting_participants(
-        member_id: int = Query(...),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        user: User = Depends(authenticated_user),
-        db: Session = Depends(get_db)
-):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    return generate_meetings_by_participants(start_date_dt, end_date_dt)
+    formatted_analytic = []
+    for date, events_on_day in events_by_date.items():
+        formatted_date = date.strftime("%Y-%m-%d")
+        event_duration = 0
+        for event in events_on_day:
+            start_time = datetime.fromisoformat(event['start']['dateTime'])
+            end_time = datetime.fromisoformat(event['end']['dateTime'])
+            event_duration = (end_time - start_time).total_seconds() / (60 * 60)
+
+        formatted_analytic.append({
+            "date": formatted_date,
+            "ratio": round(event_duration / 8, 2),
+        })
+
+    return {'data': formatted_analytic}
