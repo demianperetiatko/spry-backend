@@ -6,7 +6,8 @@ from starlette.responses import RedirectResponse
 from models import get_db, User
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from utils.services import create_google_login_uri, update_user_after_google_login, authenticated_user
+from utils.services import create_google_login_uri, update_user_after_google_login
+from utils.middleware import get_auth_user
 
 router = APIRouter(
     prefix='/auth',
@@ -17,7 +18,7 @@ FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" e
 
 
 @router.get("/")
-async def auth(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+async def auth(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     def get_user_type(user, db):
         organization_repository = OrganizationRepository(db)
         if organization_repository.is_user_owner_of_organization(user.id):
@@ -36,7 +37,7 @@ async def auth(user: User = Depends(authenticated_user), db: Session = Depends(g
 
 
 @router.get("/member/")
-async def auth_member(user: User = Depends(authenticated_user), db: Session = Depends(get_db)):
+async def auth_member(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
     org_repository = OrganizationRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
 
@@ -76,5 +77,5 @@ async def logout(request: Request):
 
 
 @router.get("/delete")
-async def delete_user(request: Request, user: User = Depends(authenticated_user)):
+async def delete_user(request: Request, user: User = Depends(get_auth_user)):
     request.session.clear()
