@@ -60,7 +60,7 @@ def get_personal_meetings(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(user.email, db)
+    access_token = get_google_access_token(member.email, db)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
@@ -94,7 +94,7 @@ def get_personal_meeting_participants(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(user.email, db)
+    access_token = get_google_access_token(member.email, db)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
@@ -130,7 +130,7 @@ def get_personal_meeting_time(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(user.email, db)
+    access_token = get_google_access_token(member.email, db)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 

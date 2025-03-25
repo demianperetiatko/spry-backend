@@ -5,9 +5,11 @@ from models.repositories.user_repository import UserRepository
 from utils.services import refresh_google_access_token
 
 def get_google_access_token(email: str, db: Session) -> str:
+    access_token = None
     user_repository = UserRepository(db)
     user = user_repository.find_by_email(email)
-    access_token = refresh_google_access_token(user.google_refresh_token)
+    if user and user.google_refresh_token:
+        access_token = refresh_google_access_token(user.google_refresh_token)
     return access_token
 
 
