@@ -11,6 +11,14 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from utils.services import refresh_google_access_token
 from utils.middleware import get_auth_user, get_organization
 from utils.meet import get_calendar_events
+from datetime import datetime, timedelta
+
+from utils.analytics import get_google_access_token
+
+from utils.analytics import group_events_by_date, calculate_event_ratio
+from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
+    count_event_attendees_more_than_five
+from utils.analytics import count_recurring_events, count_one_time_events
 
 router = APIRouter()
 
@@ -35,19 +43,6 @@ def get_personal_kpi(
     }
 
 
-from datetime import datetime, timedelta
-
-
-def get_events_for_day(events, date):
-    events_for_day = []
-    for event in events:
-        event_start = datetime.fromisoformat(event['start']['dateTime'])
-        event_end = datetime.fromisoformat(event['end']['dateTime'])
-        if event_start.date() == date.date() or event_end.date() == date.date():
-            events_for_day.append(event)
-    return events_for_day
-
-
 @router.get("/analytic/personal/meeting")
 def get_personal_meetings(
         member_id: int = Query(...),
@@ -60,38 +55,25 @@ def get_personal_meetings(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    user_repository = UserRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
-    member = org_member_repository.find_by_id(member_id)
-    user = user_repository.find_by_email(member.email)
-    access_token = refresh_google_access_token(user.google_refresh_token)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(user.email, db)
+
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
-    current_date = start_date_dt
-    events_by_date = {}
+    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
-    while current_date <= end_date_dt:
-        events_for_day = get_events_for_day(events, current_date)
-        events_by_date[current_date.date()] = events_for_day
-        current_date += timedelta(days=1)
-
-    formatted_analytic = []
-    for date, events_on_day in events_by_date.items():
-        formatted_date = date.strftime("%Y-%m-%d")
-        recurring = 0
-        one_time = 0
-
-        for event in events_on_day:
-            if 'recurringEventId' in event:
-                recurring += 1
-            else:
-                one_time += 1
-
-        formatted_analytic.append({
-            "date": formatted_date,
-            "recurring": recurring,
-            "one-time": one_time,
-        })
+    formatted_analytic = [
+        {
+            "date": date.strftime("%Y-%m-%d"),
+            "recurring": count_recurring_events(events_on_day),
+            "one-time": count_one_time_events(events_on_day),
+        }
+        for date, events_on_day in events_by_date.items()
+    ]
     return {'data': formatted_analytic}
 
 
@@ -104,45 +86,29 @@ def get_personal_meeting_participants(
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    user_repository = UserRepository(db)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
     org_member_repository = OrganizationMemberRepository(db)
-    member = org_member_repository.find_by_id(member_id)
-    user = user_repository.find_by_email(member.email)
-    access_token = refresh_google_access_token(user.google_refresh_token)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(user.email, db)
+
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
-    current_date = start_date_dt
-    events_by_date = {}
+    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
-    while current_date <= end_date_dt:
-        events_for_day = get_events_for_day(events, current_date)
-        events_by_date[current_date.date()] = events_for_day
-        current_date += timedelta(days=1)
-
-    formatted_analytic = []
-    for date, events_on_day in events_by_date.items():
-        formatted_date = date.strftime("%Y-%m-%d")
-        one_to_one = 0
-        three_to_five = 0
-        more_than_five = 0
-
-        for event in events_on_day:
-            count_attendees = len(event.get('attendees'))
-            if count_attendees == 2:
-                one_to_one += 1
-            elif 2 <= count_attendees and count_attendees <= 5:
-                three_to_five += 1
-            elif count_attendees > 5:
-                more_than_five += 1
-
-        formatted_analytic.append({
-            "date": formatted_date,
-            "1:1": one_to_one,
-            "3-5": three_to_five,
-            ">5": more_than_five,
-        })
+    formatted_analytic = [
+        {
+            "date": date.strftime("%Y-%m-%d"),
+            "1:1": count_event_attendees_one_to_one(events_on_day),
+            "3-5": count_event_attendees_three_to_five(events_on_day),
+            ">5": count_event_attendees_more_than_five(events_on_day),
+        }
+        for date, events_on_day in events_by_date.items()
+    ]
 
     return {'data': formatted_analytic}
 
@@ -156,35 +122,26 @@ def get_personal_meeting_time(
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    user_repository = UserRepository(db)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
     org_member_repository = OrganizationMemberRepository(db)
-    member = org_member_repository.find_by_id(member_id)
-    user = user_repository.find_by_email(member.email)
-    access_token = refresh_google_access_token(user.google_refresh_token)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(user.email, db)
+
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
-    current_date = start_date_dt
-    events_by_date = {}
+    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
-    while current_date <= end_date_dt:
-        events_for_day = get_events_for_day(events, current_date)
-        events_by_date[current_date.date()] = events_for_day
-        current_date += timedelta(days=1)
-
-    formatted_analytic = []
-    for date, events_on_day in events_by_date.items():
-        formatted_date = date.strftime("%Y-%m-%d")
-        event_duration = 0
-        for event in events_on_day:
-            start_time = datetime.fromisoformat(event['start']['dateTime'])
-            end_time = datetime.fromisoformat(event['end']['dateTime'])
-            event_duration = (end_time - start_time).total_seconds() / (60 * 60)
-
-        formatted_analytic.append({
-            "date": formatted_date,
-            "ratio": round(event_duration / 8, 2),
-        })
+    formatted_analytic = [
+        {
+            "date": date.strftime("%Y-%m-%d"),
+            "ratio": calculate_event_ratio(events_on_day)
+        }
+        for date, events_on_day in events_by_date.items()
+    ]
 
     return {'data': formatted_analytic}
