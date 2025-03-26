@@ -70,7 +70,7 @@ def get_team_meetings(
         member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
         events += member_events
 
-    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
+    events_by_date = group_events_by_date(list(set(events)), start_date_dt, end_date_dt)
 
     formatted_analytic = [
         {
@@ -114,7 +114,7 @@ def get_team_meeting_participants(
         member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
         events += member_events
 
-    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
+    events_by_date = group_events_by_date(list(set(events)), start_date_dt, end_date_dt)
 
     formatted_analytic = [
         {
@@ -155,7 +155,7 @@ def get_team_meeting_time(
         member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
         events += member_events
 
-    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
+    events_by_date = group_events_by_date(list(set(events)), start_date_dt, end_date_dt)
 
     formatted_analytic = [
         {
