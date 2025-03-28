@@ -16,10 +16,11 @@ def get_google_access_token(email: str, db: Session) -> str:
 def get_events_for_day(events, date):
     events_for_day = []
     for event in events:
-        event_start = datetime.fromisoformat(event['start']['dateTime'])
-        event_end = datetime.fromisoformat(event['end']['dateTime'])
-        if event_start.date() == date.date() or event_end.date() == date.date():
-            events_for_day.append(event)
+        if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
+            event_start = datetime.fromisoformat(event['start']['dateTime'])
+            event_end = datetime.fromisoformat(event['end']['dateTime'])
+            if event_start.date() == date.date() or event_end.date() == date.date():
+                events_for_day.append(event)
     return events_for_day
 
 
@@ -50,9 +51,10 @@ def calculate_event_ratio(events_on_day: List[Dict]) -> float:
     total_duration = 0
 
     for event in events_on_day:
-        start_time = datetime.fromisoformat(event['start']['dateTime'])
-        end_time = datetime.fromisoformat(event['end']['dateTime'])
-        total_duration += (end_time - start_time).total_seconds() / 3600
+        if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
+            start_time = datetime.fromisoformat(event['start']['dateTime'])
+            end_time = datetime.fromisoformat(event['end']['dateTime'])
+            total_duration += (end_time - start_time).total_seconds() / 3600
 
     return round(total_duration * 100 / 8, 2)
 
