@@ -21,6 +21,9 @@ def get_events_for_day(events, date):
             event_end = datetime.fromisoformat(event['end']['dateTime'])
             if event_start.date() == date.date() or event_end.date() == date.date():
                 events_for_day.append(event)
+        if 'date' in event.get('start', {}) and 'date' in event.get('end', {}):
+            # TODO: calendar events that last all day
+            continue
     return events_for_day
 
 
