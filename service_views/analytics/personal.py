@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 
 from utils.analytics import get_google_access_token
 
-from utils.analytics import group_events_by_date, calculate_event_ratio
+from utils.analytics import group_events_by_date, calculate_event_ratio, analyze_event_participants
 from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
     count_event_attendees_more_than_five
 from utils.analytics import count_recurring_events, count_one_time_events
@@ -145,3 +145,32 @@ def get_personal_meeting_time(
     ]
 
     return {'data': formatted_analytic}
+
+@router.get("/analytic/personal/meeting/collaboration")
+def get_personal_table_collaboration(
+        member_id: int = Query(...),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
+        db: Session = Depends(get_db)
+):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    org_member_repository = OrganizationMemberRepository(db)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(member.email, db)
+
+    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+
+    result = analyze_event_participants(events, member.email)
+
+    return {'data': result}
+
+
+
+

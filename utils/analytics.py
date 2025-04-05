@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from collections import defaultdict
 from typing import List, Dict
 from datetime import datetime, timedelta, date
 from models.repositories.user_repository import UserRepository
@@ -66,3 +67,35 @@ def count_recurring_events(events_on_day: List[Dict]) -> int:
 
 def count_one_time_events(events_on_day: List[Dict]) -> int:
     return sum(1 for event in events_on_day if 'recurringEventId' not in event)
+
+def analyze_event_participants(events: list, user_email: str) -> list:
+    participant_durations = defaultdict(float)
+
+    for event in events:
+        if event.get("status") == "cancelled":
+            continue
+
+        start = event.get("start", {}).get("dateTime")
+        end = event.get("end", {}).get("dateTime")
+        if not start or not end:
+            continue
+
+        try:
+            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
+        except Exception:
+            continue
+
+        duration_hours = (end_dt - start_dt).total_seconds() / 3600
+
+        attendees = event.get("attendees", [])
+        for person in attendees:
+            email = person.get("email")
+            if email and email.lower() != user_email.lower():
+                participant_durations[email] += duration_hours
+
+    result = [
+        {"email": email, "hours": round(hours, 2)}
+        for email, hours in participant_durations.items()
+    ]
+    return result
