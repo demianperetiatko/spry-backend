@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from models import get_db, User, Organization
 
-from models.repositories.user_repository import UserRepository
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
@@ -20,7 +19,22 @@ from utils.analytics import count_event_attendees_one_to_one, count_event_attend
     count_event_attendees_more_than_five
 from utils.analytics import count_recurring_events, count_one_time_events
 
+from utils.analytics.kpi import calculate_kpi_total_time, calculate_kpi_avg_daily_meetings_time, \
+    calculate_kpi_cancelled_meetings, calculate_kpi_count_meetings, calculate_kpi_meetings_ratio
+
 router = APIRouter()
+
+from datetime import datetime, timedelta
+
+
+def count_weekdays(start, end):
+    count = 0
+    current = start
+    while current <= end:
+        if current.weekday() < 5:
+            count += 1
+        current += timedelta(days=1)
+    return count
 
 
 @router.get("/analytic/personal/meeting/kpi")
@@ -32,13 +46,31 @@ def get_personal_kpi(
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    delta = end_date_dt - start_date_dt
+
+    prev_start_date_dt = start_date_dt - delta - timedelta(days=1)
+    prev_end_date_dt = end_date_dt - delta - timedelta(days=1)
+
+    org_member_repository = OrganizationMemberRepository(db)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(member.email, db)
+
+    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    prev_events = get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt)
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
     return {
         'data': [
-            {"name": "total_time", "title": "Total time on meetings", "value": "124 h", "change": "+12%"},
-            {"name": "avg_time_per_member", "title": "Avg. daily meetings time", "value": "2.4 h", "change": "+12%"},
-            {"name": "total_cost", "title": "Meetings count", "value": "123", "change": "+12%"},
-            {"name": "avg_cost_per_member", "title": "Meetings ratio", "value": "55%", "change": "+12%"},
-            {"name": "meetings_count", "title": "Cancelled meetings", "value": "11", "change": "+12%"},
+            calculate_kpi_total_time(events, prev_events),
+            calculate_kpi_avg_daily_meetings_time(events, prev_events, count_work_day),
+            calculate_kpi_count_meetings(events, prev_events),
+            calculate_kpi_meetings_ratio(events, prev_events, count_work_day),
+            calculate_kpi_cancelled_meetings(events, prev_events),
         ]
     }
 
@@ -146,6 +178,7 @@ def get_personal_meeting_time(
 
     return {'data': formatted_analytic}
 
+
 @router.get("/analytic/personal/meeting/collaboration")
 def get_personal_table_collaboration(
         member_id: int = Query(...),
@@ -170,7 +203,3 @@ def get_personal_table_collaboration(
     result = analyze_event_participants(events, member.email)
 
     return {'data': result}
-
-
-
-
