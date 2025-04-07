@@ -1,0 +1,39 @@
+from typing import Callable, Dict, List, Any, Tuple
+from datetime import date
+
+
+class Chart:
+    def __init__(
+        self,
+        events_by_date: Dict[date, List[dict]],
+        x_axis: str,
+        y_axis_config: List[Dict[str, str]],
+        headers: List[Dict[str, Any]],
+        metrics: List[Tuple[str, Callable[[List[dict]], Any]]],
+    ):
+        self.events_by_date = events_by_date
+        self.x_axis = x_axis
+        self.y_axis_config = y_axis_config
+        self.headers = headers
+        self.metrics = metrics
+
+    def as_dict(self) -> Dict[str, Any]:
+        formatted_data = []
+
+        for day, events in self.events_by_date.items():
+            row = {
+                self.x_axis: day.strftime("%Y-%m-%d")
+            }
+            for key, func in self.metrics:
+                try:
+                    row[key] = func(events)
+                except Exception:
+                    row[key] = None
+            formatted_data.append(row)
+
+        return {
+            "data": formatted_data,
+            "x_axis": self.x_axis,
+            "y_axis": self.y_axis_config,
+            "headers": self.headers
+        }
