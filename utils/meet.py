@@ -26,7 +26,9 @@ def get_calendar_events(token: str, start_date: datetime, end_date: datetime) ->
         response = requests.get(url, headers=headers, params=params)
 
         if response.status_code == 200:
-            events.extend(response.json().get("items", []))
+            for event in response.json().get("items", []):
+                if 'dateTime' in event.get('start', {}):
+                    events.append(event)
 
     return events
 
