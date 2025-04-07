@@ -95,7 +95,7 @@ def analyze_event_participants(events: list, user_email: str) -> list:
                 participant_durations[email] += duration_hours
 
     result = [
-        {"email": email, "hours": round(hours, 2)}
+        {"email": email, "collab_time": round(hours, 2)}
         for email, hours in participant_durations.items()
     ]
     return result

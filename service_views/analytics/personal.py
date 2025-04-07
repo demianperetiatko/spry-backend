@@ -22,6 +22,7 @@ from utils.analytics.kpi import calculate_kpi_total_time, calculate_kpi_avg_dail
     calculate_kpi_cancelled_meetings, calculate_kpi_count_meetings, calculate_kpi_meetings_ratio
 
 from utils.plots import Chart, Diagram
+from utils.table import DataTable
 
 router = APIRouter()
 
@@ -220,5 +221,8 @@ def get_personal_table_collaboration(
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
     result = analyze_event_participants(events, member.email)
-
-    return {'data': result}
+    columns = [
+        ('email', 'email'),
+        ('collab_time', 'collab_time')
+    ]
+    return DataTable(result, columns).fetch_dicts(sort_by, sort_order)
