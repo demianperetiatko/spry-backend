@@ -5,13 +5,13 @@ from datetime import date
 class Chart:
     def __init__(
         self,
-        events_by_date: Dict[date, List[dict]],
+        items: Dict[date, List[dict]],
         x_axis: str,
         y_axis_config: List[Dict[str, str]],
         headers: List[Dict[str, Any]],
         metrics: List[Tuple[str, Callable[[List[dict]], Any]]],
     ):
-        self.events_by_date = events_by_date
+        self.items = items
         self.x_axis = x_axis
         self.y_axis_config = y_axis_config
         self.headers = headers
@@ -20,7 +20,7 @@ class Chart:
     def as_dict(self) -> Dict[str, Any]:
         formatted_data = []
 
-        for day, events in self.events_by_date.items():
+        for day, events in self.items.items():
             row = {
                 self.x_axis: day.strftime("%Y-%m-%d")
             }
