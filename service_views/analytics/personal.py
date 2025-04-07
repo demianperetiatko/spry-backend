@@ -6,20 +6,25 @@ from models import get_db, User, Organization
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
-from utils.services import refresh_google_access_token
+
 from utils.middleware import get_auth_user, get_organization
 from utils.meet import get_calendar_events
-from datetime import datetime, timedelta
+
 
 from utils.analytics import get_google_access_token
 
-from utils.analytics import group_events_by_date, calculate_event_ratio, analyze_event_participants
-from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
-    count_event_attendees_more_than_five
-from utils.analytics import count_recurring_events, count_one_time_events
+from utils.analytics import group_events_by_date, analyze_event_participants
+
 
 from utils.analytics.kpi import calculate_kpi_total_time, calculate_kpi_avg_daily_meetings_time, \
     calculate_kpi_cancelled_meetings, calculate_kpi_count_meetings, calculate_kpi_meetings_ratio
+
+
+from utils.analytics.calendar_stats import calculate_recurring_event_time, calculate_one_time_event_time
+from utils.analytics.calendar_stats import calculate_event_ratio
+from utils.analytics.calendar_stats import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
+    count_event_attendees_more_than_five
+
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable
@@ -111,8 +116,8 @@ def get_personal_meetings(
             {"name": "Meetings time ratio", "chart_type": "line", "key": "ratio", "y_axis": "right"},
         ],
         metrics=[
-            ("recurring", count_recurring_events),
-            ("one_time", count_one_time_events),
+            ("recurring", calculate_recurring_event_time),
+            ("one_time", calculate_one_time_event_time),
             ("ratio", calculate_event_ratio),
         ]
     )
