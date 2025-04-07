@@ -21,7 +21,7 @@ from utils.analytics import count_recurring_events, count_one_time_events
 from utils.analytics.kpi import calculate_kpi_total_time, calculate_kpi_avg_daily_meetings_time, \
     calculate_kpi_cancelled_meetings, calculate_kpi_count_meetings, calculate_kpi_meetings_ratio
 
-from utils.chart import Chart
+from utils.plots import Chart, Diagram
 
 router = APIRouter()
 
@@ -97,14 +97,8 @@ def get_personal_meetings(
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
-    metrics = [
-        ("recurring", count_recurring_events),
-        ("one_time", count_one_time_events),
-        ("ratio", calculate_event_ratio),
-    ]
-
     response = Chart(
-        events_by_date=events_by_date,
+        items=events_by_date,
         x_axis="date",
         y_axis_config=[
             {"side": "left", "unit": "h"},
@@ -115,15 +109,18 @@ def get_personal_meetings(
             {"name": "One-time", "chart_type": "bar", "key": "one_time", "y_axis": "left"},
             {"name": "Meetings time ratio", "chart_type": "line", "key": "ratio", "y_axis": "right"},
         ],
-        metrics=metrics,
+        metrics=[
+            ("recurring", count_recurring_events),
+            ("one_time", count_one_time_events),
+            ("ratio", calculate_event_ratio),
+        ]
     )
 
     return response.as_dict()
 
 
 @router.get("/analytic/personal/meeting/participants")
-@router.get("/analytic/personal/meeting/time")
-def get_personal_meeting_time(
+def get_personal_meeting_participants(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
@@ -140,20 +137,63 @@ def get_personal_meeting_time(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = get_google_access_token(member.email, db)
-
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
-    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
+    response = Diagram(
+        items=events,
+        headers=[
+            {"name": "1-1", "key": "one_to_one"},
+            {"name": "3-5", "key": "three_to_five"},
+            {"name": "6+", "key": "more_than_five"},
+        ],
+        metrics=[
+            ("one_to_one", count_event_attendees_one_to_one),
+            ("three_to_five", count_event_attendees_three_to_five),
+            ("more_than_five", count_event_attendees_more_than_five),
+        ]
+    )
+    return response.as_dict()
 
-    formatted_analytic = [
-        {
-            "date": date.strftime("%Y-%m-%d"),
-            "ratio": calculate_event_ratio(events_on_day)
-        }
-        for date, events_on_day in events_by_date.items()
-    ]
 
-    return {'data': formatted_analytic}
+@router.get("/analytic/personal/meeting/distribution")
+def get_personal_meeting_distribution(
+        member_id: int = Query(...),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
+        db: Session = Depends(get_db)
+):
+    import random
+
+    def fun_random(events):
+        return random.randint(0, 10)
+
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    org_member_repository = OrganizationMemberRepository(db)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = get_google_access_token(member.email, db)
+    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+
+    response = Diagram(
+        items=events,
+        headers=[
+            {"name": "Inside the team", "key": "inside_team"},
+            {"name": "With other teams", "key": "cross_team"},
+            {"name": "Outside the organization", "key": "external"},
+        ],
+        metrics=[
+            ("inside_team", fun_random),
+            ("cross_team", fun_random),
+            ("external", fun_random),
+        ]
+    )
+    return response.as_dict()
 
 
 @router.get("/analytic/personal/meeting/collaboration")
@@ -161,6 +201,8 @@ def get_personal_table_collaboration(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
+        sort_by: str = Query(...),
+        sort_order: str = Query(...),  # "asc" or "desc"
         user: User = Depends(get_auth_user),
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
