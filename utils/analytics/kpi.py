@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from utils.analytics.util import calculate_chance
+from utils.analytics.utils import calculate_chance
 
 
 def kpi_total_time(events: list) -> float:
