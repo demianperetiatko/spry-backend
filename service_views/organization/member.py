@@ -13,7 +13,7 @@ from models.repositories.organization_repository import OrganizationTeamReposito
 
 from utils.middleware import get_auth_user
 from utils.organization import send_invitation
-from utils.datatable import DataTable
+from utils.table import DBTable
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ def get_member(user: User = Depends(get_auth_user), db: Session = Depends(get_db
 
     org = org_repository.find_by_user(user)
     query_members = organization_member_repository.query_find_by_organization_id(org.id)
-    return DataTable(query_members, columns).fetch_dicts()
+    return DBTable(query_members, columns).fetch_dicts()
 
 
 class MemberRequest(BaseModel):
