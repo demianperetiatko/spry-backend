@@ -2,6 +2,10 @@ from typing import List, Dict
 from datetime import datetime, timedelta, date
 
 
+def count_event(events: List[Dict]) -> int:
+    return len(events)
+
+
 def count_event_attendees_one_to_one(events: List[Dict]) -> int:
     return sum(1 for event in events if len(event.get('attendees', [])) == 2)
 
@@ -14,16 +18,9 @@ def count_event_attendees_more_than_five(events: List[Dict]) -> int:
     return sum(1 for event in events if len(event.get('attendees', [])) > 5)
 
 
-def calculate_event_ratio(events: List[Dict]) -> float:
-    total_duration = 0
-
-    for event in events:
-        if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
-            start_time = datetime.fromisoformat(event['start']['dateTime'])
-            end_time = datetime.fromisoformat(event['end']['dateTime'])
-            total_duration += (end_time - start_time).total_seconds() / 3600
-
-    return round(total_duration * 100 / 8, 2)
+def calculate_event_ratio(events: List[Dict], total_days: int = 1) -> float:
+    total_duration = calculate_event_time(events)
+    return round(total_duration * 100 / (8 * total_days), 2)
 
 
 def calculate_recurring_event_time(events: List[Dict]) -> float:
@@ -63,6 +60,7 @@ def calculate_event_time(events: List[Dict]) -> float:
             total_seconds += (end_time - start_time).total_seconds()
     return total_seconds / 3600
 
+
 def count_organized_meetings(events: List[Dict], email: str) -> int:
     organized_events = [
         event for event in events
@@ -71,3 +69,10 @@ def count_organized_meetings(events: List[Dict], email: str) -> int:
     ]
     return len(organized_events)
 
+
+def calculate_cancelled_meetings(events: list) -> float:
+    total_cancelled_meetings = 0
+    for event in events:
+        if event.get("status") == "cancelled":
+            total_cancelled_meetings += 1
+    return total_cancelled_meetings

@@ -16,8 +16,8 @@ from utils.analytics import get_google_access_token
 from utils.analytics import group_events_by_date, analyze_event_participants
 
 
-from utils.analytics.kpi import calculate_kpi_total_time, calculate_kpi_avg_daily_meetings_time, \
-    calculate_kpi_cancelled_meetings, calculate_kpi_count_meetings, calculate_kpi_meetings_ratio
+from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
+    kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
 
 
 from utils.analytics.calendar_stats import calculate_recurring_event_time, calculate_one_time_event_time
@@ -75,11 +75,11 @@ def get_personal_kpi(
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
     return {
         'data': [
-            calculate_kpi_total_time(events, prev_events),
-            calculate_kpi_avg_daily_meetings_time(events, prev_events, count_work_day),
-            calculate_kpi_count_meetings(events, prev_events),
-            calculate_kpi_meetings_ratio(events, prev_events, count_work_day),
-            calculate_kpi_cancelled_meetings(events, prev_events),
+            kpi_total_time(events, prev_events),
+            kpi_avg_daily_meetings_time(events, prev_events, count_work_day),
+            kpi_count_meetings(events, prev_events),
+            kpi_meetings_ratio(events, prev_events, count_work_day),
+            kpi_cancelled_meetings(events, prev_events),
         ]
     }
 
