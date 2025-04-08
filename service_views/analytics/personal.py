@@ -29,6 +29,8 @@ from utils.analytics.calendar_stats import count_event_attendees_one_to_one, cou
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
 
+from utils import get_user_profile
+
 router = APIRouter()
 
 from datetime import datetime, timedelta
@@ -227,7 +229,7 @@ def get_personal_table_collaboration(
 
     result = analyze_event_participants(events, member.email)
     columns = [
-        ('email', 'email'),
+        ('member_profile', 'email', lambda event: get_user_profile(event['email'], db)),
         ('collab_time', 'collab_time')
     ]
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)
