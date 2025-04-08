@@ -27,7 +27,7 @@ from utils.analytics.calendar_stats import count_event_attendees_one_to_one, cou
 
 
 from utils.plots import Chart, Diagram
-from utils.table import DataTable
+from utils.table import DataTable, SortOrderType
 
 router = APIRouter()
 
@@ -208,7 +208,7 @@ def get_personal_table_collaboration(
         start_date: str = Query(...),
         end_date: str = Query(...),
         sort_by: str = Query(...),
-        sort_order: str = Query(...),  # "asc" or "desc"
+        sort_order: SortOrderType = Query(SortOrderType.asc),
         user: User = Depends(get_auth_user),
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
