@@ -201,6 +201,9 @@ class TableType(str, Enum):
     recurring_meetings = "recurring_meetings"
 
 
+from utils import get_user_profile
+
+
 @router.get("/analytic/team/meeting/table")
 def get_team_meetings_table(
         team_id: int = Query(...),
@@ -213,4 +216,56 @@ def get_team_meetings_table(
         sort_order: SortOrderType = Query(SortOrderType.asc),
         db: Session = Depends(get_db)
 ):
-    return {'data': []}
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    org_team_repository = OrganizationTeamRepository(db)
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
+
+    org_team = org_team_repository.find_by_team_id(org.id, team_id)
+    if not org_team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    org_team_members = org_team_member_repository.query_find_by_team_id(org_team.id)
+
+    if type == TableType.attendees:
+        result = []
+        for member in org_team_members:
+            access_token = get_google_access_token(member.email, db)
+            member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+            info = {
+                "member_profile": get_user_profile(member.email, db),
+                "time": "",
+                "cost": "",
+                "radio": "",
+            }
+            result.append(info)
+        return {
+            "total_count": len(result),
+            "data": result,
+        }
+    elif type == TableType.organizers:
+        result = []
+        for member in org_team_members:
+            access_token = get_google_access_token(member.email, db)
+            member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+            info = {
+                "member_profile": get_user_profile(member.email, db),
+                "count": "",
+            }
+            result.append(info)
+        return {
+            "total_count": len(result),
+            "data": result,
+        }
+    elif type == TableType.teams_collab:
+        result = []
+        return {
+            "total_count": len(result),
+            "data": result,
+        }
+    elif type == TableType.recurring_meetings:
+        result = []
+        return {
+            "total_count": len(result),
+            "data": result,
+        }
