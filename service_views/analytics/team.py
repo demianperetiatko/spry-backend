@@ -9,21 +9,19 @@ from models import get_db, User, Organization
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-
 from utils.middleware import get_auth_user, get_organization
 from utils.meet import get_calendar_events
 
 from utils.analytics import get_google_access_token
 
-from utils.plots import Chart, Diagram
-
 from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
     count_event_attendees_more_than_five, group_events_by_date
-from utils.analytics import count_recurring_events, count_one_time_events
-
 
 from utils.analytics.calendar_stats import calculate_recurring_event_time, calculate_one_time_event_time
 from utils.analytics.calendar_stats import calculate_event_ratio
+
+from utils.plots import Chart, Diagram
+from utils.table import DataTable, SortOrderType
 
 router = APIRouter()
 
@@ -47,10 +45,15 @@ def get_team_kpi(
             {"name": "meetings_with_agenda", "title": "Meetings with Agenda", "value": "55%", "change": "+12%"},
         ]
     }
+
+
 from enum import Enum
+
+
 class AnalyticsType(str, Enum):
     time = "time"
     cost = "cost"
+
 
 @router.get("/analytic/team/meeting")
 def get_team_meetings(
@@ -189,3 +192,25 @@ def get_team_meeting_distribution(
         ]
     )
     return response.as_dict()
+
+
+class TableType(str, Enum):
+    attendees = "attendees"
+    organizers = "organizers"
+    teams_collab = "teams_collab"
+    recurring_meetings = "recurring_meetings"
+
+
+@router.get("/analytic/team/meeting/table")
+def get_team_meetings_table(
+        team_id: int = Query(...),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        type: TableType = Query(TableType.attendees),
+        user: User = Depends(get_auth_user),
+        org: Organization = Depends(get_organization),
+        sort_by: str = Query(...),
+        sort_order: SortOrderType = Query(SortOrderType.asc),
+        db: Session = Depends(get_db)
+):
+    return {'data': []}
