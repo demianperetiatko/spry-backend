@@ -50,3 +50,24 @@ def calculate_one_time_event_time(events: List[Dict]) -> float:
                 end_time = datetime.fromisoformat(end_str)
                 total_seconds += (end_time - start_time).total_seconds()
     return total_seconds / 3600
+
+
+def calculate_event_time(events: List[Dict]) -> float:
+    total_seconds = 0
+    for event in events:
+        start_str = event.get("start", {}).get("dateTime")
+        end_str = event.get("end", {}).get("dateTime")
+        if start_str and end_str:
+            start_time = datetime.fromisoformat(start_str)
+            end_time = datetime.fromisoformat(end_str)
+            total_seconds += (end_time - start_time).total_seconds()
+    return total_seconds / 3600
+
+def count_organized_meetings(events: List[Dict], email: str) -> int:
+    organized_events = [
+        event for event in events
+        if event.get("organizer", {}).get("email") == email
+           or event.get("creator", {}).get("self") == True
+    ]
+    return len(organized_events)
+

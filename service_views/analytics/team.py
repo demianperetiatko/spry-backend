@@ -18,7 +18,7 @@ from utils.analytics import count_event_attendees_one_to_one, count_event_attend
     count_event_attendees_more_than_five, group_events_by_date
 
 from utils.analytics.calendar_stats import calculate_recurring_event_time, calculate_one_time_event_time
-from utils.analytics.calendar_stats import calculate_event_ratio
+from utils.analytics.calendar_stats import calculate_event_ratio, calculate_event_time, count_organized_meetings
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
@@ -232,11 +232,13 @@ def get_team_meetings_table(
         for member in org_team_members:
             access_token = get_google_access_token(member.email, db)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+            time = calculate_event_time(member_events)
             info = {
+                "id": member.id,
                 "member_profile": get_user_profile(member.email, db),
-                "time": "",
-                "cost": "",
-                "radio": "",
+                "time": time,
+                "cost": time,
+                "radio": calculate_event_ratio(member_events)
             }
             result.append(info)
         return {
@@ -249,8 +251,9 @@ def get_team_meetings_table(
             access_token = get_google_access_token(member.email, db)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
+                "id": member.id,
                 "member_profile": get_user_profile(member.email, db),
-                "count": "",
+                "count": count_organized_meetings(member_events, member.email),
             }
             result.append(info)
         return {
