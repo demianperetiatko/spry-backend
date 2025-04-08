@@ -33,7 +33,4 @@ class Chart:
 
         return {
             "data": formatted_data,
-            "x_axis": self.x_axis,
-            "y_axis": self.y_axis_config,
-            "headers": self.headers
         }

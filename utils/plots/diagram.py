@@ -24,5 +24,4 @@ class Diagram:
 
         return {
             "data": formatted_data,
-            "headers": self.headers
         }
