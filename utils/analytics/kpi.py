@@ -31,7 +31,7 @@ def kpi_total_time(events: list, prev_events: list) -> dict:
     return {
         "name": "total_time",
         "title": "Total Time",
-        "value": f"{round(total_time)}h",
+        "value": f"{round(total_time, 2)}h",
         "change": f"{'+' if change > 0 else ''}{change}%",
         "positive": True
     }
