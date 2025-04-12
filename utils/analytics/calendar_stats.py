@@ -2,28 +2,28 @@ from typing import List, Dict
 from datetime import datetime, timedelta, date
 
 
-def count_event(events: List[Dict]) -> int:
+def count_events(events: List[Dict]) -> int:
     return len(events)
 
 
-def count_event_attendees_one_to_one(events: List[Dict]) -> int:
+def count_events_with_2_attendees(events: List[Dict]) -> int:
     return sum(1 for event in events if len(event.get('attendees', [])) == 2)
 
 
-def count_event_attendees_three_to_five(events: List[Dict]) -> int:
+def count_events_with_3_to_5_attendees(events: List[Dict]) -> int:
     return sum(1 for event in events if 2 <= len(event.get('attendees', [])) <= 5)
 
 
-def count_event_attendees_more_than_five(events: List[Dict]) -> int:
+def count_events_with_more_than_5_attendees(events: List[Dict]) -> int:
     return sum(1 for event in events if len(event.get('attendees', [])) > 5)
 
 
 def calculate_event_ratio(events: List[Dict], total_days: int = 1) -> float:
-    total_duration = calculate_event_time(events)
+    total_duration = calculate_total_events_duration(events)
     return round(total_duration * 100 / (8 * total_days), 2)
 
 
-def calculate_recurring_event_time(events: List[Dict]) -> float:
+def calculate_recurring_events_duration(events: List[Dict]) -> float:
     total_seconds = 0
     for event in events:
         if 'recurringEventId' in event:
@@ -36,7 +36,7 @@ def calculate_recurring_event_time(events: List[Dict]) -> float:
     return total_seconds / 3600
 
 
-def calculate_one_time_event_time(events: List[Dict]) -> float:
+def calculate_single_events_duration(events: List[Dict]) -> float:
     total_seconds = 0
     for event in events:
         if 'recurringEventId' not in event:
@@ -49,7 +49,7 @@ def calculate_one_time_event_time(events: List[Dict]) -> float:
     return total_seconds / 3600
 
 
-def calculate_event_time(events: List[Dict]) -> float:
+def calculate_total_events_duration(events: List[Dict]) -> float:
     total_seconds = 0
     for event in events:
         start_str = event.get("start", {}).get("dateTime")
@@ -61,7 +61,7 @@ def calculate_event_time(events: List[Dict]) -> float:
     return total_seconds / 3600
 
 
-def count_organized_meetings(events: List[Dict], email: str) -> int:
+def count_user_organized_events(events: List[Dict], email: str) -> int:
     organized_events = [
         event for event in events
         if event.get("organizer", {}).get("email") == email
@@ -70,7 +70,7 @@ def count_organized_meetings(events: List[Dict], email: str) -> int:
     return len(organized_events)
 
 
-def calculate_cancelled_meetings(events: list) -> float:
+def count_cancelled_events(events: list) -> float:
     total_cancelled_meetings = 0
     for event in events:
         if event.get("status") == "cancelled":

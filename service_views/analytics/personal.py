@@ -20,10 +20,10 @@ from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
 
 
-from utils.analytics.calendar_stats import calculate_recurring_event_time, calculate_one_time_event_time
+from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
-from utils.analytics.calendar_stats import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
-    count_event_attendees_more_than_five
+from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
+    count_events_with_more_than_5_attendees
 
 
 from utils.plots import Chart, Diagram
@@ -108,8 +108,8 @@ def get_personal_meetings(
     response = Chart(
         items=events_by_date,
         metrics=[
-            ("recurring", calculate_recurring_event_time),
-            ("one_time", calculate_one_time_event_time),
+            ("recurring", calculate_recurring_events_duration),
+            ("one_time", calculate_single_events_duration),
             ("ratio", calculate_event_ratio),
         ]
     )
@@ -140,9 +140,9 @@ def get_personal_meeting_participants(
     response = Diagram(
         items=events,
         metrics=[
-            ("one_to_one", count_event_attendees_one_to_one),
-            ("three_to_five", count_event_attendees_three_to_five),
-            ("more_than_five", count_event_attendees_more_than_five),
+            ("one_to_one", count_events_with_2_attendees),
+            ("three_to_five", count_events_with_3_to_5_attendees),
+            ("more_than_five", count_events_with_more_than_5_attendees),
         ]
     )
     return response.as_dict()

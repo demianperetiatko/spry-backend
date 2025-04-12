@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from utils.analytics.utils import calculate_chance
-from utils.analytics.calendar_stats import calculate_event_time, calculate_cancelled_meetings, count_event, calculate_event_ratio
+from utils.analytics.calendar_stats import calculate_total_events_duration, count_cancelled_events, count_events, calculate_event_ratio
 
 
 
@@ -23,8 +23,8 @@ def avg_daily_meetings_hour(events: list, total_days: int) -> float:
 
 
 def kpi_total_time(events: list, prev_events: list) -> dict:
-    total_time = calculate_event_time(events)
-    prev_total_time = calculate_event_time(prev_events)
+    total_time = calculate_total_events_duration(events)
+    prev_total_time = calculate_total_events_duration(prev_events)
 
     change = calculate_chance(total_time, prev_total_time)
 
@@ -51,8 +51,8 @@ def kpi_avg_daily_meetings_time(events: list, prev_events: list, count_work_day:
 
 
 def kpi_cancelled_meetings(events: list, prev_events: list) -> dict:
-    cancelled_meetings = calculate_cancelled_meetings(events)
-    prev_cancelled_meetings = calculate_cancelled_meetings(prev_events)
+    cancelled_meetings = count_cancelled_events(events)
+    prev_cancelled_meetings = count_cancelled_events(prev_events)
     change = calculate_chance(cancelled_meetings, prev_cancelled_meetings)
     return {
         "name": "meetings_count",
@@ -64,8 +64,8 @@ def kpi_cancelled_meetings(events: list, prev_events: list) -> dict:
 
 
 def kpi_count_meetings(events: list, prev_events: list) -> dict:
-    count_meetings = count_event(events)
-    prev_count_meetings = count_event(prev_events)
+    count_meetings = count_events(events)
+    prev_count_meetings = count_events(prev_events)
     change = calculate_chance(count_meetings, prev_count_meetings)
     return {
         "name": "meetings_cost",
