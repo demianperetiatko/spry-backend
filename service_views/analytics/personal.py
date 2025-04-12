@@ -34,16 +34,8 @@ from utils import get_user_profile
 router = APIRouter()
 
 from datetime import datetime, timedelta
+from utils.analytics.utils import count_weekdays
 
-
-def count_weekdays(start, end):
-    count = 0
-    current = start
-    while current <= end:
-        if current.weekday() < 5:
-            count += 1
-        current += timedelta(days=1)
-    return count
 
 
 @router.get("/analytic/personal/meeting/kpi")
