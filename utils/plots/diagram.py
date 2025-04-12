@@ -6,11 +6,9 @@ class Diagram:
     def __init__(
             self,
             items: List[dict],
-            headers: List[Dict[str, Any]],
             metrics: List[Tuple[str, Callable[[List[dict]], Any]]],
     ):
         self.items = items
-        self.headers = headers
         self.metrics = metrics
 
     def as_dict(self) -> Dict[str, Any]:

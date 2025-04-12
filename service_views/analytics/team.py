@@ -86,16 +86,6 @@ def get_team_meetings(
 
     response = Chart(
         items=events_by_date,
-        x_axis="date",
-        y_axis_config=[
-            {"side": "left", "unit": "h"},
-            {"side": "right", "unit": "%"},
-        ],
-        headers=[
-            {"name": "Recurring", "chart_type": "bar", "key": "recurring", "y_axis": "left"},
-            {"name": "One-time", "chart_type": "bar", "key": "one_time", "y_axis": "left"},
-            {"name": "Meetings time ratio", "chart_type": "line", "key": "ratio", "y_axis": "right"},
-        ],
         metrics=[
             ("recurring", calculate_recurring_event_time),
             ("one_time", calculate_one_time_event_time),
@@ -134,11 +124,6 @@ def get_team_meeting_participants(
 
     response = Diagram(
         items=events,
-        headers=[
-            {"name": "1-1", "key": "one_to_one"},
-            {"name": "3-5", "key": "three_to_five"},
-            {"name": "6+", "key": "more_than_five"},
-        ],
         metrics=[
             ("one_to_one", count_event_attendees_one_to_one),
             ("three_to_five", count_event_attendees_three_to_five),
@@ -180,11 +165,6 @@ def get_team_meeting_distribution(
 
     response = Diagram(
         items=events,
-        headers=[
-            {"name": "Inside the team", "key": "inside_team"},
-            {"name": "With other teams", "key": "cross_team"},
-            {"name": "Outside the organization", "key": "external"},
-        ],
         metrics=[
             ("inside_team", fun_random),
             ("cross_team", fun_random),
