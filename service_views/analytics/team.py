@@ -255,7 +255,7 @@ def get_team_meetings_table(
                 "member_profile": get_user_profile(member.email, db),
                 "time": time,
                 "cost": time,
-                "radio": calculate_event_ratio(member_events)
+                "ratio": calculate_event_ratio(member_events)
             }
             result.append(info)
         return {
