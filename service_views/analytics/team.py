@@ -17,7 +17,7 @@ from utils.analytics import get_google_access_token
 from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
     count_event_attendees_more_than_five, group_events_by_date
 
-from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
+from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, calculate_recurring_events_cost, calculate_single_events_cost
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
 
@@ -81,7 +81,7 @@ def get_team_kpi(
             {"title": "Total Cost", },
             {"title": "Avg. cost per member", },
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-            {"title": "Meetings with Agenda", }
+            {"title": "Meetings w/o Agenda", }
         ]
     }
 
@@ -120,14 +120,21 @@ def get_team_meetings(
         events += member_events
 
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
-
-    response = Chart(
-        items=events_by_date,
-        metrics=[
+    if type == AnalyticsType.time:
+        metrics = [
             ("recurring", calculate_recurring_events_duration),
             ("one_time", calculate_single_events_duration),
             ("ratio", calculate_event_ratio),
         ]
+    else:
+        metrics = [
+            ("recurring", calculate_recurring_events_cost),
+            ("one_time", calculate_single_events_cost),
+            ("ratio", calculate_event_ratio),
+        ]
+    response = Chart(
+        items=events_by_date,
+        metrics=metrics,
     )
 
     return response.as_dict()

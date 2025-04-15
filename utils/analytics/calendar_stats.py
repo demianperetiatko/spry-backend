@@ -29,25 +29,14 @@ def count_events_with_more_than_5_attendees(events: List[Dict]) -> int:
     return sum(1 for event in events if len(event.get('attendees', [])) > 5)
 
 
-def calculate_event_ratio(events: List[Dict], total_days: int = 1) -> float:
+def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float:
     total_duration = calculate_total_events_duration(events)
-    return round(total_duration * 100 / (8 * total_days), 2)
+    return round(total_duration * 100 / (8 * total_work_days), 2)
 
-def calculate_avg_daily_meetings_hour(events: list, total_day_work: int) -> float:
-    total_time = 0.0
-    for event in events:
-        if event.get("status") == "cancelled":
-            continue
-        start = event.get("start", {}).get("dateTime")
-        end = event.get("end", {}).get("dateTime")
-        if not start or not end:
-            continue
-        start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-        end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-        total_time += (end_dt - start_dt).total_seconds() / 3600
 
-    avg_daily_time = total_time / total_day_work
-    return avg_daily_time
+def calculate_avg_daily_meetings_hour(events: list, total_work_days: int) -> float:
+    total_duration = calculate_total_events_duration(events)
+    return total_duration / total_work_days
 
 def calculate_recurring_events_duration(events: List[Dict]) -> float:
     total_seconds = 0
@@ -60,6 +49,10 @@ def calculate_recurring_events_duration(events: List[Dict]) -> float:
                 end_time = datetime.fromisoformat(end_str)
                 total_seconds += (end_time - start_time).total_seconds()
     return total_seconds / 3600
+
+
+def calculate_recurring_events_cost(events: List[Dict], prising) -> float:
+    return 0
 
 
 def calculate_single_events_duration(events: List[Dict]) -> float:
@@ -75,6 +68,10 @@ def calculate_single_events_duration(events: List[Dict]) -> float:
     return total_seconds / 3600
 
 
+def calculate_single_events_cost(events: List[Dict], prising) -> float:
+    return 0
+
+
 def calculate_total_events_duration(events: List[Dict]) -> float:
     total_seconds = 0
     for event in events:
@@ -85,6 +82,10 @@ def calculate_total_events_duration(events: List[Dict]) -> float:
             end_time = datetime.fromisoformat(end_str)
             total_seconds += (end_time - start_time).total_seconds()
     return total_seconds / 3600
+
+
+def calculate_total_events_cost(events: List[Dict], prising) -> float:
+    return 0
 
 
 def count_user_organized_events(events: List[Dict], email: str) -> int:
