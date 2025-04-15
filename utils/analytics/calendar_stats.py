@@ -2,6 +2,17 @@ from typing import List, Dict
 from datetime import datetime, timedelta, date
 
 
+def get_unique_events(events: List[Dict]) -> List[Dict]:
+    seen_ids = set()
+    unique_events = []
+    for event in events:
+        event_id = event.get("id")
+        if event_id and event_id not in seen_ids:
+            seen_ids.add(event_id)
+            unique_events.append(event)
+    return unique_events
+
+
 def count_events(events: List[Dict]) -> int:
     return len(events)
 
@@ -22,6 +33,21 @@ def calculate_event_ratio(events: List[Dict], total_days: int = 1) -> float:
     total_duration = calculate_total_events_duration(events)
     return round(total_duration * 100 / (8 * total_days), 2)
 
+def calculate_avg_daily_meetings_hour(events: list, total_day_work: int) -> float:
+    total_time = 0.0
+    for event in events:
+        if event.get("status") == "cancelled":
+            continue
+        start = event.get("start", {}).get("dateTime")
+        end = event.get("end", {}).get("dateTime")
+        if not start or not end:
+            continue
+        start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
+        total_time += (end_dt - start_dt).total_seconds() / 3600
+
+    avg_daily_time = total_time / total_day_work
+    return avg_daily_time
 
 def calculate_recurring_events_duration(events: List[Dict]) -> float:
     total_seconds = 0

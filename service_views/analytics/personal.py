@@ -10,11 +10,9 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from utils.middleware import get_auth_user, get_organization
 from utils.meet import get_calendar_events
 
-
 from utils.analytics import get_google_access_token
 
 from utils.analytics import group_events_by_date, analyze_event_participants
-
 
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
@@ -25,7 +23,6 @@ from utils.analytics.calendar_stats import calculate_event_ratio
 from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
     count_events_with_more_than_5_attendees
 
-
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
 
@@ -35,7 +32,6 @@ router = APIRouter()
 
 from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
-
 
 
 @router.get("/analytic/personal/meeting/kpi")
@@ -65,13 +61,15 @@ def get_personal_kpi(
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     prev_events = get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt)
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
+
     return {
         'data': [
-            kpi_total_time(events, prev_events),
-            kpi_avg_daily_meetings_time(events, prev_events, count_work_day),
-            kpi_count_meetings(events, prev_events),
-            kpi_meetings_ratio(events, prev_events, count_work_day),
-            kpi_cancelled_meetings(events, prev_events),
+            {"title": "Total time on meetings", **kpi_total_time(events, prev_events)},
+            {"title": "Avg. daily meetings time",
+             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
+            {"title": "Meetings ratio", **kpi_meetings_ratio(events, prev_events, count_work_day)},
+            {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
+            {"title": "Cancelled meetings", **kpi_cancelled_meetings(events, prev_events)},
         ]
     }
 

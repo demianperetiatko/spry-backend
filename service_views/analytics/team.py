@@ -18,9 +18,12 @@ from utils.analytics import count_event_attendees_one_to_one, count_event_attend
     count_event_attendees_more_than_five, group_events_by_date
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
-from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, count_user_organized_events
+from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
+    count_user_organized_events
 
-from utils.analytics.kpi import kpi_total_time
+from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings
+from utils.analytics.utils import count_weekdays
+from utils.analytics.calendar_stats import get_unique_events
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
@@ -28,11 +31,8 @@ from utils.table import DataTable, SortOrderType
 router = APIRouter()
 
 
-def get_team_events(team_id, start_date, end_date, db: Session):
+def get_team_events(org_team_members, start_date, end_date, db: Session):
     events = []
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
-
-    org_team_members = org_team_member_repository.find_by_team_id(team_id)
     for member in org_team_members:
         access_token = get_google_access_token(member.email, db)
         member_events = get_calendar_events(access_token, start_date, end_date)
@@ -63,25 +63,29 @@ def get_team_kpi(
     org_team = org_team_repository.find_by_team_id(org.id, team_id)
     if not org_team:
         raise HTTPException(status_code=404, detail="Team not found")
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
 
-    events = get_team_events(org_team.id, start_date_dt, end_date_dt, db)
-    prev_events = get_team_events(org_team.id, prev_start_date_dt, prev_end_date_dt, db)
-
+    org_team_members = org_team_member_repository.find_by_team_id(team_id)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    set_events = get_unique_events(events)
+    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
+    set_prev_events = get_unique_events(prev_events)
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
     return {
         'data': [
-            kpi_total_time(events, prev_events),
-            {"name": "avg_time_per_member", "title": "Avg Time Per Member", "value": "40 h", "change": "+12%"},
-            {"name": "total_cost", "title": "Total Cost", "value": "$1,234", "change": "+12%"},
-            {"name": "avg_cost_per_member", "title": "Avg Cost Per Member", "value": "$2,400", "change": "+12%"},
-            {"name": "meetings_count", "title": "Meetings Count", "value": "123", "change": "+12%"},
-            {"name": "meetings_ratio", "title": "Meetings Ratio", "value": "55%", "change": "+12%"},
-            {"name": "meetings_with_agenda", "title": "Meetings with Agenda", "value": "55%", "change": "+12%"},
+            {"title": "Total Time", **kpi_total_time(events, prev_events)},
+            {"title": "Avg. time per member",
+             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
+            {"title": "Meetings time ratio",
+             **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
+            {"title": "Total Cost", },
+            {"title": "Avg. cost per member", },
+            {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
+            {"title": "Meetings with Agenda", }
         ]
     }
 
-
 from enum import Enum
-
 
 class AnalyticsType(str, Enum):
     time = "time"
