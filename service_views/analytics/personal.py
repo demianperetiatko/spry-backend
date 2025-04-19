@@ -96,6 +96,7 @@ def get_personal_meetings(
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
     response = Chart(
+        x_axis="date",
         items=events_by_date,
         metrics=[
             ("recurring", calculate_recurring_events_duration),
