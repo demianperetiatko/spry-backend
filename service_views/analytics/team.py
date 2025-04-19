@@ -22,7 +22,9 @@ from utils.analytics.calendar_stats import calculate_recurring_events_duration, 
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
 
-from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings
+from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
+    kpi_total_cost, \
+    kpi_avg_daily_meetings_cost
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
@@ -79,8 +81,8 @@ def get_team_kpi(
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Meetings time ratio",
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
-            {"title": "Total Cost", },
-            {"title": "Avg. cost per member", },
+            {"title": "Total Cost", **kpi_total_cost(events, prev_events, org_team_members)},
+            {"title": "Avg. cost per member", **kpi_avg_daily_meetings_cost(events, prev_events, org_team_members)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
             {"title": "Meetings w/o Agenda", }
         ]

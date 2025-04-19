@@ -2,7 +2,7 @@ from datetime import datetime
 
 from utils.analytics.utils import calculate_chance
 from utils.analytics.calendar_stats import calculate_total_events_duration, count_cancelled_events, count_events, \
-    calculate_event_ratio, calculate_avg_daily_meetings_hour
+    calculate_event_ratio, calculate_avg_daily_meetings_hour, calculate_total_events_cost
 
 
 def kpi_total_time(events: list, prev_events: list) -> dict:
@@ -59,4 +59,30 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
         "value": f"{round(meetings_ratio, 2)}%",
         "change": f"{'+' if change > 0 else ''}{change}%",
         "positive": True,
+    }
+
+
+def kpi_total_cost(events: list, prev_events: list, members: list) -> dict:
+    total_cost = calculate_total_events_cost(events, members)
+    prev_total_cost = calculate_total_events_cost(prev_events, members)
+
+    change = calculate_chance(total_cost, prev_total_cost)
+
+    return {
+        "value": f"{round(total_cost, 2)}",
+        "change": f"{'+' if change > 0 else ''}{change}%",
+        "positive": True
+    }
+
+
+def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list) -> dict:
+    total_cost = calculate_total_events_cost(events, members) / len(members)
+    prev_total_cost = calculate_total_events_cost(prev_events, members) / len(members)
+
+    change = calculate_chance(total_cost, prev_total_cost)
+
+    return {
+        "value": f"{round(total_cost, 2)}",
+        "change": f"{'+' if change > 0 else ''}{change}%",
+        "positive": True
     }
