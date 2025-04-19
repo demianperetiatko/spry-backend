@@ -17,7 +17,8 @@ from utils.analytics import get_google_access_token
 from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
     count_event_attendees_more_than_five, group_events_by_date
 
-from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, calculate_recurring_events_cost, calculate_single_events_cost
+from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
+    calculate_recurring_events_cost, calculate_single_events_cost
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
 
@@ -85,7 +86,9 @@ def get_team_kpi(
         ]
     }
 
+
 from enum import Enum
+
 
 class AnalyticsType(str, Enum):
     time = "time"
@@ -93,7 +96,7 @@ class AnalyticsType(str, Enum):
 
 
 @router.get("/analytic/team/meeting")
-def get_team_meetings(
+async def get_team_meetings(
         team_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
@@ -104,7 +107,6 @@ def get_team_meetings(
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-    events = []
 
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
@@ -113,29 +115,29 @@ def get_team_meetings(
     if not org_team:
         raise HTTPException(status_code=404, detail="Team not found")
 
-    org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
-    for member in org_team_members:
-        access_token = get_google_access_token(member.email, db)
-        member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-        events += member_events
+    org_team_members = org_team_member_repository.find_by_team_id(team_id)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    set_events = get_unique_events(events)
 
-    events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
     if type == AnalyticsType.time:
-        metrics = [
-            ("recurring", calculate_recurring_events_duration),
-            ("one_time", calculate_single_events_duration),
-            ("ratio", calculate_event_ratio),
-        ]
+        response = Chart(
+            x_axis="date",
+            items=group_events_by_date(events, start_date_dt, end_date_dt),
+            metrics=[
+                ("recurring", calculate_recurring_events_duration),
+                ("one_time", calculate_single_events_duration),
+                ("ratio", calculate_event_ratio),
+            ]
+        )
     else:
-        metrics = [
-            ("recurring", calculate_recurring_events_cost),
-            ("one_time", calculate_single_events_cost),
-            ("ratio", calculate_event_ratio),
-        ]
-    response = Chart(
-        items=events_by_date,
-        metrics=metrics,
-    )
+        response = Chart(
+            x_axis="date",
+            items=group_events_by_date(set_events, start_date_dt, end_date_dt),
+            metrics=[
+                ("recurring", lambda i: calculate_recurring_events_cost(i, org_team_members)),
+                ("one_time", lambda i: calculate_single_events_cost(i, org_team_members)),
+                ("ratio", calculate_event_ratio),
+            ])
 
     return response.as_dict()
 
