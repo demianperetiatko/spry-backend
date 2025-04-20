@@ -151,7 +151,7 @@ def get_personal_meeting_distribution(
     import random
 
     def fun_random(events):
-        return random.randint(0, 10)
+        return 1
 
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -174,14 +174,20 @@ def get_personal_meeting_distribution(
     )
     return response.as_dict()
 
+from enum import Enum
 
-@router.get("/analytic/personal/meeting/collaboration")
-def get_personal_table_collaboration(
+class TableType(str, Enum):
+    collaboration = "collaboration"
+    recurring_meetings = "recurring_meetings"
+
+@router.get("/analytic/personal/meeting/table")
+def get_personal_table(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         sort_by: str = Query(...),
         sort_order: SortOrderType = Query(SortOrderType.asc),
+        type: TableType = Query(TableType.collaboration),
         user: User = Depends(get_auth_user),
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
@@ -197,10 +203,13 @@ def get_personal_table_collaboration(
     access_token = get_google_access_token(member.email, db)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-
-    result = analyze_event_participants(events, member.email)
-    columns = [
-        ('member_profile', 'email', lambda event: get_user_profile(event['email'], db)),
-        ('collab_time', 'collab_time')
-    ]
+    if type == TableType.collaboration:
+        result = analyze_event_participants(events, member.email)
+        columns = [
+            ('member_profile', 'email', lambda event: get_user_profile(event['email'], db)),
+            ('collab_time', 'collab_time')
+        ]
+    else:
+        result = []
+        columns = []
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)

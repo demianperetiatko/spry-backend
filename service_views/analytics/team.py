@@ -14,13 +14,15 @@ from utils.meet import get_calendar_events
 
 from utils.analytics import get_google_access_token
 
-from utils.analytics import count_event_attendees_one_to_one, count_event_attendees_three_to_five, \
-    count_event_attendees_more_than_five, group_events_by_date
+from utils.analytics import group_events_by_date
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
     calculate_recurring_events_cost, calculate_single_events_cost
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
+
+from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
+    count_events_with_more_than_5_attendees
 
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
     kpi_total_cost, \
@@ -82,7 +84,8 @@ def get_team_kpi(
             {"title": "Meetings time ratio",
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Total Cost", **kpi_total_cost(set_events, set_prev_events, org_team_members)},
-            {"title": "Avg. cost per member", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
+            {"title": "Avg. cost per member",
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
             {"title": "Meetings w/o Agenda", }
         ]
@@ -173,9 +176,9 @@ def get_team_meeting_participants(
     response = Diagram(
         items=events,
         metrics=[
-            ("one_to_one", count_event_attendees_one_to_one),
-            ("three_to_five", count_event_attendees_three_to_five),
-            ("more_than_five", count_event_attendees_more_than_five),
+            ("one_to_one", count_events_with_2_attendees),
+            ("three_to_five", count_events_with_3_to_5_attendees),
+            ("more_than_five", count_events_with_more_than_5_attendees),
         ]
     )
     return response.as_dict()
@@ -190,9 +193,8 @@ def get_team_meeting_distribution(
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
-    import random
     def fun_random(events):
-        return random.randint(0, 10)
+        return 1
 
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)

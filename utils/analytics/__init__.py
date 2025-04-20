@@ -5,6 +5,8 @@ from datetime import datetime, timedelta, date
 from models.repositories.user_repository import UserRepository
 from utils.services import refresh_google_access_token
 
+from utils.analytics.calendar_stats import event_duration, event_cost
+
 def get_google_access_token(email: str, db: Session) -> str:
     access_token = None
     user_repository = UserRepository(db)
@@ -39,55 +41,10 @@ def group_events_by_date(events: List[Dict], start_date: datetime, end_date: dat
     return events_by_date
 
 
-def count_event_attendees_one_to_one(events: List[Dict]) -> int:
-    return sum(1 for event in events if len(event.get('attendees', [])) == 2)
-
-
-def count_event_attendees_three_to_five(events: List[Dict]) -> int:
-    return sum(1 for event in events if 2 <= len(event.get('attendees', [])) <= 5)
-
-
-def count_event_attendees_more_than_five(events: List[Dict]) -> int:
-    return sum(1 for event in events if len(event.get('attendees', [])) > 5)
-
-
-def calculate_event_ratio(events: List[Dict]) -> float:
-    total_duration = 0
-
-    for event in events:
-        if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
-            start_time = datetime.fromisoformat(event['start']['dateTime'])
-            end_time = datetime.fromisoformat(event['end']['dateTime'])
-            total_duration += (end_time - start_time).total_seconds() / 3600
-
-    return round(total_duration * 100 / 8, 2)
-
-def count_recurring_events(events_on_day: List[Dict]) -> int:
-    return sum(1 for event in events_on_day if 'recurringEventId' in event)
-
-def count_one_time_events(events_on_day: List[Dict]) -> int:
-    return sum(1 for event in events_on_day if 'recurringEventId' not in event)
-
 def analyze_event_participants(events: list, user_email: str) -> list:
     participant_durations = defaultdict(float)
-
     for event in events:
-        if event.get("status") == "cancelled":
-            continue
-
-        start = event.get("start", {}).get("dateTime")
-        end = event.get("end", {}).get("dateTime")
-        if not start or not end:
-            continue
-
-        try:
-            start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
-            end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-        except Exception:
-            continue
-
-        duration_hours = (end_dt - start_dt).total_seconds() / 3600
-
+        duration_hours = event_duration(event)
         attendees = event.get("attendees", [])
         for person in attendees:
             email = person.get("email")
