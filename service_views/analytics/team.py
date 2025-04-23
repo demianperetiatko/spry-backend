@@ -22,13 +22,14 @@ from utils.analytics.calendar_stats import calculate_event_ratio, calculate_tota
     count_user_organized_events
 
 from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
-    count_events_with_more_than_5_attendees
-
+    count_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
     kpi_total_cost, \
     kpi_avg_daily_meetings_cost
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
+
+from utils.analytics.table import process_recurring_events
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
@@ -68,13 +69,16 @@ def get_team_kpi(
     org_team = org_team_repository.find_by_team_id(org.id, team_id)
     if not org_team:
         raise HTTPException(status_code=404, detail="Team not found")
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
 
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
     org_team_members = org_team_member_repository.find_by_team_id(team_id)
+
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
     set_events = get_unique_events(events)
+
     prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
     set_prev_events = get_unique_events(prev_events)
+
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
     return {
         'data': [
@@ -158,7 +162,6 @@ def get_team_meeting_participants(
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-    events = []
 
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
@@ -168,10 +171,7 @@ def get_team_meeting_participants(
         raise HTTPException(status_code=404, detail="Team not found")
 
     org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
-    for member in org_team_members:
-        access_token = get_google_access_token(member.email, db)
-        member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-        events += member_events
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
 
     response = Diagram(
         items=events,
@@ -208,10 +208,8 @@ def get_team_meeting_distribution(
         raise HTTPException(status_code=404, detail="Team not found")
 
     org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
-    for member in org_team_members:
-        access_token = get_google_access_token(member.email, db)
-        member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-        events += member_events
+
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
 
     response = Diagram(
         items=events,
@@ -257,18 +255,21 @@ def get_team_meetings_table(
         raise HTTPException(status_code=404, detail="Team not found")
     org_team_members = org_team_member_repository.query_find_by_team_id(org_team.id)
 
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
+
     if type == TableType.attendees:
         result = []
         for member in org_team_members:
             access_token = get_google_access_token(member.email, db)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             time = calculate_total_events_duration(member_events)
+
             info = {
                 "id": member.id,
                 "member_profile": get_user_profile(member.email, db),
                 "time": time,
-                "cost": time,
-                "ratio": calculate_event_ratio(member_events)
+                "cost": time*(float(member.cost) if member.cost else 0.0),
+                "ratio": calculate_event_ratio(member_events, count_work_day)
             }
             result.append(info)
         return {
@@ -297,7 +298,8 @@ def get_team_meetings_table(
             "data": result,
         }
     elif type == TableType.recurring_meetings:
-        result = []
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        result = process_recurring_events(events, org_team_members)
         return {
             "total_count": len(result),
             "data": result,
