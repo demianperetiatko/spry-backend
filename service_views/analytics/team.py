@@ -17,7 +17,8 @@ from utils.analytics import get_google_access_token
 from utils.analytics import group_events_by_date
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
-    calculate_recurring_events_cost, calculate_single_events_cost
+    calculate_recurring_events_cost, calculate_single_events_cost, count_inside_team_events, \
+    count_with_other_teams_events, count_outside_organization_events
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
 
@@ -193,30 +194,30 @@ def get_team_meeting_distribution(
         org: Organization = Depends(get_organization),
         db: Session = Depends(get_db)
 ):
-    def fun_random(events):
-        return 1
-
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-    events = []
-
+    org_member_repository = OrganizationMemberRepository(db)
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
+
 
     org_team = org_team_repository.find_by_team_id(org.id, team_id)
     if not org_team:
         raise HTTPException(status_code=404, detail="Team not found")
-
+    org_members = org_member_repository.find_by_organization_id(org.id)
     org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
 
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    set_events = get_unique_events(events)
+    team_emails = [m.email for m in org_team_members]
+    org_emails = [m.email for m in org_members]
 
     response = Diagram(
-        items=events,
+        items=set_events,
         metrics=[
-            ("inside_team", fun_random),
-            ("cross_team", fun_random),
-            ("external", fun_random),
+            ("inside_team", lambda i: count_inside_team_events(i, team_emails)),
+            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails,org_emails)),
+            ("external", lambda i: count_outside_organization_events(i, org_emails)),
         ]
     )
     return response.as_dict()
@@ -268,7 +269,7 @@ def get_team_meetings_table(
                 "id": member.id,
                 "member_profile": get_user_profile(member.email, db),
                 "time": time,
-                "cost": time*(float(member.cost) if member.cost else 0.0),
+                "cost": time * (float(member.cost) if member.cost else 0.0),
                 "ratio": calculate_event_ratio(member_events, count_work_day)
             }
             result.append(info)

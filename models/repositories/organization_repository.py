@@ -98,6 +98,8 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .filter(OrganizationMember.organization_id == organization_id)
         )
 
+    def find_by_organization_id(self, organization_id: int):
+        return self.query_find_by_organization_id(organization_id).all()
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):

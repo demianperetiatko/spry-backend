@@ -102,3 +102,32 @@ def count_cancelled_events(events: list) -> float:
         if event.get("status") == "cancelled":
             total_cancelled_meetings += 1
     return total_cancelled_meetings
+
+def count_inside_team_events(events: List[Dict], team_emails: List[str]) -> int:
+    count = 0
+    for event in events:
+        attendees = event.get("attendees", [])
+        attendee_emails = {att.get("email") for att in attendees if "email" in att}
+        if attendee_emails and attendee_emails.issubset(team_emails):
+            count += 1
+    return count
+
+
+def count_with_other_teams_events(events: List[Dict], team_emails: List[str], org_emails: List[str]) -> int:
+    count = 0
+    for event in events:
+        attendees = event.get("attendees", [])
+        attendee_emails = {att.get("email") for att in attendees if "email" in att}
+        if attendee_emails and attendee_emails.issubset(org_emails) and not attendee_emails.issubset(team_emails):
+            count += 1
+    return count
+
+
+def count_outside_organization_events(events: List[Dict], org_emails: List[str]) -> int:
+    count = 0
+    for event in events:
+        attendees = event.get("attendees", [])
+        attendee_emails = {att.get("email") for att in attendees if "email" in att}
+        if attendee_emails and not attendee_emails.issubset(org_emails):
+            count += 1
+    return count
