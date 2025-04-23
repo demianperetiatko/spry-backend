@@ -1,5 +1,5 @@
 from fastapi import Depends, APIRouter, HTTPException, Query
-
+from typing import List, Optional
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -229,9 +229,6 @@ class TableType(str, Enum):
     recurring_meetings = "recurring_meetings"
 
 
-from utils import get_user_profile
-
-
 @router.get("/analytic/team/meeting/table")
 def get_team_meetings_table(
         team_id: int = Query(...),
@@ -240,10 +237,11 @@ def get_team_meetings_table(
         type: TableType = Query(TableType.attendees),
         user: User = Depends(get_auth_user),
         org: Organization = Depends(get_organization),
-        sort_by: str = Query(...),
+        sort_by: Optional[str] = Query(None),
         sort_order: SortOrderType = Query(SortOrderType.asc),
         db: Session = Depends(get_db)
 ):
+    print(sort_by)
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
@@ -275,7 +273,8 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"), "photo_url": i.get("member_photo_url")}),
+             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"),
+                        "photo_url": i.get("member_photo_url")}),
             ("time", "time"),
             ("cost", "cost"),
             ("ratio", "ratio")
@@ -302,7 +301,24 @@ def get_team_meetings_table(
         ]
     elif type == TableType.teams_collab:
         result = []
-        columns = []
+        for team in org_team_repository.find_by_organization_id(org.id):
+            info = {
+                "id": team.id,
+                "team_name": team.name,
+                "manager_name": team.manager_name,
+                "manager_email": team.manager_email,
+                "manager_photo_url": team.manager_photo,
+            }
+            result.append(info)
+        columns = [
+            ("id", "id"),
+            ("team_name", "team_name"),
+            ("team_manager_profile", "team_manager_profile",
+             lambda i: {"name": i.get('manager_name'), "email": i.get('manager_email'),
+                        "photo_url": i.get('manager_photo_url')}),
+            ('collab_time', 'collab_time', lambda i: 0),
+            ('collab_cost', 'collab_cost', lambda i: 0),
+        ]
     else:
         events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
         result = process_recurring_events(events, org_team_members)

@@ -3,7 +3,7 @@ class DataTable:
         self.items = items
         self.columns = columns
 
-    def fetch_dicts(self, sort_by: str = None, sort_order: str = "asc"):
+    def fetch_dicts(self, sort_by: str, sort_order: str = "asc"):
         result = []
         if sort_by:
             reverse = sort_order == "desc"

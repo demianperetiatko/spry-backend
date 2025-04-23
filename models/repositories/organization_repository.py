@@ -122,6 +122,9 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
         )
 
+    def find_by_organization_id(self, organization_id: int):
+        return self.query_find_by_organization_id(organization_id).all()
+
     def find_by_team_id(self, organization_id: int, team_id: int) -> OrganizationTeam:
         return (
             self.session.query(OrganizationTeam)
