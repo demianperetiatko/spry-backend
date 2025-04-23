@@ -21,8 +21,9 @@ from utils.analytics.calendar_stats import calculate_recurring_events_duration, 
 from utils.analytics.calendar_stats import calculate_event_ratio
 from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
     count_events_with_more_than_5_attendees
+from utils.analytics.table import process_recurring_events
 
-from utils.analytics.calendar_stats import get_unique_events, count_inside_team_events, count_with_other_teams_events, \
+from utils.analytics.calendar_stats import count_inside_team_events, count_with_other_teams_events, \
     count_outside_organization_events
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
@@ -225,6 +226,12 @@ def get_personal_table(
             ('collab_time', 'collab_time')
         ]
     else:
-        result = []
-        columns = []
+        result = process_recurring_events(events, [member])
+        columns = [
+            ("id", "id"),
+            ("meeting", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            ("cancellation_rate", "cancellation_rate"),
+            ("total_time", "total_time"),
+            ("total_cost", "total_cost"),
+        ]
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)

@@ -22,12 +22,9 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
     for recurring_id, event_group in grouped_events.items():
         recurring_events_summary.append({
             "id": recurring_id,
-            "meeting": {
-                "name": event_group[0].get('summary'),
-                "duration": "",
-                "recurring_type": "",
-            },
+            "meeting_name":  event_group[0].get('summary'),
             "attendees": len(event_group[0].get('attendees', [])),
+            "cancellation_rate": None,
             "total_time": calculate_recurring_events_duration(event_group),
             "total_cost": calculate_recurring_events_cost(event_group, members),
         })

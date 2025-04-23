@@ -200,7 +200,6 @@ def get_team_meeting_distribution(
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
 
-
     org_team = org_team_repository.find_by_team_id(org.id, team_id)
     if not org_team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -216,7 +215,7 @@ def get_team_meeting_distribution(
         items=set_events,
         metrics=[
             ("inside_team", lambda i: count_inside_team_events(i, team_emails)),
-            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails,org_emails)),
+            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails, org_emails)),
             ("external", lambda i: count_outside_organization_events(i, org_emails)),
         ]
     )
@@ -263,20 +262,24 @@ def get_team_meetings_table(
         for member in org_team_members:
             access_token = get_google_access_token(member.email, db)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-            time = calculate_total_events_duration(member_events)
-
             info = {
                 "id": member.id,
-                "member_profile": get_user_profile(member.email, db),
-                "time": time,
-                "cost": time * (float(member.cost) if member.cost else 0.0),
+                "member_name": member.name,
+                "member_email": member.email,
+                "member_photo_url": member.photo_url,
+                "time": calculate_total_events_duration(member_events),
+                "cost": calculate_total_events_cost(member_events, [member]),
                 "ratio": calculate_event_ratio(member_events, count_work_day)
             }
             result.append(info)
-        return {
-            "total_count": len(result),
-            "data": result,
-        }
+        columns = [
+            ("id", "id"),
+            ("member_profile", "member_profile",
+             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"), "photo_url": i.get("member_photo_url")}),
+            ("time", "time"),
+            ("cost", "cost"),
+            ("ratio", "ratio")
+        ]
     elif type == TableType.organizers:
         result = []
         for member in org_team_members:
@@ -284,24 +287,30 @@ def get_team_meetings_table(
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
-                "member_profile": get_user_profile(member.email, db),
+                "member_name": member.name,
+                "member_email": member.email,
+                "member_photo_url": member.photo_url,
                 "count": count_user_organized_events(member_events, member.email),
             }
             result.append(info)
-        return {
-            "total_count": len(result),
-            "data": result,
-        }
+
+        columns = [
+            ("id", "id"),
+            ("member_profile", "member_profile",
+             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"), "photo_url": i.get("member_photo_url")}),
+            ("count", "count")
+        ]
     elif type == TableType.teams_collab:
         result = []
-        return {
-            "total_count": len(result),
-            "data": result,
-        }
-    elif type == TableType.recurring_meetings:
+        columns = []
+    else:
         events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
         result = process_recurring_events(events, org_team_members)
-        return {
-            "total_count": len(result),
-            "data": result,
-        }
+        columns = [
+            ("id", "id"),
+            ("meeting_profile", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            ("cancellation_rate", "cancellation_rate"),
+            ("total_time", "total_time"),
+            ("total_cost", "total_cost"),
+        ]
+    return DataTable(result, columns).fetch_dicts(sort_by, sort_order)
