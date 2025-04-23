@@ -17,12 +17,13 @@ from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
 
-
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
 from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
     count_events_with_more_than_5_attendees
 
+from utils.analytics.calendar_stats import get_unique_events, count_inside_team_events, count_with_other_teams_events, \
+    count_outside_organization_events
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
 
@@ -157,6 +158,8 @@ def get_personal_meeting_distribution(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_member_repository = OrganizationMemberRepository(db)
+    org_team = OrganizationTeamRepository(db)
+    org_team_member = OrganizationTeamMemberRepository(db)
     member = org_member_repository.find_by_member_id(org.id, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -164,21 +167,33 @@ def get_personal_meeting_distribution(
     access_token = get_google_access_token(member.email, db)
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
+    team_emails = []
+    for team in org_team.find_by_member_id(member.id):
+        ms = org_team_member.find_by_team_id(team.team)
+        for m in ms:
+            team_emails.append(m.email)
+
+    team_emails = list(set(team_emails))
+    org_emails = [m.email for m in org_member_repository.find_by_organization_id(org.id)]
+
     response = Diagram(
         items=events,
         metrics=[
-            ("inside_team", fun_random),
-            ("cross_team", fun_random),
-            ("external", fun_random),
+            ("inside_team", lambda i: count_inside_team_events(i, team_emails)),
+            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails, org_emails)),
+            ("external", lambda i: count_outside_organization_events(i, org_emails)),
         ]
     )
     return response.as_dict()
 
+
 from enum import Enum
+
 
 class TableType(str, Enum):
     collaboration = "collaboration"
     recurring_meetings = "recurring_meetings"
+
 
 @router.get("/analytic/personal/meeting/table")
 def get_personal_table(
