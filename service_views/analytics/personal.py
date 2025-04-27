@@ -229,7 +229,7 @@ def get_personal_table(
         result = process_recurring_events(events, [member])
         columns = [
             ("id", "id"),
-            ("meeting", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            ("meeting_profile", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
             ("total_cost", "total_cost"),
