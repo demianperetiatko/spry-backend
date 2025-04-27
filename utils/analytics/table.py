@@ -34,7 +34,7 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
     org_team_member_repository = OrganizationTeamMemberRepository(db)
 
     main_team_members = org_team_member_repository.find_by_team_id(main_team_id)
-    main_team_emails = {member.email for member in main_team_members}
+    main_team_emails = [member.email for member in main_team_members]
 
     result = []
 
@@ -43,13 +43,10 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
             continue
 
         team_members = org_team_member_repository.find_by_team_id(team.id)
-        team_member_emails = {member.email for member in team_members}
-        print(team_member_emails)
+        team_member_emails = [member.email for member in team_members]
 
         combined_members = team_members + main_team_members
-
         event_collab = []
-
 
         for event in events:
             attendees = event.get('attendees', [])
@@ -64,7 +61,6 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
             if found:
                 event_collab.append(event)
 
-        print(event_collab)
         info = {
             "id": team.id,
             "team_name": team.name,
