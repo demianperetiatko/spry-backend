@@ -44,18 +44,27 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
 
         team_members = org_team_member_repository.find_by_team_id(team.id)
         team_member_emails = {member.email for member in team_members}
+        print(team_member_emails)
 
         combined_members = team_members + main_team_members
 
         event_collab = []
 
+
         for event in events:
             attendees = event.get('attendees', [])
-            attendee_emails = {attendee.get('email') for attendee in attendees if 'email' in attendee}
+            attendee_emails = [attendee.get('email') for attendee in attendees if 'email' in attendee]
 
-            if attendee_emails & team_member_emails and not attendee_emails <= main_team_emails:
+            found = False
+            for email in attendee_emails:
+                if email in team_member_emails and email not in main_team_emails:
+                    found = True
+                    break
+
+            if found:
                 event_collab.append(event)
 
+        print(event_collab)
         info = {
             "id": team.id,
             "team_name": team.name,
