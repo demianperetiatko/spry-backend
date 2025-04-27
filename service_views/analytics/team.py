@@ -30,7 +30,7 @@ from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
-from utils.analytics.table import process_recurring_events
+from utils.analytics.table import process_recurring_events, process_teams_collab
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
@@ -300,24 +300,17 @@ def get_team_meetings_table(
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
-        result = []
-        for team in org_team_repository.find_by_organization_id(org.id):
-            info = {
-                "id": team.id,
-                "team_name": team.name,
-                "manager_name": team.manager_name,
-                "manager_email": team.manager_email,
-                "manager_photo_url": team.manager_photo,
-            }
-            result.append(info)
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        result = process_teams_collab(get_unique_events(events), org.id,team_id, db)
+
         columns = [
             ("id", "id"),
             ("team_name", "team_name"),
             ("team_manager_profile", "team_manager_profile",
              lambda i: {"name": i.get('manager_name'), "email": i.get('manager_email'),
                         "photo_url": i.get('manager_photo_url')}),
-            ('collab_time', 'collab_time', lambda i: 0),
-            ('collab_cost', 'collab_cost', lambda i: 0),
+            ('collab_time', 'collab_time'),
+            ('collab_cost', 'collab_cost'),
         ]
     else:
         events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
