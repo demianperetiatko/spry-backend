@@ -98,6 +98,8 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .filter(OrganizationMember.organization_id == organization_id)
         )
 
+    def find_by_organization_id(self, organization_id: int):
+        return self.query_find_by_organization_id(organization_id).all()
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):
@@ -120,6 +122,9 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
         )
 
+    def find_by_organization_id(self, organization_id: int):
+        return self.query_find_by_organization_id(organization_id).all()
+
     def find_by_team_id(self, organization_id: int, team_id: int) -> OrganizationTeam:
         return (
             self.session.query(OrganizationTeam)
@@ -131,7 +136,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def find_by_member_id(self, member_id: id) -> List[OrganizationTeam]:
         return (
             self.session.query(
-                OrganizationTeam.id.label("team_id"),
+                OrganizationTeam.id.label("team"),
                 OrganizationTeam.name.label("team_name"),
                 (OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER).label("is_manager"),
             )
@@ -153,7 +158,8 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationMember.email,
                 User.name,
                 User.photo_url,
-                OrganizationTeamMember.type
+                OrganizationTeamMember.type,
+                OrganizationMember.cost,
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .join(User, OrganizationMember.email == User.email, isouter=True)

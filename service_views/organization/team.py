@@ -11,7 +11,7 @@ from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMem
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
 from utils.middleware import get_auth_user
-from utils.datatable import DataTable
+from utils.table import DBTable
 
 router = APIRouter()
 
@@ -65,7 +65,7 @@ def get_teams(user: User = Depends(get_auth_user), db: Session = Depends(get_db)
         ("members_count", "members_count", lambda i: org_team_member_repository.query_find_by_team_id(i.id).count()),
     ]
     query_teams = org_team_repository.query_find_by_organization_id(org.id)
-    return DataTable(query_teams, columns).fetch_dicts()
+    return DBTable(query_teams, columns).fetch_dicts()
 
 
 
