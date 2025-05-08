@@ -48,7 +48,7 @@ def get_team_events(org_team_members, start_date, end_date, db: Session):
     return events
 
 
-@router.get("/analytic/team/meeting/kpi")
+@router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
         team_id: int = Query(...),
         start_date: str = Query(...),
@@ -105,7 +105,7 @@ class AnalyticsType(str, Enum):
     cost = "cost"
 
 
-@router.get("/analytic/team/meeting")
+@router.get("/analytic/organization/meeting")
 async def get_team_meetings(
         team_id: int = Query(...),
         start_date: str = Query(...),
@@ -152,7 +152,7 @@ async def get_team_meetings(
     return response.as_dict()
 
 
-@router.get("/analytic/team/meeting/participants")
+@router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
         team_id: int = Query(...),
         start_date: str = Query(...),
@@ -185,7 +185,7 @@ def get_team_meeting_participants(
     return response.as_dict()
 
 
-@router.get("/analytic/team/meeting/distribution")
+@router.get("/analytic/organization/meeting/distribution")
 def get_team_meeting_distribution(
         team_id: int = Query(...),
         start_date: str = Query(...),
@@ -229,7 +229,7 @@ class TableType(str, Enum):
     recurring_meetings = "recurring_meetings"
 
 
-@router.get("/analytic/team/meeting/table")
+@router.get("/analytic/organization/meeting/table")
 def get_team_meetings_table(
         team_id: int = Query(...),
         start_date: str = Query(...),
