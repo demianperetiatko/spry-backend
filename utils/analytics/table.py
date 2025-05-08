@@ -21,7 +21,7 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
             "id": recurring_id,
             "meeting_name": event_group[0].get('summary'),
             "attendees": len(event_group[0].get('attendees', [])),
-            "cancellation_rate": None,
+            "cancellation_rate": 0,
             "total_time": calculate_recurring_events_duration(event_group),
             "total_cost": calculate_recurring_events_cost(event_group, members),
         })

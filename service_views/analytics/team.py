@@ -318,7 +318,7 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("meeting_profile", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
-            ("attendees_count", "attendees"),
+            ("attendees", "attendees"),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
             ("total_cost", "total_cost"),
