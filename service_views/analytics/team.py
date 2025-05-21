@@ -231,6 +231,7 @@ def get_team_meetings_table(
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+    sort_by = sort_by.split('.')[-1] if isinstance(sort_by, str) else sort_order
 
     org_team_members = get_team_members(org.id, team_id, db)
 
@@ -243,8 +244,8 @@ def get_team_meetings_table(
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
-                "member_name": member.name,
-                "member_email": member.email,
+                "name": member.name,
+                "email": member.email,
                 "member_photo_url": member.photo_url,
                 "time": calculate_total_events_duration(member_events),
                 "cost": calculate_total_events_cost(member_events, [member]),
@@ -254,7 +255,7 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"),
+             lambda i: {"name": i.get("name"), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
             ("time", "time"),
             ("cost", "cost"),
@@ -267,9 +268,9 @@ def get_team_meetings_table(
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
-                "member_name": member.name,
-                "member_email": member.email,
-                "member_photo_url": member.photo_url,
+                "name": member.name,
+                "emai": member.email,
+                "photo_url": member.photo_url,
                 "count": count_user_organized_events(member_events, member.email),
             }
             result.append(info)
@@ -277,8 +278,8 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"),
-                        "photo_url": i.get("member_photo_url")}),
+             lambda i: {"name": i.get("name"), "email": i.get("emai"),
+                        "photo_url": i.get("photo_url")}),
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
