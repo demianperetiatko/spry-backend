@@ -38,6 +38,21 @@ from utils.table import DataTable, SortOrderType
 router = APIRouter()
 
 
+def get_team_members(org_id, team_id, db: Session):
+    if team_id is None:
+        org_member_repository = OrganizationMemberRepository(db)
+        return org_member_repository.find_by_organization_id(org_id)
+    else:
+        org_team_repository = OrganizationTeamRepository(db)
+
+        org_team = org_team_repository.find_by_team_id(org_id, team_id)
+        if not org_team:
+            raise HTTPException(status_code=404, detail="Team not found")
+
+        org_team_member_repository = OrganizationTeamMemberRepository(db)
+        return org_team_member_repository.find_by_team_id(team_id)
+
+
 def get_team_events(org_team_members, start_date, end_date, db: Session):
     events = []
     for member in org_team_members:
@@ -50,7 +65,7 @@ def get_team_events(org_team_members, start_date, end_date, db: Session):
 
 @router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
-        team_id: int = Query(...),
+        team_id: Optional[int] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         user: User = Depends(get_auth_user),
@@ -65,14 +80,7 @@ def get_team_kpi(
     prev_start_date_dt = start_date_dt - delta - timedelta(days=1)
     prev_end_date_dt = end_date_dt - delta - timedelta(days=1)
 
-    org_team_repository = OrganizationTeamRepository(db)
-
-    org_team = org_team_repository.find_by_team_id(org.id, team_id)
-    if not org_team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
-    org_team_members = org_team_member_repository.find_by_team_id(team_id)
+    org_team_members = get_team_members(org.id, team_id, db)
 
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
     set_events = get_unique_events(events)
@@ -107,7 +115,7 @@ class AnalyticsType(str, Enum):
 
 @router.get("/analytic/organization/meeting")
 async def get_team_meetings(
-        team_id: int = Query(...),
+        team_id: Optional[int] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         user: User = Depends(get_auth_user),
@@ -118,14 +126,7 @@ async def get_team_meetings(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    org_team_repository = OrganizationTeamRepository(db)
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
-
-    org_team = org_team_repository.find_by_team_id(org.id, team_id)
-    if not org_team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    org_team_members = org_team_member_repository.find_by_team_id(team_id)
+    org_team_members = get_team_members(org.id, team_id, db)
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
     set_events = get_unique_events(events)
 
@@ -154,7 +155,7 @@ async def get_team_meetings(
 
 @router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
-        team_id: int = Query(...),
+        team_id: Optional[int] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         user: User = Depends(get_auth_user),
@@ -164,14 +165,7 @@ def get_team_meeting_participants(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    org_team_repository = OrganizationTeamRepository(db)
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
-
-    org_team = org_team_repository.find_by_team_id(org.id, team_id)
-    if not org_team:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
+    org_team_members = get_team_members(org.id, team_id, db)
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
 
     response = Diagram(
@@ -187,7 +181,7 @@ def get_team_meeting_participants(
 
 @router.get("/analytic/organization/meeting/distribution")
 def get_team_meeting_distribution(
-        team_id: int = Query(...),
+        team_id: Optional[int] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         user: User = Depends(get_auth_user),
@@ -197,14 +191,9 @@ def get_team_meeting_distribution(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
     org_member_repository = OrganizationMemberRepository(db)
-    org_team_repository = OrganizationTeamRepository(db)
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
 
-    org_team = org_team_repository.find_by_team_id(org.id, team_id)
-    if not org_team:
-        raise HTTPException(status_code=404, detail="Team not found")
     org_members = org_member_repository.find_by_organization_id(org.id)
-    org_team_members = org_team_member_repository.find_by_team_id(org_team.id)
+    org_team_members = get_team_members(org.id, team_id, db)
 
     events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
     set_events = get_unique_events(events)
@@ -231,7 +220,7 @@ class TableType(str, Enum):
 
 @router.get("/analytic/organization/meeting/table")
 def get_team_meetings_table(
-        team_id: int = Query(...),
+        team_id: Optional[int] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         type: TableType = Query(TableType.attendees),
@@ -241,17 +230,10 @@ def get_team_meetings_table(
         sort_order: SortOrderType = Query(SortOrderType.asc),
         db: Session = Depends(get_db)
 ):
-    print(sort_by)
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
-    org_team_repository = OrganizationTeamRepository(db)
-    org_team_member_repository = OrganizationTeamMemberRepository(db)
-
-    org_team = org_team_repository.find_by_team_id(org.id, team_id)
-    if not org_team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    org_team_members = org_team_member_repository.query_find_by_team_id(org_team.id)
+    org_team_members = get_team_members(org.id, team_id, db)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
@@ -296,12 +278,13 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"), "photo_url": i.get("member_photo_url")}),
+             lambda i: {"name": i.get("member_name"), "email": i.get("member_email"),
+                        "photo_url": i.get("member_photo_url")}),
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
         events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
-        result = process_teams_collab(get_unique_events(events), org.id,team_id, db)
+        result = process_teams_collab(get_unique_events(events), org.id, team_id, db)
 
         columns = [
             ("id", "id"),
@@ -317,7 +300,8 @@ def get_team_meetings_table(
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),
-            ("meeting_profile", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            ("meeting_profile", "meeting",
+             lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
             ("attendees", "attendees"),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
