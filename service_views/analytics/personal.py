@@ -211,6 +211,8 @@ def get_personal_table(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
+    sort_by = sort_by.split('.')[-1] if isinstance(sort_by, str) else sort_order
+
     org_member_repository = OrganizationMemberRepository(db)
     member = org_member_repository.find_by_member_id(org.id, member_id)
     if not member:

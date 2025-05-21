@@ -255,7 +255,7 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name"), "email": i.get("email"),
+             lambda i: {"name": i.get("name"," "), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
             ("time", "time"),
             ("cost", "cost"),
@@ -278,7 +278,7 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name"), "email": i.get("emai"),
+             lambda i: {"name": i.get("name", ""), "email": i.get("emai"),
                         "photo_url": i.get("photo_url")}),
             ("count", "count")
         ]
@@ -290,7 +290,7 @@ def get_team_meetings_table(
             ("id", "id"),
             ("team_name", "team_name"),
             ("team_manager_profile", "team_manager_profile",
-             lambda i: {"name": i.get('manager_name'), "email": i.get('manager_email'),
+             lambda i: {"name": i.get('manager_name', ""), "email": i.get('manager_email'),
                         "photo_url": i.get('manager_photo_url')}),
             ('collab_time', 'collab_time'),
             ('collab_cost', 'collab_cost'),
