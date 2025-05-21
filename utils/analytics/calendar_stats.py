@@ -134,3 +134,11 @@ def count_outside_organization_events(events: List[Dict], org_emails: List[str])
 
 def count_events_without_description(events: List[Dict]) -> int:
     return sum(1 for event in events if not event.get('description'))
+
+def calculate_deep_work_time_events(events: List[Dict]) -> int:
+    total = 0
+    for event in events:
+        if 'summary' in event and 'deep work time' in event['summary'].lower():
+            total += event_duration(event)
+    return total
+

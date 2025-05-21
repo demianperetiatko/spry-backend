@@ -8,6 +8,7 @@ from service_views import (
     organization as organization_view,
     analytics as analytics_view,
     agenda as agenda_view,
+    home as home_view,
 )
 
 app = FastAPI()
@@ -23,6 +24,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.include_router(auth_view.router, tags=["auth"])
+app.include_router(home_view.router, tags=["home"])
 app.include_router(profile_view.router, tags=["profile"])
 app.include_router(organization_view.router)
 app.include_router(agenda_view.router, tags=["agenda"])
