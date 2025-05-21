@@ -25,8 +25,7 @@ from utils.analytics.calendar_stats import calculate_event_ratio, calculate_tota
 from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
     count_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
-    kpi_total_cost, \
-    kpi_avg_daily_meetings_cost
+    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
@@ -100,7 +99,7 @@ def get_team_kpi(
             {"title": "Avg. cost per member",
              **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-            {"title": "Meetings w/o Agenda", }
+            {"title": "Meetings w/o Agenda", **kpi_without_description(set_events, set_prev_events)},
         ]
     }
 

@@ -131,3 +131,6 @@ def count_outside_organization_events(events: List[Dict], org_emails: List[str])
         if attendee_emails and not attendee_emails.issubset(org_emails):
             count += 1
     return count
+
+def count_events_without_description(events: List[Dict]) -> int:
+    return sum(1 for event in events if not event.get('description'))

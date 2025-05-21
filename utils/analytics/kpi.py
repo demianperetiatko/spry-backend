@@ -2,7 +2,7 @@ from datetime import datetime
 
 from utils.analytics.utils import calculate_chance
 from utils.analytics.calendar_stats import calculate_total_events_duration, count_cancelled_events, count_events, \
-    calculate_event_ratio, calculate_avg_daily_meetings_hour, calculate_total_events_cost
+    calculate_event_ratio, calculate_avg_daily_meetings_hour, calculate_total_events_cost, count_events_without_description
 
 
 def kpi_total_time(events: list, prev_events: list) -> dict:
@@ -83,6 +83,18 @@ def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list) 
 
     return {
         "value": f"{round(total_cost, 2)}",
+        "change": f"{'+' if change > 0 else ''}{change}%",
+        "positive": True
+    }
+
+def kpi_without_description(events: list, prev_events: list) -> dict:
+    total_without_description = count_events_without_description(events)
+    prev_total_without_description = count_events_without_description(prev_events)
+
+    change = calculate_chance(total_without_description, prev_total_without_description)
+
+    return {
+        "value": f"{round(total_without_description, 2)}",
         "change": f"{'+' if change > 0 else ''}{change}%",
         "positive": True
     }
