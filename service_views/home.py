@@ -1,6 +1,6 @@
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, validator, root_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import List
 from models import get_db, User
 from models.repositories.user_repository import UserRepository
@@ -120,19 +120,18 @@ class TimeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
 
-    @validator('start_time', 'end_time', pre=True)
+    @field_validator('start_time', 'end_time', mode='before')
+    @classmethod
     def parse_datetime(cls, value):
         if isinstance(value, datetime):
             return value
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
-    @root_validator
-    def check_time_order(cls, values):
-        start = values.get('start_time')
-        end = values.get('end_time')
-        if start and end and start >= end:
+    @model_validator(mode='after')
+    def check_time_order(self):
+        if self.start_time >= self.end_time:
             raise ValueError("`start_time` must be earlier than `end_time`.")
-        return values
+        return self
 
 @router.post("/home/deep-work/time-slot")
 def post_deep_work_slots(
