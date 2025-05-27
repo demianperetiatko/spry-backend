@@ -1,10 +1,9 @@
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-
+from pydantic import BaseModel, validator, root_validator
+from typing import List
 from models import get_db, User
 from models.repositories.user_repository import UserRepository
-from pydantic import BaseModel, validator
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_user
 from utils.meet import get_calendar_events, create_calendar_event
@@ -127,22 +126,32 @@ class TimeSlot(BaseModel):
             return value
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
-
+    @root_validator
+    def check_time_order(cls, values):
+        start = values.get('start_time')
+        end = values.get('end_time')
+        if start and end and start >= end:
+            raise ValueError("`start_time` must be earlier than `end_time`.")
+        return values
 
 @router.post("/home/deep-work/time-slot")
-def post_deep_work_slot(
-        timeslot: TimeSlot,
+def post_deep_work_slots(
+        timeslots: List[TimeSlot],
         user: User = Depends(get_auth_user),
         db: Session = Depends(get_db)
 ):
     access_token = get_google_access_token(user.email, db)
 
     summary = "Deep Work Time"
-    event = create_calendar_event(
-        token=access_token,
-        summary=summary,
-        start_time=timeslot.start_time,
-        end_time=timeslot.end_time,
-    )
-    return event
+    events = []
+    for timeslot in timeslots:
+        event = create_calendar_event(
+            token=access_token,
+            summary=summary,
+            start_time=timeslot.start_time,
+            end_time=timeslot.end_time,
+        )
+        events.append(event)
+
+    return events
 
