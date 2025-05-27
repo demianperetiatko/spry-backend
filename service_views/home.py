@@ -4,10 +4,10 @@ from pydantic import BaseModel
 
 from models import get_db, User
 from models.repositories.user_repository import UserRepository
-
+from pydantic import BaseModel, validator
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_user
-from utils.meet import get_calendar_events
+from utils.meet import get_calendar_events, create_calendar_event
 
 from utils.analytics import get_google_access_token
 
@@ -81,8 +81,8 @@ def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
     result = []
     for (s, e) in free_slots:
         result.append({
-            "startTime": s.strftime("%H:%M"),
-            "endTime": e.strftime("%H:%M"),
+            "startTime": s.strftime("%H:%M:%S"),
+            "endTime": e.strftime("%H:%M:%S"),
             "date": s.strftime("%Y-%m-%d"),
             "duration": round((e - s).total_seconds() / 3600, 2)
         })
@@ -114,3 +114,35 @@ def get_deep_work_slot(
     return {
         "slots": free_slots,
     }
+
+
+
+class TimeSlot(BaseModel):
+    start_time: datetime
+    end_time: datetime
+
+    @validator('start_time', 'end_time', pre=True)
+    def parse_datetime(cls, value):
+        if isinstance(value, datetime):
+            return value
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+
+
+
+@router.post("/home/deep-work/time-slot")
+def post_deep_work_slot(
+        timeslot: TimeSlot,
+        user: User = Depends(get_auth_user),
+        db: Session = Depends(get_db)
+):
+    access_token = get_google_access_token(user.email, db)
+
+    summary = "Deep Work Time"
+    event = create_calendar_event(
+        token=access_token,
+        summary=summary,
+        start_time=timeslot.start_time,
+        end_time=timeslot.end_time,
+    )
+    return event
+
