@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator, model_validator
 from typing import List
 from models import get_db, User
-from models.repositories.user_repository import UserRepository
+from models.repositories.super_admin_repository import UserRepository
 from datetime import datetime, timedelta
-from utils.middleware import get_auth_user
+from utils.middleware import get_auth_member
 from utils.meet import get_calendar_events, create_calendar_event
 
 from utils.analytics import get_google_access_token
@@ -19,7 +19,7 @@ router = APIRouter()
 
 @router.get("/home/kpi")
 def get_user_kpi(
-        user: User = Depends(get_auth_user),
+        user: User = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
@@ -90,7 +90,7 @@ def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
 
 @router.get("/home/deep-work/time-slot")
 def get_deep_work_slot(
-        user: User = Depends(get_auth_user),
+        user: User = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
@@ -129,7 +129,7 @@ class TimeSlot(BaseModel):
 @router.post("/home/deep-work/time-slot")
 def post_deep_work_slots(
         timeslots: List[TimeSlot],
-        user: User = Depends(get_auth_user),
+        user: User = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
     access_token = get_google_access_token(user.email, db)

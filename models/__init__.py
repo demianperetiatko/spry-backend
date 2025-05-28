@@ -12,9 +12,9 @@ Base = declarative_base()
 engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-from .user import User
+from .super_admin import SuperAdmin
 from .organization import Organization, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
-from .organization import OrganizationMember, OrganizationMemberStatus
+from .organization import OrganizationMember, OrganizationMemberStatus, OrganizationMemberRole
 from .organization import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
 
 

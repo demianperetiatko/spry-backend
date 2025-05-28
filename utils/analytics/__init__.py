@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from collections import defaultdict
 from typing import List, Dict
 from datetime import datetime, timedelta, date
-from models.repositories.user_repository import UserRepository
+from models.repositories.super_admin_repository import UserRepository
 from utils.services import refresh_google_access_token
 
 from utils.analytics.calendar_stats import event_duration, event_cost

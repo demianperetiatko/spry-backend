@@ -2,7 +2,7 @@ import uuid
 from typing import TypeVar, List, Optional
 
 from models.repositories import BaseRepo
-from models import User, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType
+from models import Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType
 from models import OrganizationTeam, OrganizationTeamMember
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import func
@@ -63,18 +63,22 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         return (
             self.session.query(
                 OrganizationMember.id,
-                User.name,
-                User.photo_url,
+                OrganizationMember.name,
+                OrganizationMember.photo_url,
                 OrganizationMember.email,
                 OrganizationMember.cost,
                 OrganizationMember.status,
             )
             .filter(OrganizationMember.id == member_id)
-            .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationMember.organization_id == organization_id)
             .first()
         )
-
+    def find_by_email(self, email: str) -> OrganizationMember:
+        return (
+            self.session.query(OrganizationMember)
+            .filter(OrganizationMember.email == email)
+            .first()
+        )
     def find_by_member_email(self, organization_id: int, email: str) -> OrganizationMember:
         return (
             self.session.query(OrganizationMember)
@@ -87,14 +91,13 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         return (
             self.session.query(
                 OrganizationMember.id,
-                User.name,
-                User.photo_url,
+                OrganizationMember.name,
+                OrganizationMember.photo_url,
                 OrganizationMember.email,
                 literal("-").label("department"),
                 OrganizationMember.cost,
                 OrganizationMember.status,
             )
-            .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationMember.organization_id == organization_id)
         )
 
@@ -112,12 +115,11 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
                 OrganizationTeam.name,
                 OrganizationTeamMember.member_id.label("manager_id"),
                 OrganizationMember.email.label("manager_email"),
-                User.name.label("manager_name"),
-                User.photo_url.label("manager_photo"),
+                OrganizationMember.name.label("manager_name"),
+                OrganizationMember.photo_url.label("manager_photo"),
             )
             .join(OrganizationTeamMember, OrganizationTeamMember.team_id == OrganizationTeam.id)
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
-            .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationTeam.organization_id == organization_id)
             .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
         )
@@ -156,13 +158,12 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationTeamMember.id,
                 OrganizationTeamMember.member_id,
                 OrganizationMember.email,
-                User.name,
-                User.photo_url,
+                OrganizationMember.name,
+                OrganizationMember.photo_url,
                 OrganizationTeamMember.type,
                 OrganizationMember.cost,
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
-            .join(User, OrganizationMember.email == User.email, isouter=True)
             .filter(OrganizationTeamMember.team_id == team_id)
         )
 

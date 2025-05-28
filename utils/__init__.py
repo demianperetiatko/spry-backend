@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models.repositories.user_repository import UserRepository
+from models.repositories.super_admin_repository import UserRepository
 
 
 def get_user_profile(email: str, db: Session):
