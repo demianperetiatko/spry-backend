@@ -17,7 +17,6 @@ from .organization import Organization, OrganizationCostPeriod, OrganizationCost
 from .organization import OrganizationMember, OrganizationMemberStatus
 from .organization import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
 
-from .agenda import AgendaTemplate
 
 
 def get_db():
