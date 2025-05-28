@@ -120,13 +120,6 @@ class TimeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
 
-    @field_validator('start_time', 'end_time', mode='before')
-    @classmethod
-    def parse_datetime(cls, value):
-        if isinstance(value, datetime):
-            return value
-        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-
     @model_validator(mode='after')
     def check_time_order(self):
         if self.start_time >= self.end_time:
