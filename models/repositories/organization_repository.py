@@ -22,17 +22,6 @@ class OrganizationRepository(BaseRepo[Organization]):
             .first()
         )
 
-    def find_by_user(self, user: User) -> Organization:
-        return (
-            self.session.query(Organization)
-            .join(OrganizationMember, Organization.id == OrganizationMember.organization_id, isouter=True)
-            .filter(
-                (Organization.create_user_id == user.id) |
-                (OrganizationMember.email == user.email)
-            )
-            .first()
-        )
-
     def is_user_owner_of_organization(self, user_id: int) -> bool:
         res = self.session.query(Organization).filter(Organization.create_user_id == user_id).first()
         return True if res else False
