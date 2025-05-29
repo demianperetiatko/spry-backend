@@ -1,11 +1,10 @@
 from sqlalchemy.orm import Session
-from models.repositories.super_admin_repository import UserRepository
-
+from models.repositories.organization_repository import  OrganizationMemberRepository
 
 def get_user_profile(email: str, db: Session):
     name = None
     photo_url = None
-    user_repository = UserRepository(db)
+    user_repository = OrganizationMemberRepository(db)
     user = user_repository.find_by_email(email)
     if user:
         name = user.name
