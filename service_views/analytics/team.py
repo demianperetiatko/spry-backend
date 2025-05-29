@@ -4,15 +4,15 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Organization
+from models import get_db, Organization
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.middleware import get_auth_user, get_organization
+from utils.middleware import get_auth_member, get_auth_organization
 from utils.meet import get_calendar_events
+from utils.services import refresh_google_access_token
 
-from utils.analytics import get_google_access_token
 
 from utils.analytics import group_events_by_date
 
@@ -52,23 +52,21 @@ def get_team_members(org_id, team_id, db: Session):
         return org_team_member_repository.find_by_team_id(team_id)
 
 
-def get_team_events(org_team_members, start_date, end_date, db: Session):
+def get_team_events(org_team_members, start_date, end_date):
     events = []
     for member in org_team_members:
-        access_token = get_google_access_token(member.email, db)
+        access_token = refresh_google_access_token(member.google_refresh_token)
         member_events = get_calendar_events(access_token, start_date, end_date)
         events += member_events
-
     return events
 
 
 @router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -81,10 +79,10 @@ def get_team_kpi(
 
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
-    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
+    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -114,19 +112,18 @@ class AnalyticsType(str, Enum):
 
 @router.get("/analytic/organization/meeting")
 async def get_team_meetings(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
         type: AnalyticsType = Query(AnalyticsType.time),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
     if type == AnalyticsType.time:
@@ -154,18 +151,17 @@ async def get_team_meetings(
 
 @router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
 
     response = Diagram(
         items=events,
@@ -180,11 +176,10 @@ def get_team_meeting_participants(
 
 @router.get("/analytic/organization/meeting/distribution")
 def get_team_meeting_distribution(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -194,7 +189,7 @@ def get_team_meeting_distribution(
     org_members = org_member_repository.find_by_organization_id(org.id)
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
@@ -219,12 +214,11 @@ class TableType(str, Enum):
 
 @router.get("/analytic/organization/meeting/table")
 def get_team_meetings_table(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         type: TableType = Query(TableType.attendees),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         sort_by: Optional[str] = Query(None),
         sort_order: SortOrderType = Query(SortOrderType.asc),
         db: Session = Depends(get_db)
@@ -240,7 +234,7 @@ def get_team_meetings_table(
     if type == TableType.attendees:
         result = []
         for member in org_team_members:
-            access_token = get_google_access_token(member.email, db)
+            access_token = refresh_google_access_token(member.google_refresh_token)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
@@ -264,7 +258,7 @@ def get_team_meetings_table(
     elif type == TableType.organizers:
         result = []
         for member in org_team_members:
-            access_token = get_google_access_token(member.email, db)
+            access_token = refresh_google_access_token(member.google_refresh_token)
             member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
@@ -283,7 +277,7 @@ def get_team_meetings_table(
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
-        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt)
         result = process_teams_collab(get_unique_events(events), org.id, team_id, db)
 
         columns = [
@@ -296,7 +290,7 @@ def get_team_meetings_table(
             ('collab_cost', 'collab_cost'),
         ]
     else:
-        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt)
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),

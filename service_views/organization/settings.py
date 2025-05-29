@@ -4,12 +4,14 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
+from models import get_db, Organization, OrganizationMember, OrganizationCostPeriod, OrganizationCostVisibility, \
+    OrganizationCostType
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from utils.middleware import get_auth_user
+from utils.middleware import get_auth_member, get_auth_organization
 
 router = APIRouter(prefix='/settings', tags=['settings'])
+
 
 class UpdateCostSettings(BaseModel):
     cost_is_active: Optional[bool] = False
@@ -63,40 +65,42 @@ class UpdateCostSettings(BaseModel):
             raise ValueError("average_cost must not be None when cost_type is 'average'")
         return value
 
+
 @router.get('/cost')
-def get_settings_cost(user: User = Depends(get_auth_user), db: Session = Depends(get_db)):
-    org_repository = OrganizationRepository(db)
-    org = org_repository.find_by_user(user)
+def get_settings_cost(
+        auth_member: OrganizationMember = Depends(get_auth_member),
+        auth_organization: Organization = Depends(get_auth_organization),
+        db: Session = Depends(get_db)
+):
     return {
-        'cost_is_active': org.cost_is_active or False,
-        'currency': org.currency,
-        'cost_period': org.cost_period,
-        'cost_visibility': org.cost_visibility,
-        'cost_type': org.cost_type,
-        'average_cost': org.average_cost,
+        'cost_is_active': auth_organization.cost_is_active or False,
+        'currency': auth_organization.currency,
+        'cost_period': auth_organization.cost_period,
+        'cost_visibility': auth_organization.cost_visibility,
+        'cost_type': auth_organization.cost_type,
+        'average_cost': auth_organization.average_cost,
     }
+
 
 @router.put('/cost')
 def update_settings_cost(
-    settings: UpdateCostSettings,
-    user: User = Depends(get_auth_user),
-    db: Session = Depends(get_db),
+        settings: UpdateCostSettings,
+        auth_member: OrganizationMember = Depends(get_auth_member),
+        auth_organization: Organization = Depends(get_auth_organization),
+        db: Session = Depends(get_db),
 ):
     org_repository = OrganizationRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
-    org = org_repository.find_by_user(user)
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
 
-    org.cost_is_active = settings.cost_is_active
-    org.currency = settings.currency
-    org.cost_period = settings.cost_period
-    org.cost_visibility = settings.cost_visibility
-    org.cost_type = settings.cost_type
-    org.average_cost = settings.average_cost
-    if org.cost_type == OrganizationCostType.AVERAGE:
-        org_member_repository.update_member_cost(org.id, org.average_cost)
+    auth_organization.cost_is_active = settings.cost_is_active
+    auth_organization.currency = settings.currency
+    auth_organization.cost_period = settings.cost_period
+    auth_organization.cost_visibility = settings.cost_visibility
+    auth_organization.cost_type = settings.cost_type
+    auth_organization.average_cost = settings.average_cost
+    if auth_organization.cost_type == OrganizationCostType.AVERAGE:
+        org_member_repository.update_member_cost(auth_organization.id, auth_organization.average_cost)
     else:
-        org_member_repository.update_member_cost(org.id, None)
-    org_repository.update(org)
+        org_member_repository.update_member_cost(auth_organization.id, None)
+    org_repository.update(auth_organization)
     return

@@ -69,7 +69,7 @@ class BaseRepo(Generic[T]):
     def find(self, filters: list) -> Query:
         return self.session.query(self.model).filter(*filters)
 
-    def find_by_id(self, _id: int) -> Optional[T]:
+    def find_by_id(self, _id) -> Optional[T]:
         filters = [self.model.id == _id]
         query = self.find(filters)
         return query.first()

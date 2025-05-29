@@ -1,9 +1,8 @@
 import os
 import requests
 
-
-from models import get_db, User, Organization, OrganizationMember, OrganizationMemberStatus
-from models.repositories.user_repository import UserRepository
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationMemberRole
+from models.repositories.super_admin_repository import SuperAdminRepository
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from authlib.integrations.requests_client import OAuth2Session
@@ -40,8 +39,9 @@ def create_google_login_uri():
 
 
 def update_user_after_google_login(state: str, authorization_response: str, db):
-    user_repository = UserRepository(db)
-    organization_repository = OrganizationRepository(db)
+    org_repository = OrganizationRepository(db)
+    org_member_repository = OrganizationMemberRepository(db)
+
     token = client.fetch_token(
         TOKEN_ENDPOINT,
         authorization_response=authorization_response,
@@ -50,70 +50,41 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     google_access_token = token["access_token"]
     google_refresh_token = token.get("refresh_token", None)
     user_info = client.get(USERINFO_ENDPOINT).json()
-    is_new_user = False
+
     email = user_info.get("email")
-    org = organization_repository.find_by_user_email(email)
-    print(org)
-    user = user_repository.find_by_email(email)
-    if org:
-        if not user:
-            user = User(
-                name=user_info.get('name'),
-                photo_url=user_info.get('picture'),
-                email=email,
-                google_access_token=google_access_token,
-                google_refresh_token=google_refresh_token,
-            )
-            user_repository.create(user)
-    else:
-        if email not in [
-            "bohdan.dobosevych@gmail.com",
-            "demian.peretiatko@gmail.com",
-            "kostyantin1408@gmail.com",
-            "dobosevych@gmail.com",
-            "o.dobosevych@geniusee.com",
-            "dobosevych@ucu.edu.ua",
-            "dudeson26@gmail.com",
-            "demian@flowlity.com",
-            "sazhagutalin@gmail.com",
-            "nastyalada@gmail.com",
-            "darka.azhnyuk@gmail.com",
-            "darka.azhnyuk@spryplan.com"
-        ]:
-            return None, False
-        else:
-            is_new_user = True
-            user = User(
-
-                name=user_info.get('name'),
-                photo_url=user_info.get('picture'),
-                email=email,
-                google_access_token=google_access_token,
-                google_refresh_token=google_refresh_token,
-            )
-            user_repository.create(user)
-            org = Organization(create_user_id=user.id)
-            organization_repository.create(org)
-
-    user.google_access_token = google_access_token
-    user.google_refresh_token = google_refresh_token
-    user_repository.update(user)
-
-    organization_member_repository = OrganizationMemberRepository(db)
-    member = organization_member_repository.find_by_member_email(org.id, user.email)
+    member = org_member_repository.find_by_email(email)
     if member is None:
-        member = OrganizationMember(
-            organization_id=org.id,
-            email=user.email,
-            status=OrganizationMemberStatus.ACTIVE,
-        )
-        organization_member_repository.create(member)
+        super_admin_repository = SuperAdminRepository(db)
+        super_admin = super_admin_repository.find_by_email(email)
+        if super_admin:
+            org = Organization()
+            org_repository.create(org)
+            member = OrganizationMember(
+                name=user_info.get('name'),
+                photo_url=user_info.get('picture'),
+                email=email,
+                google_access_token=google_access_token,
+                google_refresh_token=google_refresh_token,
+                role=OrganizationMemberRole.OWNER,
+                status=OrganizationMemberStatus.ACTIVE,
+                organization=org
+            )
+            org_member_repository.create(member)
+            return member, True
+        return None, False
     else:
-        member.status = OrganizationMemberStatus.ACTIVE
-        organization_member_repository.update(member)
-    return user, is_new_user
+        is_new_user = False
+        member.google_access_token = google_access_token
+        member.google_refresh_token = google_refresh_token
+        if member.status == OrganizationMemberStatus.PENDING:
+            is_new_user = True
+            member.name = user_info.get('name')
+            member.photo_url = user_info.get('picture')
+            member.status = OrganizationMemberStatus.ACTIVE
+        org_member_repository.update(member)
+        return member, is_new_user
 
-def refresh_google_access_token( refresh_token: str) -> str:
+def refresh_google_access_token(refresh_token: str) -> str:
     url = "https://oauth2.googleapis.com/token"
     payload = {
         "client_id": os.getenv("GOOGLE_CLIENT_ID"),
@@ -126,5 +97,3 @@ def refresh_google_access_token( refresh_token: str) -> str:
     token_data = response.json()
     if "access_token" in token_data:
         return token_data["access_token"]
-
-
