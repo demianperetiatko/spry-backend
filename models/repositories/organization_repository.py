@@ -2,7 +2,7 @@ import uuid
 from typing import TypeVar, List, Optional
 
 from models.repositories import BaseRepo
-from models import Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType
+from models import Organization, OrganizationMember, OrganizationMemberStatus, OrganizationTeamMemberType, OrganizationMemberRole
 from models import OrganizationTeam, OrganizationTeamMember
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import func
@@ -22,8 +22,8 @@ class OrganizationRepository(BaseRepo[Organization]):
             .first()
         )
 
-    def is_user_owner_of_organization(self, user_id: int) -> bool:
-        res = self.session.query(Organization).filter(Organization.create_user_id == user_id).first()
+    def is_user_owner_of_organization(self, user_id: str) -> bool:
+        res = self.session.query(OrganizationMember).filter(OrganizationMember.id == user_id).filter(OrganizationMember.role == OrganizationMemberRole.OWNER).first()
         return True if res else False
 
     def is_user_manager_of_organization(self, email: str) -> bool:
@@ -41,14 +41,14 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationMember)
 
-    def update_member_cost(self, organization_id: int, average_cost: Optional[float]):
+    def update_member_cost(self, organization_id, average_cost: Optional[float]):
         formatted_cost = f"{average_cost:.2f}" if average_cost is not None else None
         self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id).update(
             {OrganizationMember.cost: formatted_cost}, synchronize_session=False
         )
         return self.session.commit()
 
-    def find_by_member_id(self, organization_id: int, member_id: int) -> OrganizationMember:
+    def find_by_member_id(self, organization_id, member_id) -> OrganizationMember:
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -57,6 +57,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.email,
                 OrganizationMember.cost,
                 OrganizationMember.status,
+                OrganizationMember.google_refresh_token
             )
             .filter(OrganizationMember.id == member_id)
             .filter(OrganizationMember.organization_id == organization_id)
@@ -68,7 +69,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .filter(OrganizationMember.email == email)
             .first()
         )
-    def find_by_member_email(self, organization_id: int, email: str) -> OrganizationMember:
+    def find_by_member_email(self, organization_id, email: str) -> OrganizationMember:
         return (
             self.session.query(OrganizationMember)
             .filter(OrganizationMember.email == email)
@@ -76,7 +77,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
 
-    def query_find_by_organization_id(self, organization_id: int):
+    def query_find_by_organization_id(self, organization_id):
         return (
             self.session.query(
                 OrganizationMember.id,
@@ -86,18 +87,19 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 literal("-").label("department"),
                 OrganizationMember.cost,
                 OrganizationMember.status,
+                OrganizationMember.google_refresh_token
             )
             .filter(OrganizationMember.organization_id == organization_id)
         )
 
-    def find_by_organization_id(self, organization_id: int):
+    def find_by_organization_id(self, organization_id):
         return self.query_find_by_organization_id(organization_id).all()
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):
         super().__init__(session, OrganizationTeam)
 
-    def query_find_by_organization_id(self, organization_id: int) -> List[OrganizationTeam]:
+    def query_find_by_organization_id(self, organization_id) -> List[OrganizationTeam]:
         return (
             self.session.query(
                 OrganizationTeam.id,
@@ -113,10 +115,10 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
         )
 
-    def find_by_organization_id(self, organization_id: int):
+    def find_by_organization_id(self, organization_id):
         return self.query_find_by_organization_id(organization_id).all()
 
-    def find_by_team_id(self, organization_id: int, team_id: int) -> OrganizationTeam:
+    def find_by_team_id(self, organization_id, team_id) -> OrganizationTeam:
         return (
             self.session.query(OrganizationTeam)
             .filter(OrganizationTeam.organization_id == organization_id)
@@ -124,7 +126,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .first()
         )
 
-    def find_by_member_id(self, member_id: id) -> List[OrganizationTeam]:
+    def find_by_member_id(self, member_id) -> List[OrganizationTeam]:
         return (
             self.session.query(
                 OrganizationTeam.id.label("team"),
@@ -141,7 +143,7 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
     def __init__(self, session):
         super().__init__(session, OrganizationTeamMember)
 
-    def query_find_by_team_id(self, team_id: int):
+    def query_find_by_team_id(self, team_id):
         return (
             self.session.query(
                 OrganizationTeamMember.id,
@@ -151,13 +153,14 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationMember.photo_url,
                 OrganizationTeamMember.type,
                 OrganizationMember.cost,
+                OrganizationMember.google_refresh_token,
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .filter(OrganizationTeamMember.team_id == team_id)
         )
 
-    def find_by_team_id(self, team_id: int):
+    def find_by_team_id(self, team_id):
         return self.query_find_by_team_id(team_id).all()
 
-    def delete_all_team_member(self, team_id: int) -> None:
+    def delete_all_team_member(self, team_id) -> None:
         return self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).delete()

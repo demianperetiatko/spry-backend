@@ -53,7 +53,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         return {
             "status": "error",
         }
-    request.session["user_id"] = user.id
+    request.session["user_id"] = str(user.id)
     redirect_url = f"{FRONTEND_DOMAIN}/onboarding" if is_new_user else FRONTEND_DOMAIN
     return RedirectResponse(redirect_url)
 

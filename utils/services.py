@@ -54,7 +54,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
     email = user_info.get("email")
     member = org_member_repository.find_by_email(email)
     if member is None:
-        super_admin_repository = SuperAdminRepository()
+        super_admin_repository = SuperAdminRepository(db)
         super_admin = super_admin_repository.find_by_email(email)
         if super_admin:
             org = Organization()
@@ -65,7 +65,8 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
                 email=email,
                 google_access_token=google_access_token,
                 google_refresh_token=google_refresh_token,
-                role=OrganizationMemberRole.OWNER
+                role=OrganizationMemberRole.OWNER,
+                organization=org
             )
             org_member_repository.create(member)
             return member, True

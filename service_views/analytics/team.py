@@ -63,7 +63,7 @@ def get_team_events(org_team_members, start_date, end_date):
 
 @router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -79,10 +79,10 @@ def get_team_kpi(
 
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
-    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
+    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -112,7 +112,7 @@ class AnalyticsType(str, Enum):
 
 @router.get("/analytic/organization/meeting")
 async def get_team_meetings(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         type: AnalyticsType = Query(AnalyticsType.time),
@@ -123,7 +123,7 @@ async def get_team_meetings(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
     if type == AnalyticsType.time:
@@ -151,7 +151,7 @@ async def get_team_meetings(
 
 @router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -161,7 +161,7 @@ def get_team_meeting_participants(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
 
     response = Diagram(
         items=events,
@@ -176,7 +176,7 @@ def get_team_meeting_participants(
 
 @router.get("/analytic/organization/meeting/distribution")
 def get_team_meeting_distribution(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -189,7 +189,7 @@ def get_team_meeting_distribution(
     org_members = org_member_repository.find_by_organization_id(org.id)
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
@@ -214,7 +214,7 @@ class TableType(str, Enum):
 
 @router.get("/analytic/organization/meeting/table")
 def get_team_meetings_table(
-        team_id: Optional[int] = Query(None),
+        team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
         type: TableType = Query(TableType.attendees),
@@ -277,7 +277,7 @@ def get_team_meetings_table(
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
-        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt)
         result = process_teams_collab(get_unique_events(events), org.id, team_id, db)
 
         columns = [
@@ -290,7 +290,7 @@ def get_team_meetings_table(
             ('collab_cost', 'collab_cost'),
         ]
     else:
-        events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        events = get_team_events(org_team_members, start_date_dt, end_date_dt)
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),

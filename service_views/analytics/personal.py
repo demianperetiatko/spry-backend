@@ -38,7 +38,7 @@ from utils.analytics.utils import count_weekdays
 
 @router.get("/analytic/personal/meeting/kpi")
 def get_personal_kpi(
-        member_id: int = Query(...),
+        member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -77,7 +77,7 @@ def get_personal_kpi(
 
 @router.get("/analytic/personal/meeting")
 def get_personal_meetings(
-        member_id: int = Query(...),
+        member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -110,7 +110,7 @@ def get_personal_meetings(
 
 @router.get("/analytic/personal/meeting/participants")
 def get_personal_meeting_participants(
-        member_id: int = Query(...),
+        member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -140,7 +140,7 @@ def get_personal_meeting_participants(
 
 @router.get("/analytic/personal/meeting/distribution")
 def get_personal_meeting_distribution(
-        member_id: int = Query(...),
+        member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
@@ -189,7 +189,7 @@ class TableType(str, Enum):
 
 @router.get("/analytic/personal/meeting/table")
 def get_personal_table(
-        member_id: int = Query(...),
+        member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
         sort_by: str = Query(...),
@@ -221,7 +221,8 @@ def get_personal_table(
         result = process_recurring_events(events, [member])
         columns = [
             ("id", "id"),
-            ("meeting_profile", "meeting", lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            ("meeting_profile", "meeting",
+             lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
             ("total_cost", "total_cost"),

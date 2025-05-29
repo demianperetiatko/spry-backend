@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 class TeamMemberRequest(BaseModel):
-    member_id: int
+    member_id: str
     type: str
 
     @field_validator("type")
@@ -71,7 +71,7 @@ def get_teams(
 
 @router.get("/team/{team_id}")
 def get_team_by_id(
-        team_id: int,
+        team_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
@@ -111,7 +111,7 @@ def create_team(
 
 @router.put("/team/{team_id}")
 def update_team(
-        team_id: int,
+        team_id: str,
         team_info: TeamRequest,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
@@ -141,7 +141,7 @@ def update_team(
 
 @router.delete("/team/{team_id}")
 def delete_team(
-        team_id: int,
+        team_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
