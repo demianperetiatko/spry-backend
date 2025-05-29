@@ -2,13 +2,13 @@ from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator, model_validator
 from typing import List
-from models import get_db, User
-from models.repositories.super_admin_repository import UserRepository
+from models import get_db
+from models import OrganizationMember
+from utils.services import refresh_google_access_token
+
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
 from utils.meet import get_calendar_events, create_calendar_event
-
-from utils.analytics import get_google_access_token
 
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
@@ -19,7 +19,7 @@ router = APIRouter()
 
 @router.get("/home/kpi")
 def get_user_kpi(
-        user: User = Depends(get_auth_member),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
@@ -36,7 +36,7 @@ def get_user_kpi(
     prev_start_date = prev_start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
     prev_end_date = prev_end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    access_token = get_google_access_token(user.email, db)
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = get_calendar_events(access_token, start_date, end_date)
     prev_events = get_calendar_events(access_token, prev_start_date, prev_end_date)
 
@@ -90,7 +90,7 @@ def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
 
 @router.get("/home/deep-work/time-slot")
 def get_deep_work_slot(
-        user: User = Depends(get_auth_member),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
@@ -101,7 +101,7 @@ def get_deep_work_slot(
     start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    access_token = get_google_access_token(user.email, db)
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = get_calendar_events(access_token, start_date, end_date)
     busy_times = []
     for event in events:
@@ -129,10 +129,10 @@ class TimeSlot(BaseModel):
 @router.post("/home/deep-work/time-slot")
 def post_deep_work_slots(
         timeslots: List[TimeSlot],
-        user: User = Depends(get_auth_member),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = get_google_access_token(user.email, db)
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
 
     summary = "Deep Work Time"
     events = []
