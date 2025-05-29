@@ -2,15 +2,15 @@ from fastapi import Depends, APIRouter, HTTPException, Query
 
 from sqlalchemy.orm import Session
 
-from models import get_db, User, Organization
+from models import get_db, Organization, OrganizationMember
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.middleware import get_auth_user, get_organization
-from utils.meet import get_calendar_events
+from utils.services import refresh_google_access_token
 
-from utils.analytics import get_google_access_token
+from utils.middleware import get_auth_member, get_auth_organization
+from utils.meet import get_calendar_events
 
 from utils.analytics import group_events_by_date, analyze_event_participants
 
@@ -41,8 +41,7 @@ def get_personal_kpi(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -58,7 +57,7 @@ def get_personal_kpi(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(member.email, db)
+    access_token = refresh_google_access_token(member.google_refresh_token)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     prev_events = get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt)
@@ -81,8 +80,7 @@ def get_personal_meetings(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -93,7 +91,7 @@ def get_personal_meetings(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(member.email, db)
+    access_token = refresh_google_access_token(member.google_refresh_token)
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
@@ -115,8 +113,7 @@ def get_personal_meeting_participants(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -127,7 +124,7 @@ def get_personal_meeting_participants(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(member.email, db)
+    access_token = refresh_google_access_token(member.google_refresh_token)
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
     response = Diagram(
@@ -146,15 +143,9 @@ def get_personal_meeting_distribution(
         member_id: int = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
-    import random
-
-    def fun_random(events):
-        return 1
-
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
@@ -165,7 +156,7 @@ def get_personal_meeting_distribution(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(member.email, db)
+    access_token = refresh_google_access_token(member.google_refresh_token)
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
 
     team_emails = []
@@ -204,8 +195,7 @@ def get_personal_table(
         sort_by: str = Query(...),
         sort_order: SortOrderType = Query(SortOrderType.asc),
         type: TableType = Query(TableType.collaboration),
-        user: User = Depends(get_auth_user),
-        org: Organization = Depends(get_organization),
+        org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
@@ -218,7 +208,7 @@ def get_personal_table(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = get_google_access_token(member.email, db)
+    access_token = refresh_google_access_token(member.google_refresh_token)
 
     events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     if type == TableType.collaboration:
