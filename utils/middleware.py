@@ -23,7 +23,7 @@ def get_auth_member(
     return member
 
 
-def get_organization(
+def get_auth_organization(
         request: Request, member: OrganizationMember = Depends(get_auth_member), db: Session = Depends(get_db)
 ):
     org_repository = OrganizationRepository(db)
