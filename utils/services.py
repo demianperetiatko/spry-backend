@@ -66,6 +66,7 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
                 google_access_token=google_access_token,
                 google_refresh_token=google_refresh_token,
                 role=OrganizationMemberRole.OWNER,
+                status=OrganizationMemberStatus.ACTIVE,
                 organization=org
             )
             org_member_repository.create(member)
@@ -77,6 +78,8 @@ def update_user_after_google_login(state: str, authorization_response: str, db):
         member.google_refresh_token = google_refresh_token
         if member.status == OrganizationMemberStatus.PENDING:
             is_new_user = True
+            member.name = user_info.get('name')
+            member.photo_url = user_info.get('picture')
             member.status = OrganizationMemberStatus.ACTIVE
         org_member_repository.update(member)
         return member, is_new_user
