@@ -14,6 +14,8 @@ from utils.analytics.calendar_stats import count_events, calculate_total_events_
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio, kpi_deep_work_time
 
+from utils import get_user_profile
+
 router = APIRouter()
 
 
@@ -146,4 +148,75 @@ def post_deep_work_slots(
         events.append(event)
 
     return events
+
+@router.get("/home/agenda-beta")
+def get_agenda_beta(
+        auth_member: OrganizationMember = Depends(get_auth_member),
+        db: Session = Depends(get_db)
+):
+    today = datetime.today()
+
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+
+    start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    events = get_calendar_events(access_token, start_date, end_date)
+    meetings = []
+    for event in events:
+        if 'description' in event:
+            continue
+
+        start_time = event["start"]["dateTime"]
+        end_time = event["end"]["dateTime"]
+        date = start_time.split("T")[0]
+
+        meeting = {
+            "id": event["id"],  # або event["id"] якщо string теж ок
+            "name": event.get("summary", "No Title"),
+            "start_time": start_time,
+            "end_time": end_time,
+            "date": date,
+            "members": [get_user_profile(a["email"], db) for a in event.get("attendees", []) if "email" in a],
+            "organizer": get_user_profile(event.get("organizer", {}).get("email", ""), db),
+            "invitation_sent": False
+        }
+        meetings.append(meeting)
+    percent_with_description = (
+        (len(events) - len(meetings) / len(events)) * 100 if events else 0
+    )
+
+    return {
+        "meetings": meetings,
+        "percent_with_description": round(percent_with_description, 2),
+    }
+
+@router.post("/home/agenda-beta/{event_id}/notify")
+def notify_agenda_completed(
+    event_id: str,
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db)
+):
+    today = datetime.today()
+    start_of_week = today - timedelta(days=today.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+
+    start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    events = get_calendar_events(access_token, start_date, end_date)
+
+    event = next((e for e in events if e["id"] == event_id), None)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    organizer_email = event.get("organizer", {}).get("email")
+    if not organizer_email:
+        raise HTTPException(status_code=400, detail="Organizer email not found")
+
+
+
 
