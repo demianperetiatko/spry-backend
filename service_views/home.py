@@ -14,6 +14,9 @@ from utils.analytics.calendar_stats import count_events, calculate_total_events_
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio, kpi_deep_work_time
 
+from models.agenda import AgendaBeta
+from models.repositories.agenda_repository import AgendaBetaRepository
+
 from utils import get_user_profile
 
 router = APIRouter()
@@ -117,7 +120,6 @@ def get_deep_work_slot(
     }
 
 
-
 class TimeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
@@ -127,6 +129,7 @@ class TimeSlot(BaseModel):
         if self.start_time >= self.end_time:
             raise ValueError("`start_time` must be earlier than `end_time`.")
         return self
+
 
 @router.post("/home/deep-work/time-slot")
 def post_deep_work_slots(
@@ -149,11 +152,13 @@ def post_deep_work_slots(
 
     return events
 
+
 @router.get("/home/agenda-beta")
 def get_agenda_beta(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
+    agenda_repository = AgendaBetaRepository(db)
     today = datetime.today()
 
     start_of_week = today - timedelta(days=today.weekday())
@@ -172,7 +177,7 @@ def get_agenda_beta(
         start_time = event["start"]["dateTime"]
         end_time = event["end"]["dateTime"]
         date = start_time.split("T")[0]
-
+        agenda = agenda_repository.find_by_event_id(event["id"], auth_member.id)
         meeting = {
             "id": event["id"],  # або event["id"] якщо string теж ок
             "name": event.get("summary", "No Title"),
@@ -181,7 +186,7 @@ def get_agenda_beta(
             "date": date,
             "members": [get_user_profile(a["email"], db) for a in event.get("attendees", []) if "email" in a],
             "organizer": get_user_profile(event.get("organizer", {}).get("email", ""), db),
-            "invitation_sent": False
+            "invitation_sent": True if agenda else False
         }
         meetings.append(meeting)
     percent_with_description = (
@@ -193,11 +198,12 @@ def get_agenda_beta(
         "percent_with_description": round(percent_with_description, 2),
     }
 
+
 @router.post("/home/agenda-beta/{event_id}/notify")
 def notify_agenda_completed(
-    event_id: str,
-    auth_member: OrganizationMember = Depends(get_auth_member),
-    db: Session = Depends(get_db)
+        event_id: str,
+        auth_member: OrganizationMember = Depends(get_auth_member),
+        db: Session = Depends(get_db)
 ):
     today = datetime.today()
     start_of_week = today - timedelta(days=today.weekday())
@@ -216,7 +222,12 @@ def notify_agenda_completed(
     organizer_email = event.get("organizer", {}).get("email")
     if not organizer_email:
         raise HTTPException(status_code=400, detail="Organizer email not found")
-
-
-
+    agenda_repository = AgendaBetaRepository(db)
+    agenda = agenda_repository.find_by_event_id(event_id, auth_member.id)
+    if not agenda:
+        new_agenda = AgendaBeta(
+            event_id=event_id,
+            member_id=auth_member.id
+        )
+        agenda_repository.create(new_agenda)
 
