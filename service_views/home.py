@@ -8,7 +8,7 @@ from utils.services import refresh_google_access_token
 
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
-from utils.meet import get_calendar_events, create_calendar_event
+from utils.google_api import get_calendar_events
 
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
@@ -16,6 +16,10 @@ from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
 
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
+
+
+from utils.google_api import create_calendar_event, update_calendar_event
+
 
 from utils import get_user_profile
 
@@ -176,16 +180,18 @@ def get_agenda_beta(
 
         start_time = event["start"]["dateTime"]
         end_time = event["end"]["dateTime"]
+        organizer_email = event.get("organizer", {}).get("email", "")
         date = start_time.split("T")[0]
         agenda = agenda_repository.find_by_event_id(event["id"], auth_member.id)
         meeting = {
-            "id": event["id"],  # або event["id"] якщо string теж ок
+            "id": event["id"],
             "name": event.get("summary", "No Title"),
             "start_time": start_time,
             "end_time": end_time,
             "date": date,
             "members": [get_user_profile(a["email"], db) for a in event.get("attendees", []) if "email" in a],
-            "organizer": get_user_profile(event.get("organizer", {}).get("email", ""), db),
+            "organizer": get_user_profile(organizer_email, db),
+            "is_organizer": auth_member.email == organizer_email,
             "invitation_sent": True if agenda else False
         }
         meetings.append(meeting)
@@ -231,3 +237,21 @@ def notify_agenda_completed(
         )
         agenda_repository.create(new_agenda)
 
+class AgendaDescriptionRequest(BaseModel):
+    description: str
+
+@router.post("/home/agenda-beta/{event_id}/add")
+def add_agenda_description(
+    event_id: str,
+    data: AgendaDescriptionRequest,
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db)
+):
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+
+    updated_event = update_calendar_event(
+        access_token=access_token,
+        calendar_id="primary",
+        event_id=event_id,
+        description=data.description
+    )

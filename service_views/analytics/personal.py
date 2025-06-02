@@ -10,7 +10,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from utils.services import refresh_google_access_token
 
 from utils.middleware import get_auth_member, get_auth_organization
-from utils.meet import get_calendar_events
+from utils.google_api import get_calendar_events
 
 from utils.analytics import group_events_by_date, analyze_event_participants
 

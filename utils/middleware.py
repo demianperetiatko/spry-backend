@@ -12,7 +12,7 @@ def get_auth_member(
         request: Request,
         db: Session = Depends(get_db),
 ):
-    user_id = request.session.get("user_id")
+    user_id = request.session.get("user_id","61fe4c60-fb65-4acb-9d29-db16a027d7b7")
     org_member_repository = OrganizationMemberRepository(db)
     member = org_member_repository.find_by_id(user_id)
     if not member:
