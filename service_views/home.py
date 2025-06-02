@@ -195,13 +195,9 @@ def get_agenda_beta(
             "invitation_sent": True if agenda else False
         }
         meetings.append(meeting)
-    percent_with_description = (
-        (len(events) - len(meetings) / len(events)) * 100 if events else 0
-    )
-
     return {
         "meetings": meetings,
-        "percent_with_description": round(percent_with_description, 2),
+        "count_all_events": len(events),
     }
 
 
