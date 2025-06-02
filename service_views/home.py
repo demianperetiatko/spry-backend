@@ -4,7 +4,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from typing import List
 from models import get_db
 from models import OrganizationMember
-from utils.services import refresh_google_access_token
+from utils.google_api import refresh_google_access_token
 
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member

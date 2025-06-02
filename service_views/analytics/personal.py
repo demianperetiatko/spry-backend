@@ -7,7 +7,7 @@ from models import get_db, Organization, OrganizationMember
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.services import refresh_google_access_token
+from utils.google_api import refresh_google_access_token
 
 from utils.middleware import get_auth_member, get_auth_organization
 from utils.google_api import get_calendar_events

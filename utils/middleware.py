@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
-from utils.services import refresh_google_access_token
+from utils.google_api import refresh_google_access_token
 
 
 def get_auth_member(

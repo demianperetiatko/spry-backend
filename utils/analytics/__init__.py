@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import List, Dict
 from datetime import datetime, timedelta, date
 
-from utils.services import refresh_google_access_token
 
 from utils.analytics.calendar_stats import event_duration, event_cost
 
