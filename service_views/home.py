@@ -103,12 +103,8 @@ def get_deep_work_slot(
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
-
-    start_of_week = today - timedelta(days=today.weekday())
-    end_of_week = start_of_week + timedelta(days=6)
-
-    start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
+    start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = get_calendar_events(access_token, start_date, end_date)
@@ -163,13 +159,10 @@ def get_agenda_beta(
         db: Session = Depends(get_db)
 ):
     agenda_repository = AgendaBetaRepository(db)
+
     today = datetime.today()
-
-    start_of_week = today - timedelta(days=today.weekday())
-    end_of_week = start_of_week + timedelta(days=6)
-
-    start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
+    start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = get_calendar_events(access_token, start_date, end_date)
