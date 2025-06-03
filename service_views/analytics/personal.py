@@ -68,7 +68,7 @@ def get_personal_kpi(
             {"title": "Total time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"title": "Total meetings cost",},
+            {"title": "Total meetings cost", },
             {"title": "Avg. daily meetings cost", },
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
             {"title": "Cancelled meetings", **kpi_cancelled_meetings(events, prev_events)},
@@ -178,6 +178,46 @@ def get_personal_meeting_distribution(
         ]
     )
     return response.as_dict()
+
+
+@router.get("/analytic/organization/productivity")
+def get_team_productivity(
+        member_id: str = Query(...),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+
+        org: Organization = Depends(get_auth_organization),
+        db: Session = Depends(get_db)
+):
+    return {
+        "change_percentage": 12,
+        "productivity": [
+            {
+                "title": "meetings_time",
+                "value": 28,
+                "change": 8,
+                "positive": False,
+            },
+            {
+                "title": "deep_work",
+                "value": 42,
+                "change": 15,
+                "positive": True,
+            },
+            {
+                "title": "transition_time",
+                "value": 22,
+                "change": 3,
+                "positive": False,
+            },
+            {
+                "title": "buffers",
+                "value": 8,
+                "change": 2,
+                "positive": True,
+            },
+        ],
+    }
 
 
 from enum import Enum
