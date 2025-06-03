@@ -15,7 +15,7 @@ def kpi_total_time(events: list, prev_events: list) -> dict:
     return {
         "value": f"{round(total_time, 2)}h",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True
+        "positive": False if change > 0 else True,
     }
 
 
@@ -26,7 +26,7 @@ def kpi_avg_daily_meetings_time(events: list, prev_events: list, count_work_day:
     return {
         "value": f"{round(avg_daily_meetings_time, 2)}h",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True,
+        "positive": False if change > 0 else True,
     }
 
 
@@ -37,7 +37,7 @@ def kpi_cancelled_meetings(events: list, prev_events: list) -> dict:
     return {
         "value": f"{cancelled_meetings}",
         "change": f"{'+' if change > 0 else ''}{change}",
-        "positive": True,
+        "positive": False if change > 0 else True,
     }
 
 
@@ -48,7 +48,7 @@ def kpi_count_meetings(events: list, prev_events: list) -> dict:
     return {
         "value": f"{count_meetings}",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True,
+        "positive": False if change > 0 else True,
     }
 
 
@@ -59,7 +59,7 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
     return {
         "value": f"{round(meetings_ratio, 2)}%",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True,
+        "positive": False if change > 0 else True,
     }
 
 
@@ -72,7 +72,7 @@ def kpi_total_cost(events: list, prev_events: list, members: list) -> dict:
     return {
         "value": f"{round(total_cost, 2)}",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True
+        "positive": False if change > 0 else True
     }
 
 
@@ -85,7 +85,7 @@ def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list) 
     return {
         "value": f"{round(total_cost, 2)}",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True
+        "positive": False if change > 0 else True
     }
 
 def kpi_without_description(events: list, prev_events: list) -> dict:
@@ -97,7 +97,7 @@ def kpi_without_description(events: list, prev_events: list) -> dict:
     return {
         "value": f"{round(total_without_description, 2)}",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True
+        "positive": False if change > 0 else True
     }
 
 def kpi_deep_work_time(events: list, prev_events: list) -> dict:
@@ -108,5 +108,5 @@ def kpi_deep_work_time(events: list, prev_events: list) -> dict:
     return {
         "value": f"{round(total_work_time, 2)}",
         "change": f"{'+' if change > 0 else ''}{change}%",
-        "positive": True
+        "positive": True if change > 0 else False
     }
