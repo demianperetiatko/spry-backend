@@ -180,8 +180,8 @@ def get_personal_meeting_distribution(
     return response.as_dict()
 
 
-@router.get("/analytic/organization/productivity")
-def get_team_productivity(
+@router.get("/analytic/personal/productivity")
+def get_personal_productivity(
         member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
