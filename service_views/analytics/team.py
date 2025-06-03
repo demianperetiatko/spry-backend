@@ -13,7 +13,6 @@ from utils.middleware import get_auth_member, get_auth_organization
 from utils.google_api import get_calendar_events
 from utils.google_api import refresh_google_access_token
 
-
 from utils.analytics import group_events_by_date
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
@@ -205,6 +204,158 @@ def get_team_meeting_distribution(
     return response.as_dict()
 
 
+class ListType(str, Enum):
+    members = 'members'
+    teams = 'teams'
+
+
+class SortBy(str, Enum):
+    meetings_time = 'meetings_time'
+    deep_work = 'deep_work'
+
+@router.get("/analytic/organization/productivity")
+def get_team_productivity(
+        team_id: Optional[str] = Query(None),
+        start_date: str = Query(...),
+        end_date: str = Query(...),
+        list_type: ListType = Query(ListType.members),
+        sort_by: SortBy = Query(SortBy.meetings_time),
+        sort_order: SortOrderType = Query(SortOrderType.asc),
+        org: Organization = Depends(get_auth_organization),
+        db: Session = Depends(get_db)
+):
+    members = [
+        {
+            "id": "1",
+            "member_profile": {
+                "name": "Demian Peretiatko",
+                "email": "demian@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 25,
+            "deep_work": 45,
+            "transition_time": 20,
+            "buffers": 10,
+        },
+        {
+            "id": "2",
+            "member_profile": {
+                "name": "Oles Dobosevych",
+                "email": "oles@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 20,
+            "deep_work": 50,
+            "transition_time": 20,
+            "buffers": 10,
+        },
+        {
+            "id": "3",
+            "member_profile": {
+                "name": "Darka Azhnyuk",
+                "email": "darka@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 30,
+            "deep_work": 35,
+            "transition_time": 25,
+            "buffers": 10,
+        },
+        {
+            "id": "4",
+            "member_profile": {
+                "name": "Anna Kowalski",
+                "email": "anna@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 35,
+            "deep_work": 40,
+            "transition_time": 20,
+            "buffers": 5,
+        },
+        {
+            "id": "5",
+            "member_profile": {
+                "name": "Bohdan Dobosevych",
+                "email": "bohdan@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 38,
+            "deep_work": 32,
+            "transition_time": 25,
+            "buffers": 5,
+        },
+        {
+            "id": "6",
+            "member_profile": {
+                "name": "John Smith",
+                "email": "john@spry.com",
+                "photo_url": None,
+            },
+            "meetings_time": 32,
+            "deep_work": 38,
+            "transition_time": 25,
+            "buffers": 5,
+        },
+    ],
+    teams = [
+        {
+            "id": "1",
+            "name": "Engineering Team",
+            "meetings_time": 22,
+            "deep_work": 48,
+            "transition_time": 20,
+            "buffers": 10,
+        },
+        {
+            "id": "2",
+            "name": "Design Team",
+            "meetings_time": 32,
+            "deep_work": 38,
+            "transition_time": 22,
+            "buffers": 8,
+        },
+        {
+            "id": "3",
+            "name": "Product Team",
+            "meetings_time": 35,
+            "deep_work": 35,
+            "transition_time": 25,
+            "buffers": 5,
+        },
+    ],
+    return {
+        "change_percentage": 12,
+        "productivity": [
+            {
+                "title": "meetings_time",
+                "value": 28,
+                "change": 8,
+                "positive": False,
+            },
+            {
+                "title": "deep_work",
+                "value": 42,
+                "change": 15,
+                "positive": True,
+            },
+            {
+                "title": "transition_time",
+                "value": 22,
+                "change": 3,
+                "positive": False,
+            },
+            {
+                "title": "buffers",
+                "value": 8,
+                "change": 2,
+                "positive": True,
+            },
+        ],
+        "data": members if list_type == ListType.members else teams
+    }
+
+
 class TableType(str, Enum):
     attendees = "attendees"
     organizers = "organizers"
@@ -249,7 +400,7 @@ def get_team_meetings_table(
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name"," "), "email": i.get("email"),
+             lambda i: {"name": i.get("name", " "), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
             ("time", "time"),
             ("cost", "cost"),
