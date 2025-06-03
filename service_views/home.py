@@ -103,7 +103,7 @@ def get_deep_work_slot(
         db: Session = Depends(get_db)
 ):
     today = datetime.today()
-    start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = today
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
@@ -161,7 +161,7 @@ def get_agenda_beta(
     agenda_repository = AgendaBetaRepository(db)
 
     today = datetime.today()
-    start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = today
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
