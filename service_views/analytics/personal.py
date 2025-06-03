@@ -162,7 +162,7 @@ def get_personal_meeting_distribution(
 
     team_emails = []
     for team in org_team.find_by_member_id(member.id):
-        ms = org_team_member.find_by_team_id(team.team)
+        ms = org_team_member.find_by_team_id(team.team_id)
         for m in ms:
             team_emails.append(m.email)
 
