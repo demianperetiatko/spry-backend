@@ -129,7 +129,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def find_by_member_id(self, member_id) -> List[OrganizationTeam]:
         return (
             self.session.query(
-                OrganizationTeam.id.label("team"),
+                OrganizationTeam.id.label("team_id"),
                 OrganizationTeam.name.label("team_name"),
                 (OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER).label("is_manager"),
             )
