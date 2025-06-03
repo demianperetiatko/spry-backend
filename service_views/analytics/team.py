@@ -89,10 +89,10 @@ def get_team_kpi(
     return {
         'data': [
             {"title": "Total Time", **kpi_total_time(events, prev_events)},
-            {"title": "Avg. time per member",
-             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Meetings time ratio",
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
+            {"title": "Avg. time per member",
+             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Total Cost", **kpi_total_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Avg. cost per member",
              **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
