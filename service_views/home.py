@@ -17,9 +17,7 @@ from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
 
-
 from utils.google_api import create_calendar_event, update_calendar_event
-
 
 from utils import get_user_profile
 
@@ -49,11 +47,13 @@ def get_user_kpi(
     events = get_calendar_events(access_token, start_date, end_date)
     prev_events = get_calendar_events(access_token, prev_start_date, prev_end_date)
 
-    return [
-        {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
-        {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-        {"title": "Deep work time", **kpi_deep_work_time(events, prev_events)},
-    ]
+    return {
+        'data': [
+            {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
+            {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
+            {"title": "Deep work time", **kpi_deep_work_time(events, prev_events)},
+        ]
+    }
 
 
 def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
@@ -226,15 +226,17 @@ def notify_agenda_completed(
         )
         agenda_repository.create(new_agenda)
 
+
 class AgendaDescriptionRequest(BaseModel):
     description: str
 
+
 @router.post("/home/agenda-beta/{event_id}/add")
 def add_agenda_description(
-    event_id: str,
-    data: AgendaDescriptionRequest,
-    auth_member: OrganizationMember = Depends(get_auth_member),
-    db: Session = Depends(get_db)
+        event_id: str,
+        data: AgendaDescriptionRequest,
+        auth_member: OrganizationMember = Depends(get_auth_member),
+        db: Session = Depends(get_db)
 ):
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
 
