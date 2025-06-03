@@ -68,7 +68,8 @@ def get_personal_kpi(
             {"title": "Total time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"title": "Meetings ratio", **kpi_meetings_ratio(events, prev_events, count_work_day)},
+            {"title": "Total meetings cost",},
+            {"title": "Avg. daily meetings cost", },
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
             {"title": "Cancelled meetings", **kpi_cancelled_meetings(events, prev_events)},
         ]
