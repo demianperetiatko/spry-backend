@@ -13,7 +13,7 @@ from utils.middleware import get_auth_member, get_auth_organization
 from utils.google_api import get_calendar_events
 
 from utils.analytics import group_events_by_date, analyze_event_participants
-
+from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
 
@@ -59,8 +59,9 @@ def get_personal_kpi(
 
     access_token = refresh_google_access_token(member.google_refresh_token)
 
-    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    prev_events = get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+
+    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
     return {
@@ -93,7 +94,7 @@ def get_personal_meetings(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
     response = Chart(
@@ -126,7 +127,7 @@ def get_personal_meeting_participants(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
 
     response = Diagram(
         items=events,
@@ -158,7 +159,7 @@ def get_personal_meeting_distribution(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
 
     team_emails = []
     for team in org_team.find_by_member_id(member.id):
@@ -189,6 +190,19 @@ def get_personal_productivity(
         org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    org_member_repository = OrganizationMemberRepository(db)
+    org_team = OrganizationTeamRepository(db)
+    org_team_member = OrganizationTeamMemberRepository(db)
+    member = org_member_repository.find_by_member_id(org.id, member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    access_token = refresh_google_access_token(member.google_refresh_token)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+
     return {
         "change_percentage": 12,
         "productivity": [
@@ -251,7 +265,7 @@ def get_personal_table(
 
     access_token = refresh_google_access_token(member.google_refresh_token)
 
-    events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
     if type == TableType.collaboration:
         result = analyze_event_participants(events, member.email)
         columns = [

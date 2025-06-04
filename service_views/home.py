@@ -9,7 +9,7 @@ from utils.google_api import refresh_google_access_token
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
 from utils.google_api import get_calendar_events
-
+from utils.analytics.filters import filter_meetings
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio, kpi_deep_work_time
@@ -44,8 +44,8 @@ def get_user_kpi(
     prev_end_date = prev_end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date, end_date)
-    prev_events = get_calendar_events(access_token, prev_start_date, prev_end_date)
+    events = filter_meetings(filter_meetings(get_calendar_events(access_token, start_date, end_date)))
+    prev_events = filter_meetings(filter_meetings(get_calendar_events(access_token, prev_start_date, prev_end_date)))
 
     return {
         'data': [
@@ -107,7 +107,7 @@ def get_deep_work_slot(
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date, end_date)
+    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
     busy_times = []
     for event in events:
         start_str = event.get("start", {}).get("dateTime", "").split("+")[0]
@@ -165,7 +165,7 @@ def get_agenda_beta(
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date, end_date)
+    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
     meetings = []
     for event in events:
         if 'description' in event:
@@ -208,7 +208,7 @@ def notify_agenda_completed(
     end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = get_calendar_events(access_token, start_date, end_date)
+    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
 
     event = next((e for e in events if e["id"] == event_id), None)
     if not event:

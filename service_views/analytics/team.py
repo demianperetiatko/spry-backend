@@ -14,6 +14,7 @@ from utils.google_api import get_calendar_events
 from utils.google_api import refresh_google_access_token
 
 from utils.analytics import group_events_by_date
+from utils.analytics.filters import filter_meetings
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
     calculate_recurring_events_cost, calculate_single_events_cost, count_inside_team_events, \
@@ -54,9 +55,10 @@ def get_team_members(org_id, team_id, db: Session):
 def get_team_events(org_team_members, start_date, end_date):
     events = []
     for member in org_team_members:
-        access_token = refresh_google_access_token(member.google_refresh_token)
-        member_events = get_calendar_events(access_token, start_date, end_date)
-        events += member_events
+        if member.google_refresh_token:
+            access_token = refresh_google_access_token(member.google_refresh_token)
+            member_events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
+            events += member_events
     return events
 
 
@@ -386,7 +388,7 @@ def get_team_meetings_table(
         result = []
         for member in org_team_members:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+            member_events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
             info = {
                 "id": member.id,
                 "name": member.name,
@@ -410,7 +412,7 @@ def get_team_meetings_table(
         result = []
         for member in org_team_members:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+            member_events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
             info = {
                 "id": member.id,
                 "name": member.name,
