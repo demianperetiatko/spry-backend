@@ -79,3 +79,16 @@ def get_calendar_events(token: str, start_date: datetime, end_date: datetime, ca
         return response.json().get("items", [])
     else:
         return []
+
+def get_calendar_event_info(token: str, event_id: str, calendar_id: str = "primary") -> dict | None:
+    url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events/{event_id}"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
