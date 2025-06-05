@@ -14,7 +14,7 @@ def send_email(to_email, subject, html_content, from_email='hello@spryplan.com')
         response = sg.send(message)
 
     except Exception as e:
-        print(e)
+        print("Send Email (SendGridAPIClient) :", e)
 
 
 def send_user_invitation(email: str):
