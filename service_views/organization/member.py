@@ -12,7 +12,7 @@ from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMem
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization
-from utils.organization import send_invitation
+from utils.send_message import send_user_invitation
 from utils.table import DBTable
 
 router = APIRouter()
@@ -59,7 +59,7 @@ def add_members_to_organization(
             email=email,
             status=OrganizationMemberStatus.PENDING,
         )
-        send_invitation(email)
+        send_user_invitation(email)
         org_member_repository.create(member)
 
 
@@ -131,4 +131,4 @@ def resend_invitation(
     member = organization_member_repository.find_by_member_id(auth_organization.id, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
-    send_invitation(member.email)
+    send_user_invitation(member.email)
