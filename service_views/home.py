@@ -8,8 +8,10 @@ from utils.google_api import refresh_google_access_token
 
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
-from utils.google_api import get_calendar_events
+from utils.google_api import get_calendar_events, get_calendar_event_info
 from utils.analytics.filters import filter_meetings
+from utils.send_message import send_agenda_request
+
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio, kpi_deep_work_time
@@ -200,17 +202,8 @@ def notify_agenda_completed(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    today = datetime.today()
-    start_of_week = today - timedelta(days=today.weekday())
-    end_of_week = start_of_week + timedelta(days=6)
-
-    start_date = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
-
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
-
-    event = next((e for e in events if e["id"] == event_id), None)
+    event = get_calendar_event_info(access_token, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -225,6 +218,7 @@ def notify_agenda_completed(
             member_id=auth_member.id
         )
         agenda_repository.create(new_agenda)
+        send_agenda_request(organizer_email, event.get('htmlLink'))
 
 
 class AgendaDescriptionRequest(BaseModel):
