@@ -49,8 +49,8 @@ def get_personal_kpi(
 
     delta = end_date_dt - start_date_dt
 
-    prev_start_date_dt = start_date_dt - delta - timedelta(days=1)
-    prev_end_date_dt = end_date_dt - delta - timedelta(days=1)
+    prev_start_date_dt = start_date_dt - delta
+    prev_end_date_dt = end_date_dt - delta
 
     org_member_repository = OrganizationMemberRepository(db)
     member = org_member_repository.find_by_member_id(org.id, member_id)
