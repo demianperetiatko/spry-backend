@@ -75,8 +75,8 @@ def get_team_kpi(
 
     delta = end_date_dt - start_date_dt
 
-    prev_start_date_dt = start_date_dt - delta - timedelta(days=1)
-    prev_end_date_dt = end_date_dt - delta - timedelta(days=1)
+    prev_start_date_dt = start_date_dt - delta
+    prev_end_date_dt = end_date_dt - delta
 
     org_team_members = get_team_members(org.id, team_id, db)
 

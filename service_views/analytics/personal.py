@@ -15,7 +15,7 @@ from utils.google_api import get_calendar_events
 from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
-    kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio
+    kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
@@ -34,7 +34,7 @@ router = APIRouter()
 
 from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
-
+from utils.analytics.calendar_stats import get_unique_events
 
 @router.get("/analytic/personal/meeting/kpi")
 def get_personal_kpi(
@@ -60,6 +60,10 @@ def get_personal_kpi(
     access_token = refresh_google_access_token(member.google_refresh_token)
 
     events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    set_events = get_unique_events(events)
+
+    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+    set_prev_events = get_unique_events(prev_events)
 
     prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -69,8 +73,8 @@ def get_personal_kpi(
             {"title": "Total time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"title": "Total meetings cost", },
-            {"title": "Avg. daily meetings cost", },
+            {"title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member])},
+            {"title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member])},
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
             {"title": "Cancelled meetings", **kpi_cancelled_meetings(events, prev_events)},
         ]
