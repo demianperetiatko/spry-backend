@@ -1,3 +1,5 @@
+from typing import List, Dict, Callable
+
 def filter_meetings(events: list) -> list:
     meetings = []
     for event in events:
@@ -7,3 +9,6 @@ def filter_meetings(events: list) -> list:
         if start_str and end_str and len(attendees) >= 2:
             meetings.append(event)
     return meetings
+
+def filter_events_by_attendee_count(events: List[Dict], condition: Callable[[int], bool]) -> List[Dict]:
+    return [event for event in events if condition(len(event.get('attendees', [])))]
