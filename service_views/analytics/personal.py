@@ -15,7 +15,7 @@ from utils.google_api import get_calendar_events
 from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
-    kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost
+    kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_workday_events_total_time_percent
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
@@ -142,7 +142,9 @@ def get_personal_meeting_participants(
             ("more_than_five", "6+", lambda i: {'value': percent_events_with_more_than_5_attendees(i)}),
         ]
     )
-    return response.as_dict()
+    return {
+        "data": response.as_dict()
+    }
 
 
 @router.get("/analytic/personal/meeting/distribution")
@@ -184,7 +186,9 @@ def get_personal_meeting_distribution(
             ("external", "Outside the org.", lambda i: {'value': percent_outside_organization_events(i, org_emails)}),
         ]
     )
-    return response.as_dict()
+    return {
+        "data": response.as_dict()
+    }
 
 
 @router.get("/analytic/personal/productivity")
@@ -199,9 +203,12 @@ def get_personal_productivity(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
+    delta = end_date_dt - start_date_dt
+
+    prev_start_date_dt = start_date_dt - delta
+    prev_end_date_dt = end_date_dt - delta
+
     org_member_repository = OrganizationMemberRepository(db)
-    org_team = OrganizationTeamRepository(db)
-    org_team_member = OrganizationTeamMemberRepository(db)
     member = org_member_repository.find_by_member_id(org.id, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -209,34 +216,21 @@ def get_personal_productivity(
     access_token = refresh_google_access_token(member.google_refresh_token)
     events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
 
+    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
+    productivity = Diagram(
+        items=[],
+        metrics=[
+            ("meetings_time", "Meetings time", lambda i: kpi_workday_events_total_time_percent(events, prev_events, count_work_day)),
+            ("deep_work", "Deep Work", lambda i: {"value": 28, "change": 8, "positive": False}),
+            ("transition_time", "Transition time", lambda i: {"value": 28, "change": 8, "positive": False}),
+            ("buffers", "Buffers", lambda i: {"value": 28, "change": 8, "positive": False}),
+        ]
+    )
+
     return {
-        "change_percentage": 12,
-        "productivity": [
-            {
-                "title": "meetings_time",
-                "value": 28,
-                "change": 8,
-                "positive": False,
-            },
-            {
-                "title": "deep_work",
-                "value": 42,
-                "change": 15,
-                "positive": True,
-            },
-            {
-                "title": "transition_time",
-                "value": 22,
-                "change": 3,
-                "positive": False,
-            },
-            {
-                "title": "buffers",
-                "value": 8,
-                "change": 2,
-                "positive": True,
-            },
-        ],
+        "productivity": productivity.as_dict(),
     }
 
 

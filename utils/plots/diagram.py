@@ -1,17 +1,16 @@
-from typing import Callable, Dict, List, Any, Tuple
-from datetime import date
+from typing import Callable, Dict, List, Any, Tuple, Optional
 
 
 class Diagram:
     def __init__(
             self,
             items: List[dict],
-            metrics: List[Tuple[str, str, Callable[[List[dict]], Any]]],
+            metrics: List[Tuple[str, str, Any]],
     ):
         self.items = items
         self.metrics = metrics
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> List:
         formatted_data = []
 
         for key, title, func in self.metrics:
@@ -19,12 +18,13 @@ class Diagram:
                 info = {
                     "key": key,
                     "title": title,
-                    **func(self.items),
+                    **func(self.items or []),
                 }
-                formatted_data.append(info)
             except Exception:
-                pass
+                info = {
+                    "key": key,
+                    "title": title,
+                }
+            formatted_data.append(info)
 
-        return {
-            "data": formatted_data,
-        }
+        return formatted_data

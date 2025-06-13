@@ -25,7 +25,7 @@ from utils.analytics.calendar_stats import calculate_event_ratio, calculate_tota
 from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
     percent_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
-    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description
+    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description, kpi_workday_events_total_time_percent
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
@@ -40,7 +40,8 @@ router = APIRouter()
 def get_team_members(org_id, team_id, db: Session):
     if team_id is None:
         org_member_repository = OrganizationMemberRepository(db)
-        return org_member_repository.find_by_organization_id(org_id)
+        return [member for member in org_member_repository.find_by_organization_id(org_id) if
+                member.google_refresh_token]
     else:
         org_team_repository = OrganizationTeamRepository(db)
 
@@ -49,7 +50,9 @@ def get_team_members(org_id, team_id, db: Session):
             raise HTTPException(status_code=404, detail="Team not found")
 
         org_team_member_repository = OrganizationTeamMemberRepository(db)
-        return org_team_member_repository.find_by_team_id(team_id)
+
+        return [member for member in org_team_member_repository.find_by_team_id(team_id) if
+                member.google_refresh_token]
 
 
 def get_team_events(org_team_members, start_date, end_date):
@@ -172,7 +175,9 @@ def get_team_meeting_participants(
             ("more_than_five", "6+", lambda i: {'value': percent_events_with_more_than_5_attendees(i)}),
         ]
     )
-    return response.as_dict()
+    return {
+        "data": response.as_dict()
+    }
 
 
 @router.get("/analytic/organization/meeting/distribution")
@@ -204,7 +209,9 @@ def get_team_meeting_distribution(
             ("external", "Outside the org.", lambda i: {'value': percent_outside_organization_events(i, org_emails)}),
         ]
     )
-    return response.as_dict()
+    return {
+        "data": response.as_dict()
+    }
 
 
 class ListType(str, Enum):
@@ -228,6 +235,21 @@ def get_team_productivity(
         org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+
+    delta = end_date_dt - start_date_dt
+
+    prev_start_date_dt = start_date_dt - delta
+    prev_end_date_dt = end_date_dt - delta
+
+    org_team_members = get_team_members(org.id, team_id, db)
+    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+    set_events = get_unique_events(events)
+
+    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt)
+    set_prev_events = get_unique_events(events)
+
     members = [
         {
             "id": "1",
