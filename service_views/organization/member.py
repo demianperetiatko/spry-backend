@@ -64,7 +64,7 @@ def add_members_to_organization(
 
 
 class UpdateTeamMember(BaseModel):
-    team_id: Optional[int] = None
+    team_id: Optional[str] = None
     team_name: Optional[str] = None
     is_manager: Optional[bool] = False
 
@@ -76,7 +76,7 @@ class UpdateMember(BaseModel):
 
 @router.put("/member/{member_id}/")
 def update_member(
-        member_id: int,
+        member_id: str,
         update_member: UpdateMember,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
@@ -106,7 +106,7 @@ def update_member(
 
 @router.delete("/member/{member_id}/")
 def delete_member_from_organization(
-        member_id: int,
+        member_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
@@ -122,7 +122,7 @@ def delete_member_from_organization(
 
 @router.post("/member/{member_id}/resend-invitation")
 def resend_invitation(
-        member_id: int,
+        member_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
