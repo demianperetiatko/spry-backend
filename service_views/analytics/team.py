@@ -17,13 +17,13 @@ from utils.analytics import group_events_by_date
 from utils.analytics.filters import filter_meetings
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
-    calculate_recurring_events_cost, calculate_single_events_cost, count_inside_team_events, \
-    count_with_other_teams_events, count_outside_organization_events
+    calculate_recurring_events_cost, calculate_single_events_cost, percent_inside_team_events, \
+    percent_with_other_teams_events, percent_outside_organization_events
 from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
     count_user_organized_events
 
-from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
-    count_events_with_more_than_5_attendees, calculate_total_events_cost
+from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
+    percent_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
     kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description
 from utils.analytics.utils import count_weekdays
@@ -167,9 +167,9 @@ def get_team_meeting_participants(
     response = Diagram(
         items=events,
         metrics=[
-            ("one_to_one", count_events_with_2_attendees),
-            ("three_to_five", count_events_with_3_to_5_attendees),
-            ("more_than_five", count_events_with_more_than_5_attendees),
+            ("one_to_one", "One-on-one", lambda i: {'value': percent_events_with_2_attendees(i)}),
+            ("three_to_five", "3-5", lambda i: {'value': percent_events_with_3_to_5_attendees(i)}),
+            ("more_than_five", "6+", lambda i: {'value': percent_events_with_more_than_5_attendees(i)}),
         ]
     )
     return response.as_dict()
@@ -198,9 +198,10 @@ def get_team_meeting_distribution(
     response = Diagram(
         items=set_events,
         metrics=[
-            ("inside_team", lambda i: count_inside_team_events(i, team_emails)),
-            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails, org_emails)),
-            ("external", lambda i: count_outside_organization_events(i, org_emails)),
+            ("inside_team", "Inside the team", lambda i: {'value': percent_inside_team_events(i, team_emails)}),
+            ("cross_team", "With other teams",
+             lambda i: {'value': percent_with_other_teams_events(i, team_emails, org_emails)}),
+            ("external", "Outside the org.", lambda i: {'value': percent_outside_organization_events(i, org_emails)}),
         ]
     )
     return response.as_dict()
@@ -214,6 +215,7 @@ class ListType(str, Enum):
 class SortBy(str, Enum):
     meetings_time = 'meetings_time'
     deep_work = 'deep_work'
+
 
 @router.get("/analytic/organization/productivity")
 def get_team_productivity(

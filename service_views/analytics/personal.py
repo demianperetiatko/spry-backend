@@ -19,12 +19,12 @@ from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
-from utils.analytics.calendar_stats import count_events_with_2_attendees, count_events_with_3_to_5_attendees, \
-    count_events_with_more_than_5_attendees
+from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
+    percent_events_with_more_than_5_attendees
 from utils.analytics.table import process_recurring_events
 
-from utils.analytics.calendar_stats import count_inside_team_events, count_with_other_teams_events, \
-    count_outside_organization_events
+from utils.analytics.calendar_stats import percent_inside_team_events, percent_with_other_teams_events, \
+    percent_outside_organization_events
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
 
@@ -35,6 +35,7 @@ router = APIRouter()
 from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
+
 
 @router.get("/analytic/personal/meeting/kpi")
 def get_personal_kpi(
@@ -136,9 +137,9 @@ def get_personal_meeting_participants(
     response = Diagram(
         items=events,
         metrics=[
-            ("one_to_one", count_events_with_2_attendees),
-            ("three_to_five", count_events_with_3_to_5_attendees),
-            ("more_than_five", count_events_with_more_than_5_attendees),
+            ("one_to_one", "One-on-one", lambda i: {'value': percent_events_with_2_attendees(i)}),
+            ("three_to_five", "3-5", lambda i: {'value': percent_events_with_3_to_5_attendees(i)}),
+            ("more_than_five", "6+", lambda i: {'value': percent_events_with_more_than_5_attendees(i)}),
         ]
     )
     return response.as_dict()
@@ -177,9 +178,10 @@ def get_personal_meeting_distribution(
     response = Diagram(
         items=events,
         metrics=[
-            ("inside_team", lambda i: count_inside_team_events(i, team_emails)),
-            ("cross_team", lambda i: count_with_other_teams_events(i, team_emails, org_emails)),
-            ("external", lambda i: count_outside_organization_events(i, org_emails)),
+            ("inside_team", "Inside the team", lambda i: {'value': percent_inside_team_events(i, team_emails)}),
+            ("cross_team", "With other teams",
+             lambda i: {'value': percent_with_other_teams_events(i, team_emails, org_emails)}),
+            ("external", "Outside the org.", lambda i: {'value': percent_outside_organization_events(i, org_emails)}),
         ]
     )
     return response.as_dict()

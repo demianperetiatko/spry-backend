@@ -1,5 +1,10 @@
-from typing import List, Dict
+from typing import List, Dict, Set
 from datetime import datetime, timedelta, date
+from .filters import filter_events_by_attendee_count
+
+
+def get_attendee_emails(event: Dict) -> Set[str]:
+    return {att.get("email") for att in event.get("attendees", []) if "email" in att}
 
 
 def get_unique_events(events: List[Dict]) -> List[Dict]:
@@ -41,16 +46,25 @@ def count_events(events: List[Dict]) -> int:
     return len(events)
 
 
-def count_events_with_2_attendees(events: List[Dict]) -> int:
-    return int(sum(1 for event in events if len(event.get('attendees', [])) == 2))
+def percent_events_with_2_attendees(events: List[Dict]) -> float:
+    if not events:
+        return 0.0
+    filtered = filter_events_by_attendee_count(events, lambda count: count == 2)
+    return round(len(filtered) / len(events) * 100, 2)
 
 
-def count_events_with_3_to_5_attendees(events: List[Dict]) -> int:
-    return int(sum(1 for event in events if 2 <= len(event.get('attendees', [])) <= 5))
+def percent_events_with_3_to_5_attendees(events: List[Dict]) -> float:
+    if not events:
+        return 0.0
+    filtered = filter_events_by_attendee_count(events, lambda count: 3 <= count <= 5)
+    return round(len(filtered) / len(events) * 100, 2)
 
 
-def count_events_with_more_than_5_attendees(events: List[Dict]) -> int:
-    return int(sum(1 for event in events if len(event.get('attendees', [])) > 5))
+def percent_events_with_more_than_5_attendees(events: List[Dict]) -> float:
+    if not events:
+        return 0.0
+    filtered = filter_events_by_attendee_count(events, lambda count: count > 5)
+    return round(len(filtered) / len(events) * 100, 2)
 
 
 def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float:
@@ -103,37 +117,44 @@ def count_cancelled_events(events: list) -> float:
             total_cancelled_meetings += 1
     return total_cancelled_meetings
 
-def count_inside_team_events(events: List[Dict], team_emails: List[str]) -> int:
-    count = 0
-    for event in events:
-        attendees = event.get("attendees", [])
-        attendee_emails = {att.get("email") for att in attendees if "email" in att}
-        if attendee_emails and attendee_emails.issubset(team_emails):
-            count += 1
-    return count
+
+def percent_inside_team_events(events: List[Dict], team_emails: List[str]) -> float:
+    if not events:
+        return 0.0
+    team_set = set(team_emails)
+    count = sum(
+        1 for event in events
+        if (emails := get_attendee_emails(event)) and emails.issubset(team_set)
+    )
+    return round(count / len(events) * 100, 2)
 
 
-def count_with_other_teams_events(events: List[Dict], team_emails: List[str], org_emails: List[str]) -> int:
-    count = 0
-    for event in events:
-        attendees = event.get("attendees", [])
-        attendee_emails = {att.get("email") for att in attendees if "email" in att}
-        if attendee_emails and attendee_emails.issubset(org_emails) and not attendee_emails.issubset(team_emails):
-            count += 1
-    return count
+def percent_with_other_teams_events(events: List[Dict], team_emails: List[str], org_emails: List[str]) -> float:
+    if not events:
+        return 0.0
+    team_set = set(team_emails)
+    org_set = set(org_emails)
+    count = sum(
+        1 for event in events
+        if (emails := get_attendee_emails(event)) and emails.issubset(org_set) and not emails.issubset(team_set)
+    )
+    return round(count / len(events) * 100, 2)
 
 
-def count_outside_organization_events(events: List[Dict], org_emails: List[str]) -> int:
-    count = 0
-    for event in events:
-        attendees = event.get("attendees", [])
-        attendee_emails = {att.get("email") for att in attendees if "email" in att}
-        if attendee_emails and not attendee_emails.issubset(org_emails):
-            count += 1
-    return count
+def percent_outside_organization_events(events: List[Dict], org_emails: List[str]) -> float:
+    if not events:
+        return 0.0
+    org_set = set(org_emails)
+    count = sum(
+        1 for event in events
+        if (emails := get_attendee_emails(event)) and not emails.issubset(org_set)
+    )
+    return round(count / len(events) * 100, 2)
+
 
 def count_events_without_description(events: List[Dict]) -> int:
     return sum(1 for event in events if not event.get('description'))
+
 
 def calculate_deep_work_time_events(events: List[Dict]) -> int:
     total = 0
@@ -141,4 +162,3 @@ def calculate_deep_work_time_events(events: List[Dict]) -> int:
         if 'summary' in event and 'deep work time' in event['summary'].lower():
             total += event_duration(event)
     return total
-
