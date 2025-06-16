@@ -40,8 +40,8 @@ router = APIRouter()
 def get_team_members(org_id, team_id, db: Session):
     if team_id is None:
         org_member_repository = OrganizationMemberRepository(db)
-        return [member for member in org_member_repository.find_by_organization_id(org_id) if
-                member.google_refresh_token]
+        return [member for member in org_member_repository.find_by_organization_id(org_id)
+                if member.google_refresh_token and refresh_google_access_token(member.google_refresh_token)]
     else:
         org_team_repository = OrganizationTeamRepository(db)
 
@@ -51,8 +51,8 @@ def get_team_members(org_id, team_id, db: Session):
 
         org_team_member_repository = OrganizationTeamMemberRepository(db)
 
-        return [member for member in org_team_member_repository.find_by_team_id(team_id) if
-                member.google_refresh_token]
+        return [member for member in org_team_member_repository.find_by_team_id(team_id)
+                if member.google_refresh_token and refresh_google_access_token(member.google_refresh_token)]
 
 
 def get_team_events(org_team_members, start_date, end_date):
