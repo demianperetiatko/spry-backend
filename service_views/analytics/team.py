@@ -33,6 +33,8 @@ from utils.analytics.table import process_recurring_events, process_teams_collab
 
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
+from utils.analytics.calendar_stats import calculate_total_events_duration, calculate_buffer_time, \
+    calculate_transition_time, calculate_deep_work_time
 
 router = APIRouter()
 
@@ -238,147 +240,85 @@ def get_team_productivity(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
+
     delta = end_date_dt - start_date_dt
 
     prev_start_date_dt = start_date_dt - delta
     prev_end_date_dt = end_date_dt - delta
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
-    set_events = get_unique_events(events)
+    data = []
+    for member in org_team_members:
+        if member.google_refresh_token:
+            access_token = refresh_google_access_token(member.google_refresh_token)
+            events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+            prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+            info = {
+                'id': member.id,
+                'name': member.name,
+                'email': member.email,
+                "photo_url": member.photo_url,
+                "meetings_time": calculate_total_events_duration(events),
+                "prev_meetings_time": calculate_total_events_duration(prev_events),
+                "deep_work": calculate_deep_work_time(events, count_work_day),
+                "prev_deep_work": calculate_deep_work_time(prev_events, count_work_day),
+                "transition_time": calculate_transition_time(events),
+                "prev_transition_time": calculate_transition_time(prev_events),
+                "buffers": calculate_buffer_time(events),
+                "prev_buffers": calculate_buffer_time(prev_events),
+            }
+            data.append(info)
 
-    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt)
-    set_prev_events = get_unique_events(events)
+    def calculete(data, key):
+        from utils.analytics.utils import calculate_chance
+        from utils.analytics.constants import WORKDAY_HOURS
+        kpi = sum([info[key] for info in data])
+        prev_kpi = sum([info[f'prev_{key}'] for info in data])
+        percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        change = calculate_chance(percent_of_day, prev_percent_of_day)
 
-    members = [
-        {
-            "id": "1",
-            "member_profile": {
-                "name": "Demian Peretiatko",
-                "email": "demian@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 25,
-            "deep_work": 45,
-            "transition_time": 20,
-            "buffers": 10,
-        },
-        {
-            "id": "2",
-            "member_profile": {
-                "name": "Oles Dobosevych",
-                "email": "oles@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 20,
-            "deep_work": 50,
-            "transition_time": 20,
-            "buffers": 10,
-        },
-        {
-            "id": "3",
-            "member_profile": {
-                "name": "Darka Azhnyuk",
-                "email": "darka@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 30,
-            "deep_work": 35,
-            "transition_time": 25,
-            "buffers": 10,
-        },
-        {
-            "id": "4",
-            "member_profile": {
-                "name": "Anna Kowalski",
-                "email": "anna@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 35,
-            "deep_work": 40,
-            "transition_time": 20,
-            "buffers": 5,
-        },
-        {
-            "id": "5",
-            "member_profile": {
-                "name": "Bohdan Dobosevych",
-                "email": "bohdan@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 38,
-            "deep_work": 32,
-            "transition_time": 25,
-            "buffers": 5,
-        },
-        {
-            "id": "6",
-            "member_profile": {
-                "name": "John Smith",
-                "email": "john@spry.com",
-                "photo_url": None,
-            },
-            "meetings_time": 32,
-            "deep_work": 38,
-            "transition_time": 25,
-            "buffers": 5,
-        },
-    ],
-    teams = [
-        {
+        return {
+            "value": percent_of_day,
+            "change": f"{'+' if change > 0 else ''}{change}%",
+            "positive": change >= 0
+        }
+
+    productivity = Diagram(
+        items=data,
+        metrics=[
+            ("meetings_time", "Meetings time", lambda i: calculete(i, "meetings_time")),
+            ("deep_work", "Deep Work", lambda i: calculete(i, "deep_work")),
+            ("transition_time", "Transition time", lambda i: calculete(i, "transition_time")),
+            ("buffers", "Buffers", lambda i: calculete(i, "buffers")),
+        ]
+    )
+
+    if list_type == ListType.teams:
+        res_data = [{
             "id": "1",
             "name": "Engineering Team",
             "meetings_time": 22,
             "deep_work": 48,
             "transition_time": 20,
             "buffers": 10,
-        },
-        {
-            "id": "2",
-            "name": "Design Team",
-            "meetings_time": 32,
-            "deep_work": 38,
-            "transition_time": 22,
-            "buffers": 8,
-        },
-        {
-            "id": "3",
-            "name": "Product Team",
-            "meetings_time": 35,
-            "deep_work": 35,
-            "transition_time": 25,
-            "buffers": 5,
-        },
-    ],
+        }, ]
+    else:
+        columns = [
+            ("id", "id"),
+            ("member_profile", "member_profile",
+             lambda i: {"name": i.get("name", " "), "email": i.get("email"),
+                        "photo_url": i.get("member_photo_url")}),
+            ('meetings_time', 'meetings_time'),
+            ('deep_work', 'deep_work'),
+            ('transition_time', 'transition_time'),
+            ('buffers', 'buffers'),
+        ]
+        res_data = DataTable(data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
     return {
-        "change_percentage": 12,
-        "productivity": [
-            {
-                "title": "meetings_time",
-                "value": 28,
-                "change": 8,
-                "positive": False,
-            },
-            {
-                "title": "deep_work",
-                "value": 42,
-                "change": 15,
-                "positive": True,
-            },
-            {
-                "title": "transition_time",
-                "value": 22,
-                "change": 3,
-                "positive": False,
-            },
-            {
-                "title": "buffers",
-                "value": 8,
-                "change": 2,
-                "positive": True,
-            },
-        ],
-        "data": members if list_type == ListType.members else teams
+        "productivity": productivity.as_dict(),
+        "data": res_data
     }
 
 
