@@ -296,14 +296,36 @@ def get_team_productivity(
     )
 
     if list_type == ListType.teams:
-        res_data = [{
-            "id": "1",
-            "name": "Engineering Team",
-            "meetings_time": 22,
-            "deep_work": 48,
-            "transition_time": 20,
-            "buffers": 10,
-        }, ]
+        help_data = []
+        org_team_repository = OrganizationTeamRepository(db)
+        org_team_member_repository = OrganizationTeamMemberRepository(db)
+        if team_id is None:
+            teams = org_team_repository.find_by_organization_id(org.id)
+        else:
+            teams = [org_team_repository.find_by_id(team_id)]
+
+        for team in teams:
+            members = org_team_member_repository.find_by_team_id(team.id)
+            team_member_ids = {member.member_id for member in members}
+            team_members_data = [m for m in data if m['id'] in team_member_ids]
+            help_data.append({
+                "id": team.id,
+                "name": team.name,
+                "meetings_time": sum(m["meetings_time"] for m in team_members_data),
+                "deep_work": sum(m["deep_work"] for m in team_members_data),
+                "transition_time": sum(m["transition_time"] for m in team_members_data),
+                "buffers": sum(m["buffers"] for m in team_members_data),
+            })
+
+        columns = [
+            ("id", "id"),
+            ("name", "name"),
+            ('meetings_time', 'meetings_time'),
+            ('deep_work', 'deep_work'),
+            ('transition_time', 'transition_time'),
+            ('buffers', 'buffers'),
+        ]
+        res_data = DataTable(help_data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
     else:
         columns = [
             ("id", "id"),
