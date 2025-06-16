@@ -15,7 +15,7 @@ from utils.google_api import get_calendar_events
 from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
-    kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_workday_events_total_time_percent
+    kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_event_ratio
@@ -35,6 +35,11 @@ router = APIRouter()
 from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
+
+from utils.analytics.calendar_stats import calculate_total_events_duration, calculate_buffer_time, \
+    calculate_transition_time, calculate_deep_work_time
+from utils.analytics.utils import calculate_chance
+from utils.analytics.constants import WORKDAY_HOURS
 
 
 @router.get("/analytic/personal/meeting/kpi")
@@ -203,6 +208,7 @@ def get_personal_productivity(
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
+    count_work_day = count_weekdays(start_date_dt, end_date_dt)
     delta = end_date_dt - start_date_dt
 
     prev_start_date_dt = start_date_dt - delta
@@ -218,14 +224,69 @@ def get_personal_productivity(
 
     prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
 
-    count_work_day = count_weekdays(start_date_dt, end_date_dt)
+    def get_meetings_time():
+        total_time = calculate_total_events_duration(events)
+        prev_total_time = calculate_total_events_duration(prev_events)
+
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        change = calculate_chance(percent_of_day, prev_percent_of_day)
+
+        return {
+            "value": percent_of_day,
+            "change": f"{'+' if change > 0 else ''}{change}%",
+            "positive": change >= 0
+        }
+
+    def get_buffers_time():
+        total_time = calculate_buffer_time(events)
+        prev_total_time = calculate_buffer_time(prev_events)
+
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        change = calculate_chance(percent_of_day, prev_percent_of_day)
+
+        return {
+            "value": percent_of_day,
+            "change": f"{'+' if change > 0 else ''}{change}%",
+            "positive": change >= 0
+        }
+
+    def get_deep_work_time():
+        total_time = calculate_deep_work_time(events, count_work_day)
+        prev_total_time = calculate_deep_work_time(prev_events, count_work_day)
+
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        change = calculate_chance(percent_of_day, prev_percent_of_day)
+
+        return {
+            "value": percent_of_day,
+            "change": f"{'+' if change > 0 else ''}{change}%",
+            "positive": change >= 0
+        }
+
+    def get_transition_time():
+        total_time = calculate_transition_time(events)
+        prev_total_time = calculate_transition_time(prev_events)
+
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        change = calculate_chance(percent_of_day, prev_percent_of_day)
+
+        return {
+            "value": percent_of_day,
+            "change": f"{'+' if change > 0 else ''}{change}%",
+            "positive": change >= 0
+        }
+
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Meetings time", lambda i: kpi_workday_events_total_time_percent(events, prev_events, count_work_day)),
-            ("deep_work", "Deep Work", lambda i: {"value": 28, "change": 8, "positive": False}),
-            ("transition_time", "Transition time", lambda i: {"value": 28, "change": 8, "positive": False}),
-            ("buffers", "Buffers", lambda i: {"value": 28, "change": 8, "positive": False}),
+            ("meetings_time", "Meetings time", lambda i: get_meetings_time()),
+            ("deep_work", "Deep Work", lambda i: get_deep_work_time()),
+            ("transition_time", "Transition time", lambda i: get_transition_time()),
+            ("buffers", "Buffers", lambda i: get_buffers_time()),
         ]
     )
 

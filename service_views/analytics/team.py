@@ -25,7 +25,7 @@ from utils.analytics.calendar_stats import calculate_event_ratio, calculate_tota
 from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
     percent_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
-    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description, kpi_workday_events_total_time_percent
+    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 

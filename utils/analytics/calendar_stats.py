@@ -2,6 +2,8 @@ from typing import List, Dict, Set
 from datetime import datetime, timedelta, date
 from .filters import filter_events_by_attendee_count
 
+from .constants import BUFFER_PER_SIDE_HOURS, MAX_TRANSITION_TIME_HOURS,  WORKDAY_HOURS
+
 
 def get_attendee_emails(event: Dict) -> Set[str]:
     return {att.get("email") for att in event.get("attendees", []) if "email" in att}
@@ -156,9 +158,72 @@ def count_events_without_description(events: List[Dict]) -> int:
     return sum(1 for event in events if not event.get('description'))
 
 
-def calculate_deep_work_time_events(events: List[Dict]) -> int:
-    total = 0
+def calculate_buffer_time(events: List[Dict]) -> float:
+    event_times = []
     for event in events:
-        if 'summary' in event and 'deep work time' in event['summary'].lower():
-            total += event_duration(event)
-    return total
+        start_str = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
+        if not start_str or not end_str:
+            continue
+
+        start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+        event_times.append((start, end))
+
+    event_times.sort(key=lambda x: x[0])
+
+    blocks = []
+    extra_gap_time = 0.0
+    if not event_times:
+        return 0.0
+
+    current_block_start, current_block_end = event_times[0]
+
+    for start, end in event_times[1:]:
+        gap_hours = (start - current_block_end).total_seconds() / 3600
+        if gap_hours < 2 * BUFFER_PER_SIDE_HOURS:
+            extra_gap_time += gap_hours
+            if end > current_block_end:
+                current_block_end = end
+        else:
+            blocks.append((current_block_start, current_block_end))
+            current_block_start, current_block_end = start, end
+    blocks.append((current_block_start, current_block_end))
+
+    return BUFFER_PER_SIDE_HOURS * 2 * len(blocks) + extra_gap_time
+
+
+def calculate_transition_time(events: List[Dict]) -> float:
+    event_times = []
+    for event in events:
+        start_str = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
+        if not start_str or not end_str:
+            continue
+
+        start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+        event_times.append((start, end))
+
+    event_times.sort(key=lambda x: x[0])
+
+    if not event_times or len(event_times) < 2:
+        return 0.0
+
+    total_gap = 0.0
+    for i in range(1, len(event_times)):
+        prev_end = event_times[i - 1][1]
+        curr_start = event_times[i][0]
+        gap_hours = (curr_start - prev_end).total_seconds() / 3600
+
+        if BUFFER_PER_SIDE_HOURS * 2 <= gap_hours < MAX_TRANSITION_TIME_HOURS:
+            total_gap += gap_hours
+
+    return total_gap
+
+
+def calculate_deep_work_time(events: List[Dict], count_work_day) -> float:
+    event_time = calculate_total_events_duration(events)
+    buffer_time = calculate_buffer_time(events)
+    transition_time = calculate_transition_time(events)
+    return WORKDAY_HOURS * count_work_day - event_time - buffer_time - transition_time

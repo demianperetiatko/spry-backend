@@ -53,7 +53,7 @@ def get_user_kpi(
         'data': [
             {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-            {"title": "Deep work time", **kpi_deep_work_time(events, prev_events)},
+            {"title": "Deep work time", **kpi_deep_work_time(events, prev_events, 7)},
         ]
     }
 
