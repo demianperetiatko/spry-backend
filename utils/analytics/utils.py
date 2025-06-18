@@ -18,4 +18,4 @@ def calculate_chance(new, old):
             return 100
         else:
             return -100
-    return round(((new - old) / old) * 100, 2)
+    return round(((new - old) / old) * 100)
