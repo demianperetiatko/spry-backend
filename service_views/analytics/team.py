@@ -149,7 +149,6 @@ async def get_team_meetings(
             metrics=[
                 ("recurring", lambda i: calculate_recurring_events_cost(i, org_team_members)),
                 ("one_time", lambda i: calculate_single_events_cost(i, org_team_members)),
-                ("ratio", calculate_event_ratio),
             ])
 
     return response.as_dict()
