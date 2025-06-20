@@ -234,7 +234,7 @@ def get_personal_productivity(
 
         return {
             "value": percent_of_day,
-            "change": f"{'+' if change > 0 else ''}{change}%",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
             "positive": change >= 0
         }
 
@@ -248,7 +248,7 @@ def get_personal_productivity(
 
         return {
             "value": percent_of_day,
-            "change": f"{'+' if change > 0 else ''}{change}%",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
             "positive": change >= 0
         }
 
@@ -262,7 +262,7 @@ def get_personal_productivity(
 
         return {
             "value": percent_of_day,
-            "change": f"{'+' if change > 0 else ''}{change}%",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
             "positive": change >= 0
         }
 
@@ -276,7 +276,7 @@ def get_personal_productivity(
 
         return {
             "value": percent_of_day,
-            "change": f"{'+' if change > 0 else ''}{change}%",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
             "positive": change >= 0
         }
 
