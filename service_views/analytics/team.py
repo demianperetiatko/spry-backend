@@ -103,7 +103,7 @@ def get_team_kpi(
             {"title": "Avg. cost per member",
              **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-            {"title": "Meetings w/o Agenda", **kpi_without_description(set_events, set_prev_events)},
+            {"title": "Meetings w/o agenda", **kpi_without_description(set_events, set_prev_events)},
         ]
     }
 
