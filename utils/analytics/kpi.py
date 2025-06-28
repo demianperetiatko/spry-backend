@@ -37,7 +37,7 @@ def kpi_cancelled_meetings(events: list, prev_events: list) -> dict:
     change = calculate_chance(cancelled_meetings, prev_cancelled_meetings)
     return {
         "value": f"{cancelled_meetings}",
-        "change": f"{'+' if change > 0 else ''}{change}",
+        "change": f"{'+' if change > 0 else ''}{change}%",
         "positive": False if change > 0 else True,
     }
 
