@@ -1,13 +1,27 @@
 from typing import List, Dict, Callable
 
-def filter_meetings(events: list) -> list:
+def filter_meetings(events: list, email: str= "") -> list:
     meetings = []
     for event in events:
+        if event.get("status") == "cancelled":
+            continue
+
         attendees = event.get("attendees", [])
         start_str = event.get("start", {}).get("dateTime")
         end_str = event.get("end", {}).get("dateTime")
         hangout_link = event.get("hangoutLink")
-        if start_str and end_str and len(attendees) >= 2 and hangout_link:
+
+        user_status = None
+        for attendee in attendees:
+            if attendee.get("email") == email:
+                user_status = attendee.get("responseStatus")
+                break
+
+        if (
+            start_str and end_str and hangout_link and
+            len(attendees) >= 2 and
+            user_status != "declined"
+        ):
             meetings.append(event)
     return meetings
 

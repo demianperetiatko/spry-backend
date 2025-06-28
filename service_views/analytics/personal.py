@@ -42,6 +42,16 @@ from utils.analytics.utils import calculate_chance
 from utils.analytics.constants import WORKDAY_HOURS
 
 
+def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
+    print('email', email)
+    print('access_token', access_token)
+    print('start_date_dt', start_date_dt)
+    print('end_date_dt', end_date_dt)
+    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    meetings = filter_meetings(calendar_events, email)
+    return meetings
+
+
 @router.get("/analytic/personal/meeting/kpi")
 def get_personal_kpi(
         member_id: str = Query(...),
@@ -65,13 +75,12 @@ def get_personal_kpi(
 
     access_token = refresh_google_access_token(member.google_refresh_token)
 
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
-    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+    prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
     set_prev_events = get_unique_events(prev_events)
 
-    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
     return {
@@ -88,7 +97,7 @@ def get_personal_kpi(
 
 
 @router.get("/analytic/personal/meeting")
-def get_personal_meetings(
+def get_personal_meetings_chart(
         member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
@@ -104,7 +113,7 @@ def get_personal_meetings(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
     response = Chart(
@@ -137,7 +146,7 @@ def get_personal_meeting_participants(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
 
     response = Diagram(
         items=events,
@@ -171,7 +180,7 @@ def get_personal_meeting_distribution(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
 
     team_emails = []
     for team in org_team.find_by_member_id(member.id):
@@ -220,9 +229,9 @@ def get_personal_productivity(
         raise HTTPException(status_code=404, detail="Member not found")
 
     access_token = refresh_google_access_token(member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
 
-    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+    prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
 
     def get_meetings_time():
         total_time = calculate_total_events_duration(events)
@@ -326,7 +335,7 @@ def get_personal_table(
 
     access_token = refresh_google_access_token(member.google_refresh_token)
 
-    events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
     if type == TableType.collaboration:
         result = analyze_event_participants(events, member.email)
         columns = [
