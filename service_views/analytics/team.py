@@ -287,8 +287,8 @@ def get_team_productivity(
     productivity = Diagram(
         items=data,
         metrics=[
-            ("meetings_time", "Meetings time", lambda i: calculete(i, "meetings_time")),
-            ("deep_work", "Deep Work", lambda i: calculete(i, "deep_work")),
+            ("meetings_time", "Time on meetings", lambda i: calculete(i, "meetings_time")),
+            ("deep_work", "Deep work", lambda i: calculete(i, "deep_work")),
             ("transition_time", "Transition time", lambda i: calculete(i, "transition_time")),
             ("buffers", "Buffers", lambda i: calculete(i, "buffers")),
         ]
