@@ -62,8 +62,8 @@ def get_team_events(org_team_members, start_date, end_date):
     for member in org_team_members:
         if member.google_refresh_token:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
-            events += member_events
+            calendar_events = get_calendar_events(access_token, start_date, end_date)
+            events += filter_meetings(calendar_events, member.email)
     return events
 
 
@@ -215,6 +215,12 @@ def get_team_meeting_distribution(
     }
 
 
+def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
+    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    meetings = filter_meetings(calendar_events, email)
+    return meetings
+
+
 class ListType(str, Enum):
     members = 'members'
     teams = 'teams'
@@ -251,8 +257,9 @@ def get_team_productivity(
     for member in org_team_members:
         if member.google_refresh_token:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
-            prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date_dt, prev_end_date_dt))
+            events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+            prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
+
             info = {
                 'id': member.id,
                 'name': member.name,
@@ -373,7 +380,7 @@ def get_team_meetings_table(
         result = []
         for member in org_team_members:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+            member_events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
                 "name": member.name,
@@ -397,7 +404,7 @@ def get_team_meetings_table(
         result = []
         for member in org_team_members:
             access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = filter_meetings(get_calendar_events(access_token, start_date_dt, end_date_dt))
+            member_events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
             info = {
                 "id": member.id,
                 "name": member.name,

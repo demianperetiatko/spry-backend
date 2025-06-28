@@ -43,10 +43,6 @@ from utils.analytics.constants import WORKDAY_HOURS
 
 
 def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
-    print('email', email)
-    print('access_token', access_token)
-    print('start_date_dt', start_date_dt)
-    print('end_date_dt', end_date_dt)
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     meetings = filter_meetings(calendar_events, email)
     return meetings
