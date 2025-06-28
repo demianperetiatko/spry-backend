@@ -94,12 +94,12 @@ def get_team_kpi(
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
     return {
         'data': [
-            {"title": "Total Time", **kpi_total_time(events, prev_events)},
+            {"title": "Time on ,eetings", **kpi_total_time(events, prev_events)},
             {"title": "Meetings time ratio",
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Avg. time per member",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
-            {"title": "Total Cost", **kpi_total_cost(set_events, set_prev_events, org_team_members)},
+            {"title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Avg. cost per member",
              **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},

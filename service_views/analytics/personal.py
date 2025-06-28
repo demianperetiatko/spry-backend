@@ -76,7 +76,7 @@ def get_personal_kpi(
 
     return {
         'data': [
-            {"title": "Total time on meetings", **kpi_total_time(events, prev_events)},
+            {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
             {"title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member])},
