@@ -283,8 +283,8 @@ def get_personal_productivity(
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Meetings time", lambda i: get_meetings_time()),
-            ("deep_work", "Deep Work", lambda i: get_deep_work_time()),
+            ("meetings_time", "Time on meetings", lambda i: get_meetings_time()),
+            ("deep_work", " Deep work", lambda i: get_deep_work_time()),
             ("transition_time", "Transition time", lambda i: get_transition_time()),
             ("buffers", "Buffers", lambda i: get_buffers_time()),
         ]
