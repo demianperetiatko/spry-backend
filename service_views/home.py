@@ -9,7 +9,7 @@ from utils.google_api import refresh_google_access_token
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
 from utils.google_api import get_calendar_events, get_calendar_event_info
-from utils.analytics.filters import filter_meetings
+from utils.analytics.filters import filter_meetings, filter_deet_work_events
 from utils.send_message import send_agenda_request
 
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
@@ -59,7 +59,7 @@ def get_user_kpi(
 
 
 def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
-                         work_start="10:00", work_end="19:00",
+                         work_start="10:00", work_end="18:00",
                          min_duration=timedelta(hours=2)):
     free_slots = []
 
@@ -70,12 +70,32 @@ def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
         day = start_dt.date()
         busy_by_day.setdefault(day, []).append((start_dt, end_dt))
 
+    now = datetime.now()
     current_date = start_date
     while current_date.date() <= end_date.date():
+        if current_date.weekday() >= 5:
+            current_date += timedelta(days=1)
+            continue
+
         day = current_date.date()
-        work_start_dt = datetime.combine(day, datetime.strptime(work_start, "%H:%M").time())
-        work_end_dt = datetime.combine(day, datetime.strptime(work_end, "%H:%M").time())
-        busy = sorted(busy_by_day.get(day, []))
+        work_start_time = datetime.strptime(work_start, "%H:%M").time()
+        work_end_time = datetime.strptime(work_end, "%H:%M").time()
+
+        work_start_dt = datetime.combine(day, work_start_time)
+        work_end_dt = datetime.combine(day, work_end_time)
+
+        if day == now.date():
+            work_start_dt = max(work_start_dt, now)
+            if work_start_dt >= work_end_dt:
+                current_date += timedelta(days=1)
+                continue
+
+        busy = [
+            (max(start, work_start_dt), min(end, work_end_dt))
+            for start, end in busy_by_day.get(day, [])
+            if start < work_end_dt and end > work_start_dt
+        ]
+        busy.sort()
 
         current = work_start_dt
         for b_start, b_end in busy:
@@ -109,9 +129,9 @@ def get_deep_work_slot(
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
+    events = get_calendar_events(access_token, start_date, end_date)
     busy_times = []
-    for event in events:
+    for event in  filter_meetings(events) + filter_deet_work_events(events):
         start_str = event.get("start", {}).get("dateTime", "").split("+")[0]
         end_str = event.get("end", {}).get("dateTime", "").split("+")[0]
         if start_str and end_str:
