@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
@@ -52,6 +52,24 @@ def add_members_to_organization(
         db: Session = Depends(get_db)
 ):
     org_member_repository = OrganizationMemberRepository(db)
+
+    existing_emails = []
+
+    for email in member_info.emails:
+        existing_member = org_member_repository.find_by_email(
+            email=email
+        )
+        if existing_member:
+            existing_emails.append(email)
+
+    if existing_emails:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Some members already exist either in your organization or in another organization.",
+                "existing_emails": existing_emails
+            }
+        )
 
     for email in member_info.emails:
         member = OrganizationMember(
