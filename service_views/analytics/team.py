@@ -99,9 +99,9 @@ def get_team_kpi(
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
             {"title": "Avg. time per member",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
-            {"title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, org_team_members)},
+            {"title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, org_team_members, org.currency)},
             {"title": "Avg. cost per member",
-             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members)},
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, org.currency)},
             {"title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
             {"title": "Meetings w/o agenda", **kpi_without_description(set_events, set_prev_events)},
         ]

@@ -64,30 +64,52 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
     }
 
 
-def kpi_total_cost(events: list, prev_events: list, members: list) -> dict:
-    total_cost = calculate_total_events_cost(events, members)
-    prev_total_cost = calculate_total_events_cost(prev_events, members)
-
-    change = calculate_chance(total_cost, prev_total_cost)
-
+def get_currency_symbol(currency: str) -> str:
     return {
-        "value": f"{round(total_cost, 2)}",
-        "change": f"{'+' if change >= 0 else ''}{change}%",
-        "positive": False if change > 0 else True
-    }
+        "USD": "$",
+        "EUR": "€"
+    }.get(currency.upper(), "")
+
+def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> dict:
+    if currency:
+        symbol = get_currency_symbol(currency)
+        total_cost = calculate_total_events_cost(events, members)
+        prev_total_cost = calculate_total_events_cost(prev_events, members)
+
+        change = calculate_chance(total_cost, prev_total_cost)
+
+        return {
+            "value": f"{symbol}{round(total_cost, 2)}",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
+            "positive": False if change > 0 else True
+        }
+    else:
+        return {
+            "value": None,
+            "change": None,
+            "positive": None
+        }
 
 
-def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list) -> dict:
-    total_cost = calculate_total_events_cost(events, members) / len(members)
-    prev_total_cost = calculate_total_events_cost(prev_events, members) / len(members)
+def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, currency) -> dict:
+    if currency:
+        symbol = get_currency_symbol(currency)
+        total_cost = calculate_total_events_cost(events, members) / len(members)
+        prev_total_cost = calculate_total_events_cost(prev_events, members) / len(members)
 
-    change = calculate_chance(total_cost, prev_total_cost)
+        change = calculate_chance(total_cost, prev_total_cost)
 
-    return {
-        "value": f"{round(total_cost, 2)}",
-        "change": f"{'+' if change >= 0 else ''}{change}%",
-        "positive": False if change > 0 else True
-    }
+        return {
+            "value": f"{symbol}{round(total_cost, 2)}",
+            "change": f"{'+' if change >= 0 else ''}{change}%",
+            "positive": False if change > 0 else True
+        }
+    else:
+        return {
+            "value": None,
+            "change": None,
+            "positive": None
+        }
 
 
 def kpi_without_description(events: list, prev_events: list) -> dict:
