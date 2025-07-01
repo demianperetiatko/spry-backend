@@ -233,8 +233,8 @@ def get_personal_productivity(
         total_time = calculate_total_events_duration(events)
         prev_total_time = calculate_total_events_duration(prev_events)
 
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
         change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {
@@ -247,8 +247,8 @@ def get_personal_productivity(
         total_time = calculate_buffer_time(events)
         prev_total_time = calculate_buffer_time(prev_events)
 
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
         change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {
@@ -261,8 +261,8 @@ def get_personal_productivity(
         total_time = calculate_deep_work_time(events, count_work_day)
         prev_total_time = calculate_deep_work_time(prev_events, count_work_day)
 
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
         change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {
@@ -275,8 +275,8 @@ def get_personal_productivity(
         total_time = calculate_transition_time(events)
         prev_total_time = calculate_transition_time(prev_events)
 
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
         change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {

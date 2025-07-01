@@ -281,8 +281,8 @@ def get_team_productivity(
         from utils.analytics.constants import WORKDAY_HOURS
         kpi = sum([info[key] for info in data])
         prev_kpi = sum([info[f'prev_{key}'] for info in data])
-        percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS)) * 100, 2)
-        prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS)) * 100, 2)
+        percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
+        prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS)) * 100)
         change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {
