@@ -1,9 +1,9 @@
 from typing import List, Dict, Callable
 
-def filter_meetings(events: list, email: str= "") -> list:
+def filter_meetings(events: list, email: str = "", filter_cancelled: bool = True) -> list:
     meetings = []
     for event in events:
-        if event.get("status") == "cancelled":
+        if filter_cancelled and event.get("status") == "cancelled":
             continue
 
         attendees = event.get("attendees", [])
@@ -20,10 +20,11 @@ def filter_meetings(events: list, email: str= "") -> list:
         if (
             start_str and end_str and hangout_link and
             len(attendees) >= 2 and
-            user_status != "declined"
+            (not filter_cancelled or user_status != "declined")
         ):
             meetings.append(event)
     return meetings
+
 
 def filter_deet_work_events(events: list) -> list:
     res = []

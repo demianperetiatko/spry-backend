@@ -31,9 +31,9 @@ def kpi_avg_daily_meetings_time(events: list, prev_events: list, count_work_day:
     }
 
 
-def kpi_cancelled_meetings(events: list, prev_events: list) -> dict:
-    cancelled_meetings = count_cancelled_events(events)
-    prev_cancelled_meetings = count_cancelled_events(prev_events)
+def kpi_cancelled_meetings(events: list, prev_events: list, email: str) -> dict:
+    cancelled_meetings = count_cancelled_events(events, email)
+    prev_cancelled_meetings = count_cancelled_events(prev_events, email)
     change = calculate_chance(cancelled_meetings, prev_cancelled_meetings)
     return {
         "value": f"{cancelled_meetings}",

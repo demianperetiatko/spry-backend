@@ -42,6 +42,11 @@ from utils.analytics.utils import calculate_chance
 from utils.analytics.constants import WORKDAY_HOURS
 
 
+def get_all_meetings(email: str, access_token, start_date_dt, end_date_dt):
+    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+    meetings = filter_meetings(calendar_events, email, filter_cancelled=False)
+    return meetings
+
 def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     meetings = filter_meetings(calendar_events, email)
@@ -72,9 +77,11 @@ def get_personal_kpi(
     access_token = refresh_google_access_token(member.google_refresh_token)
 
     events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    meetings = get_all_meetings(member.email, access_token, start_date_dt, end_date_dt)
     set_events = get_unique_events(events)
 
     prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
+    prev_meetings = get_all_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -87,7 +94,7 @@ def get_personal_kpi(
             {"title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
             {"title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  org.currency)},
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-            {"title": "Cancelled meetings", **kpi_cancelled_meetings(events, prev_events)},
+            {"title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
         ]
     }
 

@@ -112,12 +112,22 @@ def count_user_organized_events(events: List[Dict], email: str) -> int:
     return len(organized_events)
 
 
-def count_cancelled_events(events: list) -> float:
+def count_cancelled_events(events: list, email: str) -> int:
     total_cancelled_meetings = 0
+
     for event in events:
         if event.get("status") == "cancelled":
             total_cancelled_meetings += 1
+            continue
+
+        attendees = event.get("attendees", [])
+        for attendee in attendees:
+            if attendee.get("email") == email and attendee.get("responseStatus") == "declined":
+                total_cancelled_meetings += 1
+                break
+
     return total_cancelled_meetings
+
 
 
 def percent_inside_team_events(events: List[Dict], team_emails: List[str]) -> float:
