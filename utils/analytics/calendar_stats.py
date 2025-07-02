@@ -71,11 +71,15 @@ def percent_events_with_more_than_5_attendees(events: List[Dict]) -> float:
 
 def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float:
     total_duration = calculate_total_events_duration(events)
+    if total_work_days == 0:
+        return 0
     return round(total_duration * 100 / (8 * total_work_days))
 
 
 def calculate_avg_daily_meetings_hour(events: list, total_work_days: int) -> float:
     total_duration = calculate_total_events_duration(events)
+    if total_work_days == 0:
+        return 0
     return total_duration / total_work_days
 
 
