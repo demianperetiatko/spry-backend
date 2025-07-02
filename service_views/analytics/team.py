@@ -99,11 +99,13 @@ def get_team_kpi(
              **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
             {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
-            {"key": "total_meetings_cost", "title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, org_team_members, org.currency)},
+            {"key": "total_meetings_cost", "title": "Total meeting cost",
+             **kpi_total_cost(set_events, set_prev_events, org_team_members, org.currency)},
             {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
              **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, org.currency)},
             {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-            {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda", **kpi_without_description(set_events, set_prev_events)},
+            {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda",
+             **kpi_without_description(set_events, set_prev_events)},
         ]
     }
 
@@ -281,9 +283,12 @@ def get_team_productivity(
         from utils.analytics.constants import WORKDAY_HOURS
         kpi = sum([info[key] for info in data])
         prev_kpi = sum([info[f'prev_{key}'] for info in data])
-        percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
-        prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS)) * 100)
-        change = calculate_chance(percent_of_day, prev_percent_of_day)
+        percent_of_day = 0
+        change = 0
+        if len(data) != 0:
+            percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS * len(data))) * 100)
+            prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS * len(data))) * 100)
+            change = calculate_chance(percent_of_day, prev_percent_of_day)
 
         return {
             "value": percent_of_day,
