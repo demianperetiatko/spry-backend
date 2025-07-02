@@ -95,6 +95,15 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def find_by_organization_id(self, organization_id):
         return self.query_find_by_organization_id(organization_id).all()
 
+    def is_manager_of_organization(self, member_id) -> bool:
+        res = (
+            self.session.query(OrganizationTeamMember)
+            .filter(OrganizationTeamMember.member_id == member_id)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberType.MANAGER)
+            .first()
+        )
+        return True if res else False
+
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
     def __init__(self, session):
         super().__init__(session, OrganizationTeam)

@@ -131,10 +131,22 @@ def delete_member_from_organization(
 ):
     organization_member_repository = OrganizationMemberRepository(db)
 
-    member = organization_member_repository.find_by_member_id(auth_organization.id, member_id)
-    if not member:
+    member = organization_member_repository.find_by_id(member_id)
+
+    if not member or member.organization_id != auth_organization.id:
         raise HTTPException(status_code=404, detail="Member not found")
 
+    if organization_member_repository.is_manager_of_organization(member.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "This member is a manager of a team and cannot be deleted."
+            }
+        )
+    db.query(OrganizationTeamMember).filter(
+        OrganizationTeamMember.member_id == member_id
+    ).delete(synchronize_session=False)
+    db.commit()
     organization_member_repository.delete(member)
 
 
