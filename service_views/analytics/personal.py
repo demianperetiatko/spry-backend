@@ -88,13 +88,13 @@ def get_personal_kpi(
 
     return {
         'data': [
-            {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
-            {"title": "Avg. daily meetings time",
+            {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
+            {"key": "avg_daily_meetings_time",  "title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
-            {"title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  org.currency)},
-            {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-            {"title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
+            {"key": "total_meetings_cost", "title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
+            {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  org.currency)},
+            {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
+            {"key": "cancelled_meetings", "title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
         ]
     }
 
