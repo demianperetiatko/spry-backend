@@ -91,7 +91,7 @@ def get_personal_kpi(
             {"title": "Time on meetings", **kpi_total_time(events, prev_events)},
             {"title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
+            {"title": "Total meeting cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
             {"title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  org.currency)},
             {"title": "Meetings count", **kpi_count_meetings(events, prev_events)},
             {"title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
