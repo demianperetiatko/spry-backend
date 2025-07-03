@@ -338,14 +338,15 @@ def get_personal_table(
 
     access_token = refresh_google_access_token(member.google_refresh_token)
 
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
     if type == TableType.collaboration:
+        events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
         result = analyze_event_participants(events, member.email)
         columns = [
             ('member_profile', 'email', lambda event: get_user_profile(event['email'], db)),
             ('collab_time', 'collab_time')
         ]
     else:
+        events = get_all_meetings(member.email, access_token, start_date_dt, end_date_dt)
         result = process_recurring_events(events, [member])
         columns = [
             ("id", "id"),
