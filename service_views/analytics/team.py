@@ -14,7 +14,7 @@ from utils.google_api import get_calendar_events
 from utils.google_api import refresh_google_access_token
 
 from utils.analytics import group_events_by_date
-from utils.analytics.filters import filter_meetings
+from utils.analytics.filters import filter_meetings, filter_active
 
 from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
     calculate_recurring_events_cost, calculate_single_events_cost, percent_inside_team_events, \
@@ -63,8 +63,9 @@ def get_team_events(org_team_members, start_date, end_date):
         if member.google_refresh_token:
             access_token = refresh_google_access_token(member.google_refresh_token)
             calendar_events = get_calendar_events(access_token, start_date, end_date)
-            events += filter_meetings(calendar_events, member.email)
+            events += filter_active(filter_meetings(calendar_events), member.email)
     return events
+
 
 def get_all_meetings(org_team_members, start_date, end_date):
     events = []
@@ -72,8 +73,9 @@ def get_all_meetings(org_team_members, start_date, end_date):
         if member.google_refresh_token:
             access_token = refresh_google_access_token(member.google_refresh_token)
             calendar_events = get_calendar_events(access_token, start_date, end_date)
-            events += filter_meetings(calendar_events, member.email, filter_cancelled=False)
+            events += filter_meetings(calendar_events)
     return events
+
 
 @router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
@@ -227,7 +229,8 @@ def get_team_meeting_distribution(
 
 def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    meetings = filter_meetings(calendar_events, email)
+    meetings = filter_meetings(calendar_events)
+    meetings = filter_active(meetings, email)
     return meetings
 
 

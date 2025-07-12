@@ -13,7 +13,7 @@ from utils.middleware import get_auth_member, get_auth_organization
 from utils.google_api import get_calendar_events
 
 from utils.analytics import group_events_by_date, analyze_event_participants
-from utils.analytics.filters import filter_meetings
+from utils.analytics.filters import filter_meetings, filter_active
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
     kpi_cancelled_meetings, kpi_count_meetings, kpi_total_cost, kpi_avg_daily_meetings_cost
 
@@ -44,12 +44,13 @@ from utils.analytics.constants import WORKDAY_HOURS
 
 def get_all_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    meetings = filter_meetings(calendar_events, email, filter_cancelled=False)
+    meetings = filter_meetings(calendar_events)
     return meetings
 
 def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    meetings = filter_meetings(calendar_events, email)
+    meetings = filter_meetings(calendar_events)
+    meetings = filter_active(meetings)
     return meetings
 
 

@@ -9,7 +9,7 @@ from utils.google_api import refresh_google_access_token
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
 from utils.google_api import get_calendar_events, get_calendar_event_info
-from utils.analytics.filters import filter_meetings, filter_deet_work_events
+from utils.analytics.filters import filter_meetings, filter_by_title
 from utils.send_message import send_agenda_request
 
 from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
@@ -131,7 +131,7 @@ def get_deep_work_slot(
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = get_calendar_events(access_token, start_date, end_date)
     busy_times = []
-    for event in  filter_meetings(events) + filter_deet_work_events(events):
+    for event in filter_meetings(events) + filter_by_title(events, "Deep Work Time"):
         start_str = event.get("start", {}).get("dateTime", "").split("+")[0]
         end_str = event.get("end", {}).get("dateTime", "").split("+")[0]
         if start_str and end_str:
