@@ -6,30 +6,28 @@ from utils.analytics.calendar_stats import calculate_total_events_duration, coun
     count_events_without_description, \
     calculate_deep_work_time
 
-from utils.value_formatters import float_to_hours_str, float_to_percent_str, float_to_money_str, float_to_quantity_str
-
 
 def kpi_total_time(events: list, prev_events: list) -> dict:
     total_time = calculate_total_events_duration(events)
     prev_total_time = calculate_total_events_duration(prev_events)
 
     change = calculate_chance(total_time, prev_total_time)
-
     return {
-        "value": float_to_hours_str(total_time),
+        "value": total_time,
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": False if change > 0 else True,
+        "type_value": 'time',
     }
-
 
 def kpi_avg_daily_meetings_time(events: list, prev_events: list, count_work_day: int, count_people: int = 1) -> dict:
     avg_daily_meetings_time = calculate_avg_daily_meetings_hour(events, count_work_day * count_people)
     prev_avg_daily_meetings_time = calculate_avg_daily_meetings_hour(prev_events, count_work_day * count_people)
     change = calculate_chance(avg_daily_meetings_time, prev_avg_daily_meetings_time)
     return {
-        "value": float_to_hours_str(avg_daily_meetings_time),
+        "value": avg_daily_meetings_time,
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": False if change > 0 else True,
+        "type_value": 'time',
     }
 
 
@@ -38,9 +36,10 @@ def kpi_cancelled_meetings(events: list, prev_events: list, email: str) -> dict:
     prev_cancelled_meetings = count_cancelled_events(prev_events, email)
     change = calculate_chance(cancelled_meetings, prev_cancelled_meetings)
     return {
-        "value": float_to_quantity_str(cancelled_meetings),
+        "value": cancelled_meetings,
         "change": f"{'+' if change > 0 else ''}{change}%",
         "positive": False if change > 0 else True,
+        "type_value": 'count',
     }
 
 
@@ -49,9 +48,10 @@ def kpi_count_meetings(events: list, prev_events: list) -> dict:
     prev_count_meetings = count_events(prev_events)
     change = calculate_chance(count_meetings, prev_count_meetings)
     return {
-        "value": float_to_quantity_str(count_meetings),
+        "value": count_meetings,
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": False if change > 0 else True,
+        "type_value": 'count',
     }
 
 
@@ -60,17 +60,11 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
     prev_meetings_ratio = calculate_event_ratio(prev_events, count_work_day * count_people)
     change = calculate_chance(meetings_ratio, prev_meetings_ratio)
     return {
-        "value": float_to_percent_str(meetings_ratio),
+        "value": meetings_ratio,
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": False if change > 0 else True,
+        "type_value": 'percent',
     }
-
-
-def get_currency_symbol(currency: str) -> str:
-    return {
-        "USD": "$",
-        "EUR": "€"
-    }.get(currency.upper(), "")
 
 
 def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> dict:
@@ -81,15 +75,17 @@ def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> 
         change = calculate_chance(total_cost, prev_total_cost)
 
         return {
-            "value": float_to_money_str(total_cost, currency),
+            "value": total_cost,
             "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": False if change > 0 else True
+            "positive": False if change > 0 else True,
+            "type_value": 'currency',
         }
     else:
         return {
             "value": None,
             "change": None,
-            "positive": None
+            "positive": None,
+            "type_value": 'currency',
         }
 
 
@@ -101,15 +97,17 @@ def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, 
         change = calculate_chance(total_cost, prev_total_cost)
 
         return {
-            "value": float_to_money_str(total_cost, currency),
+            "value": total_cost,
             "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": False if change > 0 else True
+            "positive": False if change > 0 else True,
+            "type_value": 'currency',
         }
     else:
         return {
             "value": None,
             "change": None,
-            "positive": None
+            "positive": None,
+            "type_value": 'currency',
         }
 
 
@@ -120,9 +118,10 @@ def kpi_without_description(events: list, prev_events: list) -> dict:
     change = calculate_chance(total_without_description, prev_total_without_description)
 
     return {
-        "value": float_to_quantity_str(total_without_description),
+        "value": total_without_description,
         "change": f"{'+' if change >= 0 else ''}{change}%",
-        "positive": False if change > 0 else True
+        "positive": False if change > 0 else True,
+        "type_value": 'count',
     }
 
 
@@ -132,7 +131,8 @@ def kpi_deep_work_time(events: list, prev_events: list, count_work_day) -> dict:
 
     change = calculate_chance(total_work_time, prev_total_work_time)
     return {
-        "value": float_to_hours_str(total_work_time),
+        "value": total_work_time,
         "change": f"{'+' if change >= 0 else ''}{change}%",
-        "positive": True if change > 0 else False
+        "positive": True if change > 0 else False,
+        "type_value": 'time',
     }
