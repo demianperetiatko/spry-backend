@@ -6,6 +6,7 @@ from utils.analytics.calendar_stats import calculate_recurring_events_cost, calc
     calculate_total_events_duration, calculate_total_events_cost
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
+
 def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
     total_instances = len(events)
     total_cancellations = 0
@@ -18,8 +19,8 @@ def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
 
         for attendee in event.get("attendees", []):
             if (
-                attendee.get("email") in member_emails and
-                attendee.get("responseStatus") == "declined"
+                    attendee.get("email") in member_emails and
+                    attendee.get("responseStatus") == "declined"
             ):
                 total_cancellations += 1
                 break
@@ -27,7 +28,7 @@ def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
     if total_instances == 0:
         return 0.0
 
-    return round((total_cancellations / total_instances) , 2)
+    return round((total_cancellations / total_instances * 100), 2)
 
 
 def process_recurring_events(events: List[Dict], members) -> List[Dict]:
