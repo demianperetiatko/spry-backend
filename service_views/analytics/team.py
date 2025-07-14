@@ -307,6 +307,11 @@ def get_team_productivity(
             "positive": change >= 0
         }
 
+    def calculate_percent(data, key):
+        from utils.analytics.constants import WORKDAY_HOURS
+        kpi = data[key]
+        return round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
+
     productivity = Diagram(
         items=data,
         metrics=[
@@ -342,10 +347,10 @@ def get_team_productivity(
         columns = [
             ("id", "id"),
             ("name", "name"),
-            ('meetings_time', 'meetings_time'),
-            ('deep_work', 'deep_work'),
-            ('transition_time', 'transition_time'),
-            ('buffers', 'buffers'),
+            ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
+            ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
+            ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
+            ('buffers', 'buffers', lambda i: calculate_percent(i, "buffers")),
         ]
         res_data = DataTable(help_data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
     else:
@@ -354,10 +359,10 @@ def get_team_productivity(
             ("member_profile", "member_profile",
              lambda i: {"name": i.get("name", " "), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
-            ('meetings_time', 'meetings_time'),
-            ('deep_work', 'deep_work'),
-            ('transition_time', 'transition_time'),
-            ('buffers', 'buffers'),
+            ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
+            ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
+            ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
+            ('buffers', 'buffers', lambda i: calculate_percent(i, "buffers")),
         ]
         res_data = DataTable(data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
     return {
