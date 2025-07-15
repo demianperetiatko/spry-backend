@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from service_views import (
+    admin as admin_view,
     auth as auth_view,
     profile as profile_view,
     organization as organization_view,
@@ -22,6 +23,7 @@ app.add_middleware(
 SECRET_KEY = os.getenv("SECRET_KEY")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
+app.include_router(admin_view.router, tags=["admin"])
 app.include_router(auth_view.router, tags=["auth"])
 app.include_router(home_view.router, tags=["home"])
 app.include_router(profile_view.router, tags=["profile"])

@@ -58,26 +58,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
     email = user_info["email"]
     member = org_member_repository.find_by_email(email)
     if member is None:
-        super_admin_repository = SuperAdminRepository(db)
-        super_admin = super_admin_repository.find_by_email(email)
-        if super_admin:
-            org = Organization()
-            org_repository.create(org)
-            member = OrganizationMember(
-                name=user_info['name'],
-                photo_url=user_info.get('picture'),
-                email=email,
-                google_access_token=user_info['google_access_token'],
-                google_refresh_token=user_info['google_refresh_token'],
-                role=OrganizationMemberRole.OWNER,
-                status=OrganizationMemberStatus.ACTIVE,
-                organization=org
-            )
-            memeber = org_member_repository.create(member)
-            request.session["user_id"] = str(memeber.id)
-            return RedirectResponse(f"{FRONTEND_DOMAIN}/onboarding")
-        else:
-            return RedirectResponse(f"{FRONTEND_DOMAIN}/user-not-found")
+        return RedirectResponse(f"{FRONTEND_DOMAIN}/user-not-found")
     else:
         is_new_user = False
         member.google_access_token = user_info['google_access_token'],
