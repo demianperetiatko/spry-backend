@@ -102,6 +102,10 @@ def get_team_kpi(
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
+
+    currency = None
+    if org.cost_is_active and org.currency:
+        currency = org.currency
     return {
         'data': [
             {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
@@ -110,9 +114,9 @@ def get_team_kpi(
             {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
             {"key": "total_meetings_cost", "title": "Total meetings cost",
-             **kpi_total_cost(set_events, set_prev_events, org_team_members, org.currency)},
+             **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
             {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
-             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, org.currency)},
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
             {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
             {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda",
              **kpi_without_description(set_events, set_prev_events)},

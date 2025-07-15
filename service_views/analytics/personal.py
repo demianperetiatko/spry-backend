@@ -87,13 +87,16 @@ def get_personal_kpi(
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
+    currency = None
+    if org.cost_is_active and org.currency:
+        currency = org.currency
     return {
         'data': [
             {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
             {"key": "avg_daily_meetings_time",  "title": "Avg. daily meetings time",
              **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"key": "total_meetings_cost", "title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member], org.currency)},
-            {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  org.currency)},
+            {"key": "total_meetings_cost", "title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member], currency)},
+            {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  currency)},
             {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
             {"key": "cancelled_meetings", "title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
         ]
