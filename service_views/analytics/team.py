@@ -314,6 +314,8 @@ def get_team_productivity(
     def calculate_percent(data, key):
         from utils.analytics.constants import WORKDAY_HOURS
         kpi = data[key]
+        if count_work_day == 0:
+            return 0
         return round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
 
     productivity = Diagram(
