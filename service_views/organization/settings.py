@@ -10,6 +10,8 @@ from models.repositories.organization_repository import OrganizationRepository, 
 
 from utils.middleware import get_auth_member, get_auth_organization
 
+from utils.cost import calculate_hourly_cost
+
 router = APIRouter(prefix='/settings', tags=['settings'])
 
 
@@ -96,11 +98,13 @@ def update_settings_cost(
     auth_organization.currency = settings.currency
     auth_organization.cost_period = settings.cost_period
     auth_organization.cost_visibility = settings.cost_visibility
+
+    if settings.cost_type == OrganizationCostType.AVERAGE:
+        hourly_cost = calculate_hourly_cost(settings.average_cost, auth_organization.cost_period)
+        org_member_repository.update_member_cost(auth_organization.id, hourly_cost)
+    elif auth_organization.cost_type != settings.cost_type:
+        org_member_repository.update_member_cost(auth_organization.id, None)
     auth_organization.cost_type = settings.cost_type
     auth_organization.average_cost = settings.average_cost
-    if auth_organization.cost_type == OrganizationCostType.AVERAGE:
-        org_member_repository.update_member_cost(auth_organization.id, auth_organization.average_cost)
-    else:
-        org_member_repository.update_member_cost(auth_organization.id, None)
     org_repository.update(auth_organization)
     return

@@ -14,6 +14,7 @@ from models.repositories.organization_repository import OrganizationTeamReposito
 from utils.middleware import get_auth_member, get_auth_organization
 from utils.send_message import send_user_invitation
 from utils.table import DBTable
+from utils.cost import calculate_hourly_cost, calculate_total_cost
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ router = APIRouter()
 @router.get("/member/")
 def get_member(
         auth_member: OrganizationMember = Depends(get_auth_member),
+        auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     org_team_repository = OrganizationTeamRepository(db)
@@ -31,7 +33,8 @@ def get_member(
         ("name", "name"),
         ("photo_url", "photo_url"),
         ("email", "email"),
-        ("cost", "cost", lambda i: float(i.cost) if i.cost else None),
+        ("cost", "cost",
+         lambda i: calculate_total_cost(float(i.hourly_cost), auth_organization.cost_period) if i.hourly_cost else None),
         ("status", "status"),
         ("department", "department"),
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
@@ -105,7 +108,10 @@ def update_member(
     org_team_member_repository = OrganizationTeamMemberRepository(db)
 
     member = org_member_repository.find_by_id(member_id)
-    member.cost = str(update_member.cost) if update_member.cost else None
+    hourly_cost = None
+    if update_member.cost:
+        hourly_cost = calculate_hourly_cost(update_member.cost, auth_organization.cost_period)
+    member.hourly_cost = str(hourly_cost) if hourly_cost else None
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(

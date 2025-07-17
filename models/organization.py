@@ -58,7 +58,7 @@ class OrganizationMember(Base):
     name = Column(String(100))
     email = Column(String(100), nullable=False, unique=True)
     photo_url = Column(Text)
-    cost = Column(String(255))
+    hourly_cost = Column(String(255))
 
     google_access_token = Column(Text)
     google_access_token_expiry = Column(DateTime)

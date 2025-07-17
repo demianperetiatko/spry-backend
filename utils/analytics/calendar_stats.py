@@ -38,7 +38,7 @@ def event_cost(event: Dict, members) -> float:
     attendee_emails = {a.get("email") for a in attendees if "email" in a}
     for member in members:
         email = member.email
-        cost_str = member.cost
+        cost_str = member.hourly_cost
         if email in attendee_emails:
             total += float(cost_str) if cost_str else 0.0
     return total * ed

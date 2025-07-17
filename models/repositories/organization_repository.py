@@ -44,7 +44,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def update_member_cost(self, organization_id, average_cost: Optional[float]):
         formatted_cost = f"{average_cost:.2f}" if average_cost is not None else None
         self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id).update(
-            {OrganizationMember.cost: formatted_cost}, synchronize_session=False
+            {OrganizationMember.hourly_cost: formatted_cost}, synchronize_session=False
         )
         return self.session.commit()
 
@@ -55,7 +55,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.name,
                 OrganizationMember.photo_url,
                 OrganizationMember.email,
-                OrganizationMember.cost,
+                OrganizationMember.hourly_cost,
                 OrganizationMember.status,
                 OrganizationMember.google_refresh_token
             )
@@ -85,7 +85,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.photo_url,
                 OrganizationMember.email,
                 literal("-").label("department"),
-                OrganizationMember.cost,
+                OrganizationMember.hourly_cost,
                 OrganizationMember.status,
                 OrganizationMember.google_refresh_token
             )
@@ -161,7 +161,7 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationMember.name,
                 OrganizationMember.photo_url,
                 OrganizationTeamMember.type,
-                OrganizationMember.cost,
+                OrganizationMember.hourly_cost,
                 OrganizationMember.google_refresh_token,
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
