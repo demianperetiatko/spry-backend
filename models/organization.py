@@ -30,11 +30,13 @@ class OrganizationCostType:
 class Organization(Base):
     __tablename__ = 'organizations'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
     cost_is_active = Column(Boolean, default=False)
+
     currency = Column(String(3), default='USD')
-    cost_period = Column(String(20), default=OrganizationCostPeriod.MONTH)
-    cost_visibility = Column(String(20), default=OrganizationCostVisibility.OWNER)
-    cost_type = Column(String(20), default=OrganizationCostType.AVERAGE)
+    cost_period = Column(String(20), nullable=True)
+    cost_visibility = Column(String(20), nullable=True)
+    cost_type = Column(String(20), nullable=True)
     average_cost = Column(Float, nullable=True)
 
 

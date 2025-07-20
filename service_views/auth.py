@@ -6,8 +6,6 @@ from starlette.responses import RedirectResponse
 
 from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationMemberRole
 
-from models import get_db, OrganizationMember
-from models.repositories.super_admin_repository import SuperAdminRepository
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from utils.google_api import create_google_login_uri, handle_callback_and_get_user_info
@@ -83,7 +81,7 @@ async def logout(request: Request):
 async def delete_user(request: Request, member: OrganizationMember = Depends(get_auth_member),
                       db: Session = Depends(get_db)):
     request.session.clear()
-    if member.role == OrganizationMember.ADMIN:
+    if member.role == OrganizationMemberRole.OWNER:
         return {
             "status": "error",
         }

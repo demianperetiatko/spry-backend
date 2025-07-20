@@ -14,6 +14,7 @@ API_KEY = "mbZKfS_0ivwMf5XjisfhdQmWLUgll5wtOBEWgYjxDvI"
 
 class OrganizationCreateRequest(BaseModel):
     email: EmailStr
+    organization_name: str
 
 
 @router.post("/admin/organization")
@@ -31,7 +32,9 @@ def admin_add_organization(
     if org_member_repository.find_by_email(email=request.email):
         raise HTTPException(status_code=403, detail="Organization already exists")
 
-    new_org = Organization()
+    new_org = Organization(
+        name=request.organization_name,
+    )
     org_repository.create(new_org)
     new_member = OrganizationMember(
         email=request.email,
