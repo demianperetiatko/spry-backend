@@ -52,6 +52,7 @@ class MemberRequest(BaseModel):
 def add_members_to_organization(
         member_info: MemberRequest,
         auth_member: OrganizationMember = Depends(get_auth_member),
+        auth_org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
     org_member_repository = OrganizationMemberRepository(db)
@@ -80,7 +81,7 @@ def add_members_to_organization(
             email=email,
             status=OrganizationMemberStatus.PENDING,
         )
-        send_user_invitation(email)
+        send_user_invitation(email, administrator_name=auth_member.name, organisation_name=auth_org.name)
         org_member_repository.create(member)
 
 
@@ -167,4 +168,4 @@ def resend_invitation(
     member = organization_member_repository.find_by_member_id(auth_organization.id, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
-    send_user_invitation(member.email)
+    send_user_invitation(member.email, administrator_name=auth_member.name, organisation_name=auth_organization.name)

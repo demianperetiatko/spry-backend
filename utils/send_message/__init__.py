@@ -2,6 +2,7 @@ import os
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from jinja2 import Template
+from premailer import transform
 
 
 def read_template(filename: str) -> str:
@@ -15,13 +16,18 @@ def render_template(template_str: str, context: dict) -> str:
     return template.render(**context)
 
 
+def inline_styles(html: str) -> str:
+    return transform(html)
+
+
 def send_email(to_email: str, subject: str, html_content: str, from_email: str = 'hello@spryplan.com'):
     try:
+        inlined_html = inline_styles(html_content)
         message = Mail(
             from_email=from_email,
             to_emails=to_email,
             subject=subject,
-            html_content=html_content
+            html_content=inlined_html
         )
         sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
         sg.send(message)
@@ -65,7 +71,8 @@ def send_agenda_request(email: str,
 
 
 def send_admin_invitation(email: str):
-    html_content = read_template("emails/admin_invitation.html")
+    raw_template = read_template("emails/admin_invitation.html")
+    html_content = render_template(raw_template, {})
     send_email(
         to_email=email,
         subject="🚀 You’re the first admin for your organization on Spry!",

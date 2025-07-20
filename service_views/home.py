@@ -222,6 +222,19 @@ def notify_agenda_completed(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
+    def format_event_datetime(event):
+        start_str = event.get("start", {}).get("dateTime")
+        end_str = event.get("end", {}).get("dateTime")
+
+        start_dt = datetime.fromisoformat(start_str)
+        end_dt = datetime.fromisoformat(end_str)
+
+        calendar_event_date = start_dt.strftime("%a, %b %d")
+
+        calendar_event_time = f"{start_dt.strftime('%-I:%M')} - {end_dt.strftime('%-I:%M %p').lower()}"
+
+        return calendar_event_date, calendar_event_time
+
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
     event = get_calendar_event_info(access_token, event_id)
     if not event:
@@ -238,7 +251,15 @@ def notify_agenda_completed(
             member_id=auth_member.id
         )
         agenda_repository.create(new_agenda)
-        send_agenda_request(organizer_email, event.get('htmlLink'))
+        calendar_event_date, calendar_event_time = format_event_datetime(event)
+
+        send_agenda_request(
+            organizer_email,
+            calendar_event_name=event.get("summary", "No Title"),
+            calendar_event_date=calendar_event_date,
+            calendar_event_time=calendar_event_time,
+            calendar_event_count_attendee=str(len(event.get("attendees", []))),
+            calendar_event_link=event.get('htmlLink', "#"))
 
 
 class AgendaDescriptionRequest(BaseModel):
