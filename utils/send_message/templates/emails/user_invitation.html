@@ -1,5 +1,148 @@
-<h1>Welcome aboard!</h1>
-<p>You’ve been invited to join the team’s new tool that’s designed to make your meetings more productive and exciting.</p>
-<p>No more boring, aimless meetings – with Spry, every conversation counts.</p>
-<p>🚀 Ready to dive in? <a href="https://app.spryplan.com/login" target="_blank">Start analyzing your next meetings</a> — it’s quick, easy, and shows you how Spry can help make your meetings more organized and meaningful.</p>
-<p>Let’s turn meetings into something to look forward to! 🎉</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Spry Invite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f9f9fb;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        .card-wrapper {
+            width: 528px;
+            background: white;
+            border: 1px solid #ebebed;
+            border-radius: 10px;
+            padding: 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .card-link {
+            margin-top: 24px;
+            color: #919191;
+            margin-left: 0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .button {
+            background: #ffcf40;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+
+
+        .t-subheader1 {
+            /* Subheader/Subheader 1; */
+            font-family: 'Roboto';
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 16px;
+            letter-spacing: 0.0085em;
+        }
+
+
+        .t-body1 {
+            /* Body/Body 1; */
+            font-family: 'Roboto';
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+            letter-spacing: 0.01em;
+        }
+
+        .t-body2 {
+            /* Body/Body 2; */
+            font-family: 'Roboto';
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 20px;
+            letter-spacing: 0.0085em;
+        }
+
+
+        a {
+            color: #096DD9FF;
+            text-decoration: none;
+
+            &:hover {
+                text-decoration: #0050B3FF;
+            }
+        }
+
+        .color-black {
+            color: #1A1A1A;
+        }
+
+        .color-gray {
+            color: #474747;
+        }
+
+    </style>
+</head>
+<body>
+<div>
+    <div class="card-wrapper">
+        <div class="card-header">
+            <div class="logo">
+                <svg width="27" height="20" viewBox="0 0 27 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 9.92889C0 7.15585 0 5.76933 0.387388 4.65471C1.08125 2.65828 2.64032 1.0886 4.62326 0.390023C5.73035 0 7.1075 0 9.8618 0H16.4363C19.1906 0 20.5678 0 21.6749 0.390023C23.6578 1.0886 25.2169 2.65828 25.9107 4.65471C26.2981 5.76933 26.2981 7.15585 26.2981 9.92889C26.2981 12.7019 26.2981 14.0884 25.9107 15.2031C25.2169 17.1995 23.6578 18.7692 21.6749 19.4678C20.5678 19.8578 19.1906 19.8578 16.4363 19.8578H9.8618C7.1075 19.8578 5.73035 19.8578 4.62326 19.4678C2.64032 18.7692 1.08125 17.1995 0.387388 15.2031C0 14.0884 0 12.7019 0 9.92889Z"
+                          fill="#FFCF40"/>
+                    <path d="M17.5991 17.1852C16.4106 17.1852 15.3876 17.0143 14.5302 16.6724C13.6813 16.3305 13.0107 15.8562 12.5183 15.2493C12.026 14.634 11.7373 13.9289 11.6524 13.134L11.6397 13.0827H14.8231L14.8359 13.134C14.9971 13.6297 15.307 14.0314 15.7654 14.3391C16.2323 14.6468 16.8563 14.8006 17.6373 14.8006C18.1636 14.8006 18.622 14.728 19.0125 14.5827C19.403 14.4374 19.7086 14.2365 19.9293 13.9801C20.15 13.7237 20.2604 13.4203 20.2604 13.0699V13.0571C20.2604 12.6468 20.0991 12.305 19.7765 12.0315C19.4624 11.758 18.9276 11.5357 18.1721 11.3648L15.9182 10.8648C15.0353 10.6682 14.3053 10.3947 13.728 10.0443C13.1508 9.69389 12.7178 9.26228 12.4292 8.74947C12.1491 8.23666 12.009 7.63838 12.009 6.95463V6.94181C12.009 6.09567 12.2424 5.3521 12.7093 4.71109C13.1762 4.07007 13.8299 3.57008 14.6703 3.21112C15.5107 2.85215 16.4785 2.67266 17.5736 2.67266C18.7111 2.67266 19.6874 2.84787 20.5023 3.19829C21.3173 3.54872 21.954 4.02734 22.4124 4.63416C22.8708 5.24099 23.1297 5.92474 23.1891 6.68541V6.73669H20.1712L20.1585 6.68541C20.0566 6.23242 19.785 5.84782 19.3436 5.53158C18.9021 5.2068 18.3121 5.04441 17.5736 5.04441C17.1067 5.04441 16.6907 5.11706 16.3257 5.26236C15.9691 5.40765 15.689 5.6085 15.4853 5.86491C15.2815 6.11277 15.1797 6.40763 15.1797 6.74951V6.77515C15.1797 7.0401 15.2476 7.27514 15.3834 7.48026C15.5192 7.68539 15.7357 7.86487 16.0328 8.01871C16.3384 8.16401 16.7374 8.29648 17.2298 8.41614L19.4964 8.91613C20.8631 9.22382 21.8691 9.68107 22.5142 10.2879C23.1679 10.8947 23.4947 11.7067 23.4947 12.7237V12.7494C23.4947 13.6297 23.2401 14.4075 22.7307 15.0827C22.2214 15.7493 21.521 16.2664 20.6297 16.6339C19.7468 17.0014 18.7366 17.1852 17.5991 17.1852Z"
+                          fill="#1A1A1A"/>
+                </svg>
+            </div>
+            <div class="t-subheader1">Spry Plan</div>
+        </div>
+        <div class="card-body">
+            <div class="t-body1 color-black">
+                <strong>{{administrator_name}}</strong> invited you to join <strong>{{organisation_name}}</strong> on
+                Spry
+            </div>
+
+            <div class="t-body2 color-gray">
+                Spry is the [short description of the app]
+            </div>
+            <div class="t-body2 color-gray">
+                No more boring, aimless meetings – with Spry, every conversation counts. Let’s turn meetings into
+                something to look forward to 🚀
+            </div>
+            <button class="button t-subheader1">Join Spry</button>
+        </div>
+    </div>
+    <div class="card-link t-body2">
+        Learn more at <a href="https://spryplan.com" target="_blank">spryplan.com</a>
+    </div>
+</div>
+<script>
+    document.querySelector('.button').addEventListener('click', function () {
+        window.open('https://app.spryplan.com/login', '_blank');
+    });
+</script>
+</body>
+</html>
