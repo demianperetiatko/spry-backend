@@ -93,7 +93,7 @@ def get_personal_kpi(
         {"key": "avg_daily_meetings_time", "title": "Avg. daily meetings time",
          **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
     ]
-    if member_has_permissions(auth_member, 'costs:view'):
+    if member_has_permissions(auth_member, 'finance:view'):
         currency = None
         if org.cost_is_active and org.currency:
             currency = org.currency

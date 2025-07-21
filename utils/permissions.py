@@ -8,9 +8,10 @@ def get_member_permissions(member):
         "teams:create",
         "teams:edit",
         "teams:delete",
+        "meetings-costs:view"
         "analytics-organization:view",
         "analytics-members:view"
-        "costs:view",
+        "finance:view",
     ]
 
 def member_has_permissions(member, action):
