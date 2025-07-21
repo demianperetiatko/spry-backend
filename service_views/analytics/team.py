@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization
+from models import get_db, Organization, OrganizationMember
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
@@ -36,6 +36,7 @@ from utils.table import DataTable, SortOrderType
 from utils.analytics.calendar_stats import calculate_total_events_duration, calculate_buffer_time, \
     calculate_transition_time, calculate_deep_work_time
 
+from utils.permissions import member_has_permissions
 router = APIRouter()
 
 
@@ -82,6 +83,7 @@ def get_team_kpi(
         team_id: Optional[str] = Query(None),
         start_date: str = Query(...),
         end_date: str = Query(...),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
@@ -103,24 +105,29 @@ def get_team_kpi(
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
-    currency = None
-    if org.cost_is_active and org.currency:
-        currency = org.currency
+    kpis = [
+        {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
+        {"key": "meetings_time_ratio", "title": "Meetings time ratio",
+         **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
+        {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
+         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
+    ]
+    if member_has_permissions(auth_member, 'costs:view'):
+        currency = None
+        if org.cost_is_active and org.currency:
+            currency = org.currency
+        kpis.extend([
+            {"key": "total_meetings_cost", "title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
+            {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
+        ])
+    kpis.extend([
+        {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
+        {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda",
+         **kpi_without_description(set_events, set_prev_events)},
+    ])
+
     return {
-        'data': [
-            {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
-            {"key": "meetings_time_ratio", "title": "Meetings time ratio",
-             **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
-            {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
-             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
-            {"key": "total_meetings_cost", "title": "Total meetings cost",
-             **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
-            {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
-             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
-            {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-            {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda",
-             **kpi_without_description(set_events, set_prev_events)},
-        ]
+        'data': kpis
     }
 
 

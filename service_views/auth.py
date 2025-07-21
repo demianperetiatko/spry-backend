@@ -10,6 +10,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 
 from utils.google_api import create_google_login_uri, handle_callback_and_get_user_info
 from utils.middleware import get_auth_member
+from utils.permissions import get_member_permissions
 
 router = APIRouter(
     prefix='/auth',
@@ -20,7 +21,9 @@ FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" e
 
 
 @router.get("/")
-async def auth(member: OrganizationMember = Depends(get_auth_member), db: Session = Depends(get_db)):
+async def auth(
+        member: OrganizationMember = Depends(get_auth_member),
+        db: Session = Depends(get_db)):
     def get_user_type(user, db):
         organization_repository = OrganizationRepository(db)
         if organization_repository.is_user_owner_of_organization(user.id):
@@ -35,6 +38,7 @@ async def auth(member: OrganizationMember = Depends(get_auth_member), db: Sessio
         "email": member.email,
         "name": member.name,
         "type": get_user_type(member, db),
+        "permissions": get_member_permissions(member),
     }
 
 

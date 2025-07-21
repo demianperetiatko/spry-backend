@@ -41,6 +41,7 @@ from utils.analytics.calendar_stats import calculate_total_events_duration, calc
 from utils.analytics.utils import calculate_chance
 from utils.analytics.constants import WORKDAY_HOURS
 
+from utils.permissions import member_has_permissions
 
 def get_all_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
@@ -59,6 +60,7 @@ def get_personal_kpi(
         member_id: str = Query(...),
         start_date: str = Query(...),
         end_date: str = Query(...),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
@@ -86,20 +88,28 @@ def get_personal_kpi(
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
-
-    currency = None
-    if org.cost_is_active and org.currency:
-        currency = org.currency
+    kpis = [
+        {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
+        {"key": "avg_daily_meetings_time", "title": "Avg. daily meetings time",
+         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
+    ]
+    if member_has_permissions(auth_member, 'costs:view'):
+        currency = None
+        if org.cost_is_active and org.currency:
+            currency = org.currency
+        kpis.extend([
+            {"key": "total_meetings_cost", "title": "Total meetings cost",
+             **kpi_total_cost(set_events, set_prev_events, [member], currency)},
+            {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost",
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member], currency)},
+        ])
+    kpis.extend([
+        {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
+        {"key": "cancelled_meetings", "title": "Cancelled meetings",
+         **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
+    ])
     return {
-        'data': [
-            {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
-            {"key": "avg_daily_meetings_time",  "title": "Avg. daily meetings time",
-             **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
-            {"key": "total_meetings_cost", "title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, [member], currency)},
-            {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member],  currency)},
-            {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-            {"key": "cancelled_meetings", "title": "Cancelled meetings", **kpi_cancelled_meetings(meetings, prev_meetings, member.email)},
-        ]
+        'data': kpis
     }
 
 
