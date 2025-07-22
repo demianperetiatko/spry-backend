@@ -16,6 +16,8 @@ from utils.send_message import send_user_invitation
 from utils.table import DBTable
 from utils.cost import calculate_hourly_cost, calculate_total_cost
 
+from utils.permissions import member_has_permissions
+
 router = APIRouter()
 
 
@@ -33,12 +35,15 @@ def get_member(
         ("name", "name"),
         ("photo_url", "photo_url"),
         ("email", "email"),
-        ("cost", "cost",
-         lambda i: calculate_total_cost(float(i.hourly_cost), auth_organization.cost_period) if i.hourly_cost else None),
         ("status", "status"),
         ("department", "department"),
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
     ]
+    if member_has_permissions(auth_member, 'finance:view', db):
+        columns.append(
+            ("cost", "cost",
+             lambda i: calculate_total_cost(float(i.hourly_cost), auth_organization.cost_period) if i.hourly_cost else None)
+        )
 
     query_members = org_member_repository.query_find_by_organization_id(auth_member.organization_id)
     return DBTable(query_members, columns).fetch_dicts()
