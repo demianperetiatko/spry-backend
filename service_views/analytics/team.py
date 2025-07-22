@@ -37,6 +37,7 @@ from utils.analytics.calendar_stats import calculate_total_events_duration, calc
     calculate_transition_time, calculate_deep_work_time
 
 from utils.permissions import member_has_permissions
+
 router = APIRouter()
 
 
@@ -112,13 +113,15 @@ def get_team_kpi(
         {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
          **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
     ]
-    if member_has_permissions(auth_member, 'finance:view'):
+    if member_has_permissions(auth_member, 'finance:view', db):
         currency = None
         if org.cost_is_active and org.currency:
             currency = org.currency
         kpis.extend([
-            {"key": "total_meetings_cost", "title": "Total meetings cost", **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
-            {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member", **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
+            {"key": "total_meetings_cost", "title": "Total meetings cost",
+             **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
+            {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
         ])
     kpis.extend([
         {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
@@ -397,6 +400,7 @@ def get_team_meetings_table(
         start_date: str = Query(...),
         end_date: str = Query(...),
         type: TableType = Query(TableType.attendees),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
         sort_by: Optional[str] = Query(None),
         sort_order: SortOrderType = Query(SortOrderType.asc),
@@ -431,9 +435,11 @@ def get_team_meetings_table(
              lambda i: {"name": i.get("name", " "), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
             ("time", "time"),
-            ("cost", "cost"),
             ("ratio", "ratio")
         ]
+        if member_has_permissions(auth_member, 'finance:view', db):
+            columns.append(("cost", "cost"))
+
     elif type == TableType.organizers:
         result = []
         for member in org_team_members:
@@ -466,8 +472,9 @@ def get_team_meetings_table(
              lambda i: {"name": i.get('manager_name', ""), "email": i.get('manager_email'),
                         "photo_url": i.get('manager_photo_url')}),
             ('collab_time', 'collab_time'),
-            ('collab_cost', 'collab_cost'),
         ]
+        if member_has_permissions(auth_member, 'finance:view', db):
+            columns.append(('collab_cost', 'collab_cost'))
     else:
         events = get_all_meetings(org_team_members, start_date_dt, end_date_dt)
         result = process_recurring_events(events, org_team_members)
@@ -478,6 +485,7 @@ def get_team_meetings_table(
             ("attendees", "attendees"),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
-            ("total_cost", "total_cost"),
         ]
+        if member_has_permissions(auth_member, 'finance:view', db):
+            columns.append(('total_cost', 'total_cost'))
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)

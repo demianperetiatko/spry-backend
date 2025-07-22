@@ -38,7 +38,7 @@ async def auth(
         "email": member.email,
         "name": member.name,
         "type": get_user_type(member, db),
-        "permissions": get_member_permissions(member),
+        "permissions": get_member_permissions(member, db),
     }
 
 

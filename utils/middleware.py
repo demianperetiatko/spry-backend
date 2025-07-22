@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 from utils.google_api import refresh_google_access_token
+from utils.permissions import member_has_permissions
 
 
 def get_auth_member(
@@ -31,3 +32,14 @@ def get_auth_organization(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     return org
+
+
+def require_permission(required_permission: str):
+    def permission_dependency(member: OrganizationMember = Depends(get_auth_member), db: Session = Depends(get_db)):
+        if member_has_permissions(member, required_permission, db):
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have permission to perform this action"
+            )
+
+    return permission_dependency

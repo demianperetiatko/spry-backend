@@ -43,10 +43,12 @@ from utils.analytics.constants import WORKDAY_HOURS
 
 from utils.permissions import member_has_permissions
 
+
 def get_all_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
     meetings = filter_meetings(calendar_events)
     return meetings
+
 
 def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
     calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
@@ -93,7 +95,7 @@ def get_personal_kpi(
         {"key": "avg_daily_meetings_time", "title": "Avg. daily meetings time",
          **kpi_avg_daily_meetings_time(events, prev_events, count_work_day)},
     ]
-    if member_has_permissions(auth_member, 'finance:view'):
+    if member_has_permissions(auth_member, 'finance:view', db):
         currency = None
         if org.cost_is_active and org.currency:
             currency = org.currency
@@ -337,6 +339,7 @@ def get_personal_table(
         sort_by: str = Query(...),
         sort_order: SortOrderType = Query(SortOrderType.asc),
         type: TableType = Query(TableType.collaboration),
+        auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db)
 ):
@@ -368,6 +371,7 @@ def get_personal_table(
              lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
-            ("total_cost", "total_cost"),
         ]
+        if member_has_permissions(auth_member, 'finance:view', db):
+            columns.append(('total_cost', 'total_cost'))
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)
