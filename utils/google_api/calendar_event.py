@@ -92,3 +92,16 @@ def get_calendar_event_info(token: str, event_id: str, calendar_id: str = "prima
         return response.json()
     else:
         return None
+
+
+def get_calendar_timezone(token: str, calendar_id: str = "primary") -> str:
+    url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json().get("timeZone", "UTC")
+    else:
+        raise Exception(f"Failed to get calendar timezone: {response.status_code} - {response.text}")

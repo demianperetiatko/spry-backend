@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_validator, model_validator
@@ -25,6 +26,7 @@ from utils import get_user_profile
 
 router = APIRouter()
 
+from utils.google_api.calendar_event import get_calendar_timezone
 
 @router.get("/home/kpi")
 def get_user_kpi(
@@ -124,11 +126,14 @@ def get_deep_work_slot(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    today = datetime.today()
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    time_zone = get_calendar_timezone(access_token)
+
+    today = datetime.now(ZoneInfo(time_zone))
     start_date = today
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+
     events = get_calendar_events(access_token, start_date, end_date)
     busy_times = []
     for event in filter_meetings(events) + filter_by_title(events, "Deep Work Time"):
@@ -160,6 +165,7 @@ def post_deep_work_slots(
         db: Session = Depends(get_db)
 ):
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    time_zone = get_calendar_timezone(access_token)
 
     summary = "Deep Work Time"
     events = []
@@ -169,6 +175,7 @@ def post_deep_work_slots(
             summary=summary,
             start_time=timeslot.start_time,
             end_time=timeslot.end_time,
+            time_zone=time_zone,
         )
         events.append(event)
 
