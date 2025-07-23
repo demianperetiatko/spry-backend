@@ -84,7 +84,6 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.name,
                 OrganizationMember.photo_url,
                 OrganizationMember.email,
-                literal("-").label("department"),
                 OrganizationMember.hourly_cost,
                 OrganizationMember.status,
                 OrganizationMember.google_refresh_token

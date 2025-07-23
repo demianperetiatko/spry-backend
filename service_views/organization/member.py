@@ -36,7 +36,6 @@ def get_member(
         ("photo_url", "photo_url"),
         ("email", "email"),
         ("status", "status"),
-        ("department", "department"),
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
     ]
     if member_has_permissions(auth_member, 'finance:view', db):
