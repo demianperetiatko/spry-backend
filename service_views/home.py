@@ -48,8 +48,8 @@ def get_user_kpi(
     prev_end_date = prev_end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = filter_meetings(filter_meetings(get_calendar_events(access_token, start_date, end_date)))
-    prev_events = filter_meetings(filter_meetings(get_calendar_events(access_token, prev_start_date, prev_end_date)))
+    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
+    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date, prev_end_date))
 
     return {
         'data': [
@@ -130,9 +130,8 @@ def get_deep_work_slot(
     time_zone = get_calendar_timezone(access_token)
 
     today = datetime.now(ZoneInfo(time_zone))
-    start_date = today
-    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
-
+    start_date = today.replace(tzinfo=None)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
 
     events = get_calendar_events(access_token, start_date, end_date)
     busy_times = []
@@ -187,13 +186,16 @@ def get_agenda_beta(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
+    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    time_zone = get_calendar_timezone(access_token)
+
     agenda_repository = AgendaBetaRepository(db)
 
-    today = datetime.today()
-    start_date = today
-    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
+    today = datetime.now(ZoneInfo(time_zone))
+    start_date = today.replace(tzinfo=None)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(
+        tzinfo=None)
 
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
     events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
     meetings = []
     for event in events:
