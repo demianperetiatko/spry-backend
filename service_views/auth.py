@@ -72,7 +72,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
             member.status = OrganizationMemberStatus.ACTIVE
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)
-        redirect_url = f"{FRONTEND_DOMAIN}/onboarding" if is_new_user else FRONTEND_DOMAIN
+        redirect_url = f"{FRONTEND_DOMAIN}/onboarding/profile?role={member.role}" if is_new_user else FRONTEND_DOMAIN
         return RedirectResponse(redirect_url)
 
 
