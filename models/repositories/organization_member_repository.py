@@ -49,7 +49,6 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.email,
                 OrganizationMember.hourly_cost,
                 OrganizationMember.status,
-                OrganizationMember.google_refresh_token,
             )
             .filter(OrganizationMember.organization_id == organization_id)
         )

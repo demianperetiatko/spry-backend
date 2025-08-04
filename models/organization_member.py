@@ -27,10 +27,6 @@ class OrganizationMember(Base):
     photo_url = Column(Text)
     hourly_cost = Column(String(255))
 
-    google_access_token = Column(Text)
-    google_access_token_expiry = Column(DateTime)
-    google_refresh_token = Column(Text)
-
     status = Column(Enum(OrganizationMemberStatusEnum), nullable=False, default=OrganizationMemberStatusEnum.pending)
     role = Column(Enum(OrganizationMemberRoleEnum), default=OrganizationMemberRoleEnum.member)
 

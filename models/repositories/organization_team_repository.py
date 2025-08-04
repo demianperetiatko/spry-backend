@@ -66,7 +66,6 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationMember.photo_url,
                 OrganizationTeamMember.type,
                 OrganizationMember.hourly_cost,
-                OrganizationMember.google_refresh_token,
             )
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .filter(OrganizationTeamMember.team_id == team_id)
