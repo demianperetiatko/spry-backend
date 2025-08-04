@@ -18,6 +18,11 @@ def get_member_permissions(member: OrganizationMember, db):
             "members:edit",
             "members:delete",
         ])
+    elif org_manager_repository.is_manager_of_organization(member.id):
+        permissions.extend([
+            "members:view",
+            "members:edit",
+        ])
     else:
         permissions.append("members:view")
 
@@ -28,6 +33,11 @@ def get_member_permissions(member: OrganizationMember, db):
             "teams:create",
             "teams:edit",
             "teams:delete",
+        ])
+    elif org_manager_repository.is_manager_of_organization(member.id):
+        permissions.extend([
+            "teams:view",
+            "teams:edit",
         ])
     else:
         permissions.append("teams:view")
