@@ -25,7 +25,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             .join(OrganizationTeamMember, OrganizationTeamMember.team_id == OrganizationTeam.id)
             .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .filter(OrganizationTeam.organization_id == organization_id)
-            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MANAGER)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
         )
 
     def find_by_organization_id(self, organization_id):
@@ -44,7 +44,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             self.session.query(
                 OrganizationTeam.id.label("team_id"),
                 OrganizationTeam.name.label("team_name"),
-                (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MANAGER).label("is_manager"),
+                (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager).label("is_manager"),
             )
             .join(OrganizationTeamMember, OrganizationTeam.id == OrganizationTeamMember.team_id)
             .filter(OrganizationTeamMember.member_id == member_id)

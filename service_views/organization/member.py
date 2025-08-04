@@ -83,7 +83,7 @@ def add_members_to_organization(
         member = OrganizationMember(
             organization_id=auth_member.organization_id,
             email=email,
-            status=OrganizationMemberStatusEnum.PENDING,
+            status=OrganizationMemberStatusEnum.pending,
         )
         send_user_invitation(email, administrator_name=auth_member.name, organisation_name=auth_org.name)
         org_member_repository.create(member)
@@ -120,7 +120,7 @@ def update_member(
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
-        OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MEMBER).delete()
+        OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.member).delete()
     db.commit()
     for update_data in update_member.teams:
         if update_data.is_manager == False:
@@ -128,7 +128,7 @@ def update_member(
             new_team_member = OrganizationTeamMember(
                 team_id=team.id,
                 member_id=member.id,
-                type=OrganizationTeamMemberTypeEnum.MANAGER if update_data.is_manager else OrganizationTeamMemberTypeEnum.MEMBER
+                type=OrganizationTeamMemberTypeEnum.manager if update_data.is_manager else OrganizationTeamMemberTypeEnum.member
             )
             org_team_member_repository.create(new_team_member)
 

@@ -8,18 +8,18 @@ from models import Base
 
 
 class OrganizationCostPeriodEnum(str, enum.Enum):
-    YEAR = "YEAR"
-    MONTH = "MONTH"
-    HOUR = "HOUR"
+    year = "year"
+    month = "month"
+    hour = "hour"
 
 class OrganizationCostVisibilityEnum(str, enum.Enum):
-    OWNER = "OWNER"
-    MANAGER = "MANAGER"
-    ALL = "ALL"
+    owner = "owner"
+    manager = "manager"
+    all = "all"
 
 class OrganizationCostTypeEnum(str, enum.Enum):
-    PER_MEMBER = "PER_MEMBER"
-    AVERAGE = "AVERAGE"
+    per_member = "per_member"
+    average = "per_member"
 
 
 class Organization(Base):

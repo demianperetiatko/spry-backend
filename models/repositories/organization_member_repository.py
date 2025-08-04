@@ -61,7 +61,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         res = (
             self.session.query(OrganizationTeamMember)
             .filter(OrganizationTeamMember.member_id == member_id)
-            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MANAGER)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
             .first()
         )
         return bool(res)

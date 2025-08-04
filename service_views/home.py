@@ -36,7 +36,7 @@ def get_google_access_token(member: OrganizationMember, db):
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
     calendars = member_calendar_repository.find_by_member_id(member.id)
     for calendar in calendars:
-        if calendar.type == CalendarTypeEnum.GOOGLE:
+        if calendar.type == CalendarTypeEnum.google:
             if calendar.access_token and calendar.access_token_expiry and calendar.access_token_expiry > datetime.utcnow():
                 access_token = calendar.access_token
             else:

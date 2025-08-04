@@ -9,12 +9,12 @@ from models import Base
 
 
 class OrganizationMemberStatusEnum(str, enum.Enum):
-    ACTIVE = "ACTIVE"
-    PENDING = "PENDING"
+    active = "active"
+    pending = "pending"
 
 class OrganizationMemberRoleEnum(str, enum.Enum):
-    OWNER = "OWNER"
-    MEMBER = "MEMBER"
+    owner = "owner"
+    member = "member"
 
 
 class OrganizationMember(Base):
@@ -31,8 +31,8 @@ class OrganizationMember(Base):
     google_access_token_expiry = Column(DateTime)
     google_refresh_token = Column(Text)
 
-    status = Column(Enum(OrganizationMemberStatusEnum), nullable=False, default=OrganizationMemberStatusEnum.PENDING)
-    role = Column(Enum(OrganizationMemberRoleEnum), default=OrganizationMemberRoleEnum.MEMBER)
+    status = Column(Enum(OrganizationMemberStatusEnum), nullable=False, default=OrganizationMemberStatusEnum.pending)
+    role = Column(Enum(OrganizationMemberRoleEnum), default=OrganizationMemberRoleEnum.member)
 
     organization = relationship("Organization", back_populates="members")
     calendars = relationship("OrganizationMemberCalendar", back_populates="member", cascade='all, delete-orphan')
@@ -40,8 +40,8 @@ class OrganizationMember(Base):
 
 
 class CalendarTypeEnum(str, enum.Enum):
-    GOOGLE = "GOOGLE"
-    GOOGLE_SERVICES = "GOOGLE_SERVICES"
+    google = "google"
+    google_services = "google_services"
 
 
 class OrganizationMemberCalendar(Base):
@@ -50,7 +50,7 @@ class OrganizationMemberCalendar(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     member_id = Column(UUID(as_uuid=True), ForeignKey('organization_members.id'), nullable=False)
 
-    type = Column(Enum(CalendarTypeEnum), nullable=False, default=CalendarTypeEnum.GOOGLE)
+    type = Column(Enum(CalendarTypeEnum), nullable=False, default=CalendarTypeEnum.google)
 
     access_token = Column(Text, nullable=False)
     access_token_expiry = Column(DateTime)

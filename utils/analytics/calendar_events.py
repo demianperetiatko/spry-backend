@@ -13,7 +13,7 @@ def get_member_calendar_events(member_id: str, start_date: datetime, end_date: d
     if len(calendars) == 0:
         raise ValueError("No calendar events found.")
     for calendar in calendars:
-        if calendar.type == CalendarTypeEnum.GOOGLE:
+        if calendar.type == CalendarTypeEnum.google:
             if calendar.access_token and calendar.access_token_expiry and calendar.access_token_expiry > datetime.utcnow():
                 access_token = calendar.access_token
             else:

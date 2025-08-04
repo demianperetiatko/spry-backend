@@ -25,7 +25,7 @@ class OrganizationRepository(BaseRepo[Organization]):
 
     def is_user_owner_of_organization(self, user_id: str) -> bool:
         res = self.session.query(OrganizationMember).filter(OrganizationMember.id == user_id).filter(
-            OrganizationMember.role == OrganizationMemberRoleEnum.OWNER).first()
+            OrganizationMember.role == OrganizationMemberRoleEnum.owner).first()
         return True if res else False
 
     def is_user_manager_of_organization(self, email: str) -> bool:
@@ -33,7 +33,7 @@ class OrganizationRepository(BaseRepo[Organization]):
             self.session.query(OrganizationMember)
             .join(OrganizationTeamMember, OrganizationMember.id == OrganizationTeamMember.member_id)
             .filter(OrganizationMember.email == email)
-            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MANAGER)
+            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
             .first()
         )
         return True if res else False

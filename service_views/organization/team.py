@@ -23,9 +23,13 @@ class TeamMemberRequest(BaseModel):
 
     @field_validator("type")
     def validate_currency(cls, value):
-        if value not in OrganizationTeamMemberTypeEnum.ALLOWED_PERIODS:
+        ALLOWED_PERIODS = [
+            OrganizationTeamMemberTypeEnum.member,
+            OrganizationTeamMemberTypeEnum.manager
+        ]
+        if value not in ALLOWED_PERIODS:
             raise ValueError(
-                f"Invalid value for type. Allowed values are: {', '.join(OrganizationTeamMemberTypeEnum.ALLOWED_PERIODS)}"
+                f"Invalid value for type. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
             )
         return value
 
@@ -37,10 +41,10 @@ class TeamRequest(BaseModel):
     @model_validator(mode='before')
     def validate_manager(cls, values):
         team_members = values.get('team_members', [])
-        manager_count = sum(1 for member in team_members if member.get('type') == OrganizationTeamMemberTypeEnum.MANAGER)
+        manager_count = sum(1 for member in team_members if member.get('type') == OrganizationTeamMemberTypeEnum.manager)
 
         if manager_count != 1:
-            raise ValueError(f"There must be exactly one member with type '{OrganizationTeamMemberTypeEnum.MANAGER}'.")
+            raise ValueError(f"There must be exactly one member with type '{OrganizationTeamMemberTypeEnum.manager}'.")
 
         return values
 

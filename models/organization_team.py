@@ -8,8 +8,8 @@ from models import Base
 
 
 class OrganizationTeamMemberTypeEnum(str, enum.Enum):
-    MEMBER = "MEMBER"
-    MANAGER = "MANAGER"
+    member = "member"
+    manager = "manager"
 
 
 class OrganizationTeam(Base):
@@ -30,7 +30,7 @@ class OrganizationTeamMember(Base):
     team_id = Column(UUID(as_uuid=True), ForeignKey('organization_teams.id'), nullable=False)
     member_id = Column(UUID(as_uuid=True), ForeignKey('organization_members.id'), nullable=False)
 
-    type = Column(Enum(OrganizationTeamMemberTypeEnum), nullable=False, default=OrganizationTeamMemberTypeEnum.MEMBER)
+    type = Column(Enum(OrganizationTeamMemberTypeEnum), nullable=False, default=OrganizationTeamMemberTypeEnum.member)
 
     team = relationship("OrganizationTeam", back_populates="team_members")
     member = relationship("OrganizationMember", back_populates="teams")

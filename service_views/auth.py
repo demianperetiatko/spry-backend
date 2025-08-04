@@ -79,11 +79,11 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
 
         member_calendar_repository.update(member_calendar)
 
-        if member.status == OrganizationMemberStatusEnum.PENDING:
+        if member.status == OrganizationMemberStatusEnum.pending:
             is_new_user = True
             member.name = user_info.get('name')
             member.photo_url = user_info.get('picture')
-            member.status = OrganizationMemberStatusEnum.ACTIVE
+            member.status = OrganizationMemberStatusEnum.active
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)
         redirect_url = f"{FRONTEND_DOMAIN}/onboarding/profile?role={member.role}" if is_new_user else FRONTEND_DOMAIN
@@ -99,7 +99,7 @@ async def logout(request: Request):
 async def delete_user(request: Request, member: OrganizationMember = Depends(get_auth_member),
                       db: Session = Depends(get_db)):
     request.session.clear()
-    if member.role == OrganizationMemberRoleEnum.OWNER:
+    if member.role == OrganizationMemberRoleEnum.owner:
         return {
             "status": "error",
         }
