@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 
 from models import get_db, Organization, OrganizationMember
 
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
+from models.repositories.organization_repository import OrganizationRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
+
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 
 from utils.google_api import refresh_google_access_token
 

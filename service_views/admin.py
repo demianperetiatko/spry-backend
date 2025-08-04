@@ -2,8 +2,10 @@ from fastapi import Depends, APIRouter, HTTPException, Header
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from models import get_db, Organization, OrganizationMember
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
-    OrganizationMemberRole, OrganizationMemberStatus
+from models.repositories.organization_repository import OrganizationRepository,\
+    OrganizationMemberRoleEnum, OrganizationMemberStatusEnum
+
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 from utils.send_message import send_admin_invitation
 
 
@@ -38,8 +40,8 @@ def admin_add_organization(
     org_repository.create(new_org)
     new_member = OrganizationMember(
         email=request.email,
-        role=OrganizationMemberRole.OWNER,
-        status=OrganizationMemberStatus.PENDING,
+        role=OrganizationMemberRoleEnum.OWNER,
+        status=OrganizationMemberStatusEnum.PENDING,
         organization=new_org
     )
     org_member_repository.create(new_member)

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus, OrganizationMemberRole
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
@@ -52,24 +52,32 @@ async def login_google():
 
 @router.get("/callback/google/")
 async def auth_google(request: Request, db: Session = Depends(get_db)):
+    print(1)
     org_repository = OrganizationRepository(db)
+    print(2)
     org_member_repository = OrganizationMemberRepository(db)
+    print(3)
     state = request.query_params.get("state")
     authorization_response = str(request.url)
+    print(4)
     user_info = handle_callback_and_get_user_info(state, authorization_response)
+    print(5)
     email = user_info["email"]
+    print(email)
     member = org_member_repository.find_by_email(email)
+    print(member)
     if member is None:
         return RedirectResponse(f"{FRONTEND_DOMAIN}/user-not-found")
     else:
         is_new_user = False
-        member.google_access_token = user_info['google_access_token'],
-        member.google_refresh_token = user_info['google_refresh_token'],
-        if member.status == OrganizationMemberStatus.PENDING:
+        member.google_access_token = user_info['google_access_token']
+        member.google_refresh_token = user_info['google_refresh_token']
+        print(member.status == OrganizationMemberStatusEnum.PENDING)
+        if member.status == OrganizationMemberStatusEnum.PENDING:
             is_new_user = True
             member.name = user_info.get('name')
             member.photo_url = user_info.get('picture')
-            member.status = OrganizationMemberStatus.ACTIVE
+            member.status = OrganizationMemberStatusEnum.ACTIVE
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)
         redirect_url = f"{FRONTEND_DOMAIN}/onboarding/profile?role={member.role}" if is_new_user else FRONTEND_DOMAIN
@@ -85,7 +93,7 @@ async def logout(request: Request):
 async def delete_user(request: Request, member: OrganizationMember = Depends(get_auth_member),
                       db: Session = Depends(get_db)):
     request.session.clear()
-    if member.role == OrganizationMemberRole.OWNER:
+    if member.role == OrganizationMemberRoleEnum.OWNER:
         return {
             "status": "error",
         }

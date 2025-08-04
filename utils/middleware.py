@@ -3,7 +3,7 @@ from fastapi import Request, HTTPException, Depends, Header
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 from utils.google_api import refresh_google_access_token
 from utils.permissions import member_has_permissions

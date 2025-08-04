@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from models import get_db, Organization, OrganizationMember
 
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
+from models.repositories.organization_repository import OrganizationRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
+
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization
 from utils.google_api import get_calendar_events

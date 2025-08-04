@@ -4,11 +4,11 @@ from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamMemberRepository
 
-from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
+from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization
@@ -83,7 +83,7 @@ def add_members_to_organization(
         member = OrganizationMember(
             organization_id=auth_member.organization_id,
             email=email,
-            status=OrganizationMemberStatus.PENDING,
+            status=OrganizationMemberStatusEnum.PENDING,
         )
         send_user_invitation(email, administrator_name=auth_member.name, organisation_name=auth_org.name)
         org_member_repository.create(member)
@@ -120,7 +120,7 @@ def update_member(
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
-        OrganizationTeamMember.type == OrganizationTeamMemberType.MEMBER).delete()
+        OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.MEMBER).delete()
     db.commit()
     for update_data in update_member.teams:
         if update_data.is_manager == False:
@@ -128,7 +128,7 @@ def update_member(
             new_team_member = OrganizationTeamMember(
                 team_id=team.id,
                 member_id=member.id,
-                type=OrganizationTeamMemberType.MANAGER if update_data.is_manager else OrganizationTeamMemberType.MEMBER
+                type=OrganizationTeamMemberTypeEnum.MANAGER if update_data.is_manager else OrganizationTeamMemberTypeEnum.MEMBER
             )
             org_team_member_repository.create(new_team_member)
 
