@@ -1,13 +1,15 @@
 import os
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum, \
+    OrganizationMemberCalendar
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum
-
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
-
+from models.repositories.organization_repository import OrganizationRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository, \
+    OrganizationMemberCalendarRepository
 from utils.google_api import create_google_login_uri, handle_callback_and_get_user_info
 from utils.middleware import get_auth_member
 from utils.permissions import get_member_permissions
@@ -52,27 +54,31 @@ async def login_google():
 
 @router.get("/callback/google/")
 async def auth_google(request: Request, db: Session = Depends(get_db)):
-    print(1)
-    org_repository = OrganizationRepository(db)
-    print(2)
     org_member_repository = OrganizationMemberRepository(db)
-    print(3)
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
     state = request.query_params.get("state")
     authorization_response = str(request.url)
-    print(4)
     user_info = handle_callback_and_get_user_info(state, authorization_response)
-    print(5)
     email = user_info["email"]
-    print(email)
     member = org_member_repository.find_by_email(email)
-    print(member)
     if member is None:
         return RedirectResponse(f"{FRONTEND_DOMAIN}/user-not-found")
     else:
         is_new_user = False
-        member.google_access_token = user_info['google_access_token']
-        member.google_refresh_token = user_info['google_refresh_token']
-        print(member.status == OrganizationMemberStatusEnum.PENDING)
+        member_calendars = member_calendar_repository.find_by_member_id(member.id)
+        if len(member_calendars) == 0:
+            member_calendar = OrganizationMemberCalendar(
+                member_id=member.id,
+            )
+            member_calendar = member_calendar_repository.create(member_calendar)
+        else:
+            member_calendar = member_calendars[0]
+        member_calendar.access_token = user_info['access_token']
+        member_calendar.refresh_token = user_info['refresh_token']
+        member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
+
+        member_calendar_repository.update(member_calendar)
+
         if member.status == OrganizationMemberStatusEnum.PENDING:
             is_new_user = True
             member.name = user_info.get('name')

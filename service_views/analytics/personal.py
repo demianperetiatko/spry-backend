@@ -9,10 +9,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 
 from models.repositories.organization_member_repository import OrganizationMemberRepository
 
-from utils.google_api import refresh_google_access_token
-
 from utils.middleware import get_auth_member, get_auth_organization
-from utils.google_api import get_calendar_events
 
 from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.filters import filter_meetings, filter_active
@@ -45,18 +42,24 @@ from utils.analytics.constants import WORKDAY_HOURS
 
 from utils.permissions import member_has_permissions
 
+from utils.analytics.calendar_events import get_member_calendar_events
 
-def get_all_meetings(email: str, access_token, start_date_dt, end_date_dt):
-    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    meetings = filter_meetings(calendar_events)
-    return meetings
+def get_all_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
+    try:
+        calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
+        meetings = filter_meetings(calendar_events)
+        return meetings
+    except Exception as e:
+        return []
 
-
-def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
-    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
-    meetings = filter_meetings(calendar_events)
-    meetings = filter_active(meetings)
-    return meetings
+def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
+    try:
+        calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
+        meetings = filter_meetings(calendar_events)
+        meetings = filter_active(meetings, member.email)
+        return meetings
+    except Exception as e:
+        return []
 
 
 @router.get("/analytic/personal/meeting/kpi")
@@ -81,14 +84,12 @@ def get_personal_kpi(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
-    meetings = get_all_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+    meetings = get_all_meetings(member, start_date_dt, end_date_dt, db)
     set_events = get_unique_events(events)
 
-    prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
-    prev_meetings = get_all_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
+    prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
+    prev_meetings = get_all_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -133,8 +134,7 @@ def get_personal_meetings_chart(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
     events_by_date = group_events_by_date(events, start_date_dt, end_date_dt)
 
     response = Chart(
@@ -166,8 +166,7 @@ def get_personal_meeting_participants(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
 
     response = Diagram(
         items=events,
@@ -200,8 +199,7 @@ def get_personal_meeting_distribution(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
 
     team_emails = []
     for team in org_team.find_by_member_id(member.id):
@@ -249,10 +247,9 @@ def get_personal_productivity(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-    events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+    events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
 
-    prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
+    prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
 
     def get_meetings_time():
         total_time = calculate_total_events_duration(events)
@@ -355,17 +352,15 @@ def get_personal_table(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    access_token = refresh_google_access_token(member.google_refresh_token)
-
     if type == TableType.collaboration:
-        events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
+        events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
         result = analyze_event_participants(events, member.email)
         columns = [
             ('member_profile', 'email', lambda event: get_user_profile(event['email'], db)),
             ('collab_time', 'collab_time')
         ]
     else:
-        events = get_all_meetings(member.email, access_token, start_date_dt, end_date_dt)
+        events = get_all_meetings(member, start_date_dt, end_date_dt, db)
         result = process_recurring_events(events, [member])
         columns = [
             ("id", "id"),

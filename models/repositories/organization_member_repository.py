@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from models.repositories import BaseRepo
 from models import OrganizationMember, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
+from models import OrganizationMemberCalendar
 
 
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
@@ -25,7 +26,6 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.email,
                 OrganizationMember.hourly_cost,
                 OrganizationMember.status,
-                OrganizationMember.google_refresh_token,
             )
             .filter(OrganizationMember.id == member_id)
             .filter(OrganizationMember.organization_id == organization_id)
@@ -39,18 +39,11 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
 
-    def find_by_member_email(self, organization_id, email: str) -> OrganizationMember:
-        return (
-            self.session.query(OrganizationMember)
-            .filter(OrganizationMember.email == email)
-            .filter(OrganizationMember.organization_id == organization_id)
-            .first()
-        )
-
     def query_find_by_organization_id(self, organization_id):
         return (
             self.session.query(
                 OrganizationMember.id,
+                OrganizationMember.id.label('member_id'),
                 OrganizationMember.name,
                 OrganizationMember.photo_url,
                 OrganizationMember.email,
@@ -72,3 +65,15 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .first()
         )
         return bool(res)
+
+
+class OrganizationMemberCalendarRepository(BaseRepo[OrganizationMemberCalendar]):
+    def __init__(self, session):
+        super().__init__(session, OrganizationMemberCalendar)
+
+    def find_by_member_id(self, member_id) -> List[OrganizationMemberCalendar]:
+        return (
+            self.session.query(OrganizationMemberCalendar)
+            .filter(OrganizationMemberCalendar.member_id == member_id)
+            .all()
+        )

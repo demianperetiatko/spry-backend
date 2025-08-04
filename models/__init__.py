@@ -14,7 +14,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from .agenda import AgendaBeta
 from .organization import Organization, OrganizationCostPeriodEnum, OrganizationCostVisibilityEnum, OrganizationCostTypeEnum
-from .organization_member import OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum
+from .organization_member import OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum, OrganizationMemberCalendar
 from .organization_team import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 
 

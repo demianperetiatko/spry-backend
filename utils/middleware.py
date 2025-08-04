@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
-from utils.google_api import refresh_google_access_token
 from utils.permissions import member_has_permissions
 
 
@@ -17,9 +16,6 @@ def get_auth_member(
     org_member_repository = OrganizationMemberRepository(db)
     member = org_member_repository.find_by_id(user_id)
     if not member:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    access_token = refresh_google_access_token(member.google_refresh_token)
-    if not access_token:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return member
 

@@ -9,7 +9,7 @@ from utils.google_api import refresh_google_access_token
 
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
-from utils.google_api import get_calendar_events, get_calendar_event_info
+from utils.google_api import get_calendar_event_info
 from utils.analytics.filters import filter_meetings, filter_by_title
 from utils.send_message import send_agenda_request
 
@@ -28,6 +28,28 @@ router = APIRouter()
 
 from utils.google_api.calendar_event import get_calendar_timezone
 
+from utils.analytics.calendar_events import get_member_calendar_events
+from models.organization_member import CalendarTypeEnum
+from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+def get_google_access_token(member: OrganizationMember, db):
+    events = []
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+    calendars = member_calendar_repository.find_by_member_id(member.id)
+    for calendar in calendars:
+        if calendar.type == CalendarTypeEnum.GOOGLE:
+            if calendar.access_token and calendar.access_token_expiry and calendar.access_token_expiry > datetime.utcnow():
+                access_token = calendar.access_token
+            else:
+                data = refresh_google_access_token(calendar.refresh_token)
+                if isinstance(data, dict) and 'access_token' in data:
+                    access_token = data['access_token']
+                    expires_in_seconds = data.get('expires_in', 3600)
+                    calendar.access_token = access_token
+                    calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=expires_in_seconds)
+                    member_calendar_repository.update(calendar)
+                else:
+                    raise ValueError(f"Failed to refresh access token")
+            return access_token
 @router.get("/home/kpi")
 def get_user_kpi(
         auth_member: OrganizationMember = Depends(get_auth_member),
@@ -47,10 +69,8 @@ def get_user_kpi(
     prev_start_date = prev_start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
     prev_end_date = prev_end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
-    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
-    prev_events = filter_meetings(get_calendar_events(access_token, prev_start_date, prev_end_date))
-
+    events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
+    prev_events = filter_meetings(get_member_calendar_events(auth_member.id, prev_start_date, prev_end_date, db))
     return {
         'data': [
             {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
@@ -126,14 +146,15 @@ def get_deep_work_slot(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    access_token = get_google_access_token(auth_member, db)
     time_zone = get_calendar_timezone(access_token)
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
-    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(
+        tzinfo=None)
 
-    events = get_calendar_events(access_token, start_date, end_date)
+    events = get_member_calendar_events(auth_member.id, start_date, end_date, db)
     busy_times = []
     for event in filter_meetings(events) + filter_by_title(events, "Deep Work Time"):
         start_str = event.get("start", {}).get("dateTime", "").split("+")[0]
@@ -163,7 +184,7 @@ def post_deep_work_slots(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    access_token = get_google_access_token(auth_member, db)
     time_zone = get_calendar_timezone(access_token)
 
     summary = "Deep Work Time"
@@ -186,7 +207,7 @@ def get_agenda_beta(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    access_token = get_google_access_token(auth_member, db)
     time_zone = get_calendar_timezone(access_token)
 
     agenda_repository = AgendaBetaRepository(db)
@@ -196,7 +217,7 @@ def get_agenda_beta(
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(
         tzinfo=None)
 
-    events = filter_meetings(get_calendar_events(access_token, start_date, end_date))
+    events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
     meetings = []
     for event in events:
         if 'description' in event:
@@ -244,7 +265,7 @@ def notify_agenda_completed(
 
         return calendar_event_date, calendar_event_time
 
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    access_token = get_google_access_token(auth_member, db)
     event = get_calendar_event_info(access_token, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -282,7 +303,7 @@ def add_agenda_description(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = refresh_google_access_token(auth_member.google_refresh_token)
+    access_token = get_google_access_token(auth_member, db)
 
     updated_event = update_calendar_event(
         access_token=access_token,
