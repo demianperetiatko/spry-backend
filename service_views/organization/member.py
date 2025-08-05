@@ -4,11 +4,11 @@ from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatus
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamMemberRepository
 
-from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
+from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization
@@ -35,7 +35,7 @@ def get_member(
         ("name", "name"),
         ("photo_url", "photo_url"),
         ("email", "email"),
-        ("status", "status"),
+        ("status", "status", lambda i: i.status.lower()),
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
     ]
     if member_has_permissions(auth_member, 'finance:view', db):
@@ -83,7 +83,7 @@ def add_members_to_organization(
         member = OrganizationMember(
             organization_id=auth_member.organization_id,
             email=email,
-            status=OrganizationMemberStatus.PENDING,
+            status=OrganizationMemberStatusEnum.pending,
         )
         send_user_invitation(email, administrator_name=auth_member.name, organisation_name=auth_org.name)
         org_member_repository.create(member)
@@ -120,7 +120,7 @@ def update_member(
     org_team_member_repository.update(member)
 
     db.query(OrganizationTeamMember).filter(OrganizationTeamMember.member_id == member.id).filter(
-        OrganizationTeamMember.type == OrganizationTeamMemberType.MEMBER).delete()
+        OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.member).delete()
     db.commit()
     for update_data in update_member.teams:
         if update_data.is_manager == False:
@@ -128,7 +128,7 @@ def update_member(
             new_team_member = OrganizationTeamMember(
                 team_id=team.id,
                 member_id=member.id,
-                type=OrganizationTeamMemberType.MANAGER if update_data.is_manager else OrganizationTeamMemberType.MEMBER
+                type=OrganizationTeamMemberTypeEnum.manager if update_data.is_manager else OrganizationTeamMemberTypeEnum.member
             )
             org_team_member_repository.create(new_team_member)
 

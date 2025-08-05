@@ -13,9 +13,9 @@ engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from .agenda import AgendaBeta
-from .organization import Organization, OrganizationCostPeriod, OrganizationCostVisibility, OrganizationCostType
-from .organization import OrganizationMember, OrganizationMemberStatus, OrganizationMemberRole
-from .organization import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberType
+from .organization import Organization, OrganizationCostPeriodEnum, OrganizationCostVisibilityEnum, OrganizationCostTypeEnum
+from .organization_member import OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum, OrganizationMemberCalendar
+from .organization_team import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 
 
 

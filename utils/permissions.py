@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberRole, OrganizationCostVisibility
+from models import get_db, Organization, OrganizationMember, OrganizationMemberRoleEnum, OrganizationCostVisibilityEnum
 
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
@@ -11,7 +11,7 @@ def get_member_permissions(member: OrganizationMember, db):
 
     permissions = []
     # members
-    if member.role == OrganizationMemberRole.OWNER:
+    if member.role == OrganizationMemberRoleEnum.owner:
         permissions.extend([
             "members:view",
             "members:create",
@@ -27,7 +27,7 @@ def get_member_permissions(member: OrganizationMember, db):
         permissions.append("members:view")
 
     # team
-    if member.role == OrganizationMemberRole.OWNER:
+    if member.role == OrganizationMemberRoleEnum.owner:
         permissions.extend([
             "teams:view",
             "teams:create",
@@ -43,7 +43,7 @@ def get_member_permissions(member: OrganizationMember, db):
         permissions.append("teams:view")
 
     # meetings-costs
-    if member.role == OrganizationMemberRole.OWNER:
+    if member.role == OrganizationMemberRoleEnum.owner:
         permissions.append("meetings-costs:view")
 
     # analytics
@@ -53,13 +53,13 @@ def get_member_permissions(member: OrganizationMember, db):
     ])
 
     # finance:view
-    if member.role == OrganizationMemberRole.OWNER:
+    if member.role == OrganizationMemberRoleEnum.owner:
         permissions.append("finance:view")
     elif member.organization.cost_is_active == True:
-        if (member.organization.cost_visibility == OrganizationCostVisibility.MANAGER
+        if (member.organization.cost_visibility == OrganizationCostVisibilityEnum.manager
                 and org_manager_repository.is_manager_of_organization(member.id)):
             permissions.append("finance:view")
-        elif member.organization.cost_visibility == OrganizationCostVisibility.ALL:
+        elif member.organization.cost_visibility == OrganizationCostVisibilityEnum.all:
             permissions.append("finance:view")
 
     return permissions

@@ -42,11 +42,13 @@ def handle_callback_and_get_user_info(state: str, authorization_response: str):
     )
     google_access_token = token["access_token"]
     google_refresh_token = token.get("refresh_token", None)
+    expires_in_seconds = token.get('expires_in', 3600)
     user_info = client.get(USERINFO_ENDPOINT).json()
     return {
         "email": user_info.get("email"),
         "name": user_info.get("name"),
         "photo_url": user_info.get('picture'),
-        "google_access_token": google_access_token,
-        "google_refresh_token": google_refresh_token,
+        "access_token": google_access_token,
+        "refresh_token": google_refresh_token,
+        "expires_in": expires_in_seconds,
     }

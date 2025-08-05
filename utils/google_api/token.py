@@ -12,5 +12,4 @@ def refresh_google_access_token(refresh_token: str) -> str:
 
     response = requests.post(url, data=payload)
     token_data = response.json()
-    if "access_token" in token_data:
-        return token_data["access_token"]
+    return token_data

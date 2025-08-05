@@ -4,8 +4,8 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationCostPeriod, OrganizationCostVisibility, \
-    OrganizationCostType
+from models import get_db, Organization, OrganizationMember, OrganizationCostPeriodEnum, OrganizationCostVisibilityEnum, \
+    OrganizationCostTypeEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization
@@ -33,9 +33,14 @@ class UpdateCostSettings(BaseModel):
 
     @field_validator("cost_period")
     def validate_cost_period(cls, value, info):
-        if info.data.get('cost_is_active') and value not in OrganizationCostPeriod.ALLOWED_PERIODS:
+        ALLOWED_PERIODS = [
+            OrganizationCostPeriodEnum.year,
+            OrganizationCostPeriodEnum.month,
+            OrganizationCostPeriodEnum.hour,
+        ]
+        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
             raise ValueError(
-                f"Invalid value for cost_period. Allowed values are: {', '.join(OrganizationCostPeriod.ALLOWED_PERIODS)}"
+                f"Invalid value for cost_period. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
             )
         if info.data.get('cost_is_active') is False and value is not None:
             raise ValueError("cost_period must be None when cost_is_active is False.")
@@ -43,9 +48,14 @@ class UpdateCostSettings(BaseModel):
 
     @field_validator("cost_visibility")
     def validate_cost_visibility(cls, value, info):
-        if info.data.get('cost_is_active') and value not in OrganizationCostVisibility.ALLOWED_PERIODS:
+        ALLOWED_PERIODS = [
+            OrganizationCostVisibilityEnum.owner,
+            OrganizationCostVisibilityEnum.manager,
+            OrganizationCostVisibilityEnum.all
+        ]
+        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
             raise ValueError(
-                f"Invalid value for cost_visibility. Allowed values are: {', '.join(OrganizationCostVisibility.ALLOWED_PERIODS)}"
+                f"Invalid value for cost_visibility. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
             )
         if info.data.get('cost_is_active') is False and value is not None:
             raise ValueError("cost_visibility must be None when cost_is_active is False.")
@@ -53,9 +63,13 @@ class UpdateCostSettings(BaseModel):
 
     @field_validator("cost_type")
     def validate_cost_type(cls, value, info):
-        if info.data.get('cost_is_active') and value not in OrganizationCostType.ALLOWED_PERIODS:
+        ALLOWED_PERIODS = [
+            OrganizationCostTypeEnum.per_member,
+            OrganizationCostTypeEnum.average,
+        ]
+        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
             raise ValueError(
-                f"Invalid value for cost_type. Allowed values are: {', '.join(OrganizationCostType.ALLOWED_PERIODS)}"
+                f"Invalid value for cost_type. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
             )
         if info.data.get('cost_is_active') is False and value is not None:
             raise ValueError("cost_type must be None when cost_is_active is False.")
@@ -63,7 +77,7 @@ class UpdateCostSettings(BaseModel):
 
     @field_validator("average_cost")
     def validate_average_cost(cls, value, info):
-        if info.data.get("cost_type") == OrganizationCostType.AVERAGE and value is None:
+        if info.data.get("cost_type") == OrganizationCostTypeEnum.average and value is None:
             raise ValueError("average_cost must not be None when cost_type is 'average'")
         return value
 
@@ -99,7 +113,7 @@ def update_settings_cost(
     auth_organization.cost_period = settings.cost_period
     auth_organization.cost_visibility = settings.cost_visibility
 
-    if settings.cost_type == OrganizationCostType.AVERAGE:
+    if settings.cost_type == OrganizationCostTypeEnum.average:
         hourly_cost = calculate_hourly_cost(settings.average_cost, auth_organization.cost_period)
         org_member_repository.update_member_cost(auth_organization.id, hourly_cost)
     elif auth_organization.cost_type != settings.cost_type:

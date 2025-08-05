@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 
 from models import get_db, Organization, OrganizationMember
 
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
+from models.repositories.organization_repository import OrganizationRepository, \
     OrganizationTeamRepository, OrganizationTeamMemberRepository
 
+from models.repositories.organization_member_repository import OrganizationMemberRepository
+
 from utils.middleware import get_auth_member, get_auth_organization
-from utils.google_api import get_calendar_events
-from utils.google_api import refresh_google_access_token
 
 from utils.analytics import group_events_by_date
 from utils.analytics.filters import filter_meetings, filter_active
@@ -38,14 +38,15 @@ from utils.analytics.calendar_stats import calculate_total_events_duration, calc
 
 from utils.permissions import member_has_permissions
 
+from utils.analytics.calendar_events import get_member_calendar_events
+
 router = APIRouter()
 
 
 def get_team_members(org_id, team_id, db: Session):
     if team_id is None:
         org_member_repository = OrganizationMemberRepository(db)
-        return [member for member in org_member_repository.find_by_organization_id(org_id)
-                if member.google_refresh_token and refresh_google_access_token(member.google_refresh_token)]
+        return org_member_repository.find_by_organization_id(org_id)
     else:
         org_team_repository = OrganizationTeamRepository(db)
 
@@ -55,28 +56,33 @@ def get_team_members(org_id, team_id, db: Session):
 
         org_team_member_repository = OrganizationTeamMemberRepository(db)
 
-        return [member for member in org_team_member_repository.find_by_team_id(team_id)
-                if member.google_refresh_token and refresh_google_access_token(member.google_refresh_token)]
+        return org_team_member_repository.find_by_team_id(team_id)
 
 
-def get_team_events(org_team_members, start_date, end_date):
-    events = []
+def flatten_team_events(team_events):
+    all_events = []
+    for member_data in team_events:
+        events = member_data.get("events", [])
+        all_events.extend(events)
+    return all_events
+
+
+def get_team_events(org_team_members, start_date, end_date, db, can_filter_filter_active=True):
+    res = []
     for member in org_team_members:
-        if member.google_refresh_token:
-            access_token = refresh_google_access_token(member.google_refresh_token)
-            calendar_events = get_calendar_events(access_token, start_date, end_date)
-            events += filter_active(filter_meetings(calendar_events), member.email)
-    return events
-
-
-def get_all_meetings(org_team_members, start_date, end_date):
-    events = []
-    for member in org_team_members:
-        if member.google_refresh_token:
-            access_token = refresh_google_access_token(member.google_refresh_token)
-            calendar_events = get_calendar_events(access_token, start_date, end_date)
-            events += filter_meetings(calendar_events)
-    return events
+        try:
+            calendar_events = get_member_calendar_events(member.member_id, start_date, end_date, db)
+            events = filter_meetings(calendar_events)
+            if can_filter_filter_active:
+                events = filter_active(events, member.email)
+            res.append({
+                "member_id": member.member_id,
+                "member_email": member.email,
+                "events": events,
+            })
+        except Exception as e:
+            continue
+    return res
 
 
 @router.get("/analytic/organization/meeting/kpi")
@@ -98,10 +104,12 @@ def get_team_kpi(
 
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+    team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
 
-    prev_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt)
+    prev_team_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
+    prev_events = flatten_team_events(prev_team_events)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
@@ -109,9 +117,9 @@ def get_team_kpi(
     kpis = [
         {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
         {"key": "meetings_time_ratio", "title": "Meetings time ratio",
-         **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
+         **kpi_meetings_ratio(events, prev_events, count_work_day, len(team_events))},
         {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
-         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
+         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(team_events))},
     ]
     if member_has_permissions(auth_member, 'finance:view', db):
         currency = None
@@ -155,7 +163,7 @@ async def get_team_meetings(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
     set_events = get_unique_events(events)
 
     if type == AnalyticsType.time:
@@ -192,7 +200,7 @@ def get_team_meeting_participants(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
 
     response = Diagram(
         items=events,
@@ -222,7 +230,7 @@ def get_team_meeting_distribution(
     org_members = org_member_repository.find_by_organization_id(org.id)
     org_team_members = get_team_members(org.id, team_id, db)
 
-    events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
     set_events = get_unique_events(events)
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
@@ -241,10 +249,10 @@ def get_team_meeting_distribution(
     }
 
 
-def get_personal_meetings(email: str, access_token, start_date_dt, end_date_dt):
-    calendar_events = get_calendar_events(access_token, start_date_dt, end_date_dt)
+def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
+    calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
     meetings = filter_meetings(calendar_events)
-    meetings = filter_active(meetings, email)
+    meetings = filter_active(meetings, member.email)
     return meetings
 
 
@@ -282,10 +290,9 @@ def get_team_productivity(
     org_team_members = get_team_members(org.id, team_id, db)
     data = []
     for member in org_team_members:
-        if member.google_refresh_token:
-            access_token = refresh_google_access_token(member.google_refresh_token)
-            events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
-            prev_events = get_personal_meetings(member.email, access_token, prev_start_date_dt, prev_end_date_dt)
+        try:
+            events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+            prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
 
             info = {
                 'id': member.id,
@@ -302,7 +309,8 @@ def get_team_productivity(
                 "prev_buffers": calculate_buffer_time(prev_events),
             }
             data.append(info)
-
+        except Exception as e:
+            continue
     def calculete(data, key):
         from utils.analytics.utils import calculate_chance
         from utils.analytics.constants import WORKDAY_HOURS
@@ -417,18 +425,21 @@ def get_team_meetings_table(
     if type == TableType.attendees:
         result = []
         for member in org_team_members:
-            access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
-            info = {
-                "id": member.id,
-                "name": member.name,
-                "email": member.email,
-                "member_photo_url": member.photo_url,
-                "time": calculate_total_events_duration(member_events),
-                "cost": calculate_total_events_cost(member_events, [member]),
-                "ratio": calculate_event_ratio(member_events, count_work_day)
-            }
-            result.append(info)
+            try:
+                member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                info = {
+                    "id": member.id,
+                    "name": member.name,
+                    "email": member.email,
+                    "member_photo_url": member.photo_url,
+                    "time": calculate_total_events_duration(member_events),
+                    "cost": calculate_total_events_cost(member_events, [member]),
+                    "ratio": calculate_event_ratio(member_events, count_work_day)
+                }
+                print(info)
+                result.append(info)
+            except Exception as e:
+                continue
         columns = [
             ("id", "id"),
             ("member_profile", "member_profile",
@@ -443,16 +454,18 @@ def get_team_meetings_table(
     elif type == TableType.organizers:
         result = []
         for member in org_team_members:
-            access_token = refresh_google_access_token(member.google_refresh_token)
-            member_events = get_personal_meetings(member.email, access_token, start_date_dt, end_date_dt)
-            info = {
-                "id": member.id,
-                "name": member.name,
-                "emai": member.email,
-                "photo_url": member.photo_url,
-                "count": count_user_organized_events(member_events, member.email),
-            }
-            result.append(info)
+            try:
+                member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                info = {
+                    "id": member.id,
+                    "name": member.name,
+                    "emai": member.email,
+                    "photo_url": member.photo_url,
+                    "count": count_user_organized_events(member_events, member.email),
+                }
+                result.append(info)
+            except Exception as e:
+                continue
 
         columns = [
             ("id", "id"),
@@ -462,7 +475,7 @@ def get_team_meetings_table(
             ("count", "count")
         ]
     elif type == TableType.teams_collab:
-        events = get_team_events(org_team_members, start_date_dt, end_date_dt)
+        events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
         result = process_teams_collab(get_unique_events(events), org.id, team_id, db)
 
         columns = [
@@ -476,7 +489,8 @@ def get_team_meetings_table(
         if member_has_permissions(auth_member, 'finance:view', db):
             columns.append(('collab_cost', 'collab_cost'))
     else:
-        events = get_all_meetings(org_team_members, start_date_dt, end_date_dt)
+        events = flatten_team_events(
+            get_team_events(org_team_members, start_date_dt, end_date_dt, db, can_filter_filter_active=False))
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),
