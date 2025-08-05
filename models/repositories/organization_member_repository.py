@@ -35,7 +35,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def find_by_email(self, email: str) -> OrganizationMember:
         return (
             self.session.query(OrganizationMember)
-            .filter(OrganizationMember.email == email)
+            .filter(OrganizationMember.email == email.lower())
             .first()
         )
 
