@@ -69,15 +69,17 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         if len(member_calendars) == 0:
             member_calendar = OrganizationMemberCalendar(
                 member_id=member.id,
+                access_token=user_info['access_token'],
+                refresh_token=user_info['refresh_token'],
+                access_token_expiry=datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
             )
-            member_calendar = member_calendar_repository.create(member_calendar)
+            member_calendar_repository.create(member_calendar)
         else:
             member_calendar = member_calendars[0]
-        member_calendar.access_token = user_info['access_token']
-        member_calendar.refresh_token = user_info['refresh_token']
-        member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
-
-        member_calendar_repository.update(member_calendar)
+            member_calendar.access_token = user_info['access_token']
+            member_calendar.refresh_token = user_info['refresh_token']
+            member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
+            member_calendar_repository.update(member_calendar)
 
         if member.status == OrganizationMemberStatusEnum.pending:
             is_new_user = True
