@@ -2,9 +2,9 @@ import requests
 from datetime import datetime
 
 
-def create_calendar_event(token: str, summary: str, start_time: datetime, end_time: datetime,
-                          calendar_id: str = "primary", time_zone: str = "UTC",
-                          description: str = "", location: str = "") -> dict:
+def create_google_calendar_event(token: str, summary: str, start_time: datetime, end_time: datetime,
+                                 calendar_id: str = "primary", time_zone: str = "UTC",
+                                 description: str = "", location: str = "") -> dict:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -33,7 +33,7 @@ def create_calendar_event(token: str, summary: str, start_time: datetime, end_ti
         raise Exception(f"Failed to create event: {response.status_code} - {response.text}")
 
 
-def update_calendar_event(
+def update_google_calendar_event(
         access_token: str,
         calendar_id: str,
         event_id: str,
@@ -62,7 +62,7 @@ def get_calendars_list(token: str) -> dict:
     return calendar_list
 
 
-def get_calendar_events(token: str, start_date: datetime, end_date: datetime, calendar_id: str = "primary") -> list:
+def get_google_calendar_events(token: str, start_date: datetime, end_date: datetime, calendar_id: str = "primary") -> list:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
     headers = {"Authorization": f"Bearer {token}"}
     params = {
@@ -80,7 +80,7 @@ def get_calendar_events(token: str, start_date: datetime, end_date: datetime, ca
     else:
         return []
 
-def get_calendar_event_info(token: str, event_id: str, calendar_id: str = "primary") -> dict | None:
+def get_google_calendar_event_info(token: str, event_id: str, calendar_id: str = "primary") -> dict | None:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events/{event_id}"
     headers = {
         "Authorization": f"Bearer {token}"
@@ -94,7 +94,7 @@ def get_calendar_event_info(token: str, event_id: str, calendar_id: str = "prima
         return None
 
 
-def get_calendar_timezone(token: str, calendar_id: str = "primary") -> str:
+def get_google_calendar_timezone(token: str, calendar_id: str = "primary") -> str:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}"
     headers = {
         "Authorization": f"Bearer {token}"

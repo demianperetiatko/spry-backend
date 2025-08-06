@@ -5,32 +5,30 @@ from pydantic import BaseModel, field_validator, model_validator
 from typing import List
 from models import get_db
 from models import OrganizationMember
-from utils.google_api import refresh_google_access_token
 
 from datetime import datetime, timedelta
 from utils.middleware import get_auth_member
-from utils.google_api import get_calendar_event_info
+
 from utils.analytics.filters import filter_meetings, filter_by_title
 from utils.send_message import send_agenda_request
 
-from utils.analytics.calendar_stats import count_events, calculate_total_events_duration
-from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, \
-    kpi_cancelled_meetings, kpi_count_meetings, kpi_meetings_ratio, kpi_deep_work_time
+from utils.analytics.kpi import kpi_total_time, kpi_count_meetings, kpi_deep_work_time
 
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
-
-from utils.google_api import create_calendar_event, update_calendar_event
 
 from utils import get_user_profile
 
 router = APIRouter()
 
-from utils.google_api.calendar_event import get_calendar_timezone
+from utils.google_api import refresh_google_access_token, get_google_calendar_timezone
 
 from utils.calendar.events import get_member_calendar_events
 from models.organization_member import CalendarTypeEnum
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+from utils.calendar.event import (create_calendar_event, update_calendar_event, get_calendar_event_info)
+
+
 def get_google_access_token(member: OrganizationMember, db):
     events = []
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
@@ -50,6 +48,8 @@ def get_google_access_token(member: OrganizationMember, db):
                 else:
                     raise ValueError(f"Failed to refresh access token")
             return access_token
+
+
 @router.get("/home/kpi")
 def get_user_kpi(
         auth_member: OrganizationMember = Depends(get_auth_member),
@@ -147,7 +147,7 @@ def get_deep_work_slot(
         db: Session = Depends(get_db)
 ):
     access_token = get_google_access_token(auth_member, db)
-    time_zone = get_calendar_timezone(access_token)
+    time_zone = get_google_calendar_timezone(access_token)
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
@@ -184,18 +184,16 @@ def post_deep_work_slots(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = get_google_access_token(auth_member, db)
-    time_zone = get_calendar_timezone(access_token)
-
+    calendar = auth_member.calendars[0]
     summary = "Deep Work Time"
     events = []
     for timeslot in timeslots:
         event = create_calendar_event(
-            token=access_token,
+            calendar,
             summary=summary,
-            start_time=timeslot.start_time,
-            end_time=timeslot.end_time,
-            time_zone=time_zone,
+            start_date=timeslot.start_time,
+            end_date=timeslot.end_time,
+            db=db
         )
         events.append(event)
 
@@ -208,7 +206,7 @@ def get_agenda_beta(
         db: Session = Depends(get_db)
 ):
     access_token = get_google_access_token(auth_member, db)
-    time_zone = get_calendar_timezone(access_token)
+    time_zone = get_google_calendar_timezone(access_token)
 
     agenda_repository = AgendaBetaRepository(db)
 
@@ -265,8 +263,9 @@ def notify_agenda_completed(
 
         return calendar_event_date, calendar_event_time
 
-    access_token = get_google_access_token(auth_member, db)
-    event = get_calendar_event_info(access_token, event_id)
+    calendar = auth_member.calendars[0]
+    event = get_calendar_event_info(calendar, event_id, db)
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -303,11 +302,5 @@ def add_agenda_description(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = get_google_access_token(auth_member, db)
-
-    updated_event = update_calendar_event(
-        access_token=access_token,
-        calendar_id="primary",
-        event_id=event_id,
-        description=data.description
-    )
+    calendar = auth_member.calendars[0]
+    update_calendar_event(calendar, event_id, data.description, db)
