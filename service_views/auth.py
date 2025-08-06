@@ -6,6 +6,7 @@ from starlette.responses import RedirectResponse
 
 from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum, \
     OrganizationMemberCalendar
+from models.organization_member import CalendarTypeEnum
 
 from models.repositories.organization_repository import OrganizationRepository
 from models.repositories.organization_member_repository import OrganizationMemberRepository, \
@@ -65,17 +66,22 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(f"{FRONTEND_DOMAIN}/user-not-found")
     else:
         is_new_user = False
-        member_calendars = member_calendar_repository.find_by_member_id(member.id)
-        if len(member_calendars) == 0:
+        member_calendar = member_calendar_repository.find_by_member_email_and_type(
+            member_id=member.id,
+            calendar_email=member.email,
+            calendar_type=CalendarTypeEnum.google
+        )
+        if not member_calendar:
             member_calendar = OrganizationMemberCalendar(
                 member_id=member.id,
+                calendar_email=member.email,
                 access_token=user_info['access_token'],
                 refresh_token=user_info['refresh_token'],
-                access_token_expiry=datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
+                access_token_expiry=datetime.utcnow() + timedelta(seconds=user_info['expires_in']),
+                type=CalendarTypeEnum.google,
             )
             member_calendar_repository.create(member_calendar)
         else:
-            member_calendar = member_calendars[0]
             member_calendar.access_token = user_info['access_token']
             member_calendar.refresh_token = user_info['refresh_token']
             member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info['expires_in'])

@@ -26,29 +26,12 @@ from utils.google_api import refresh_google_access_token, get_google_calendar_ti
 from utils.analytics.utils import get_member_calendar_events
 from models.organization_member import CalendarTypeEnum
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
-from utils.global_calendar_event import (create_calendar_event, update_calendar_event, get_calendar_event_info)
-
-
-def get_google_access_token(member: OrganizationMember, db):
-    events = []
-    member_calendar_repository = OrganizationMemberCalendarRepository(db)
-    calendars = member_calendar_repository.find_by_member_id(member.id)
-    for calendar in calendars:
-        if calendar.type == CalendarTypeEnum.google:
-            if calendar.access_token and calendar.access_token_expiry and calendar.access_token_expiry > datetime.utcnow():
-                access_token = calendar.access_token
-            else:
-                data = refresh_google_access_token(calendar.refresh_token)
-                if isinstance(data, dict) and 'access_token' in data:
-                    access_token = data['access_token']
-                    expires_in_seconds = data.get('expires_in', 3600)
-                    calendar.access_token = access_token
-                    calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=expires_in_seconds)
-                    member_calendar_repository.update(calendar)
-                else:
-                    raise ValueError(f"Failed to refresh access token")
-            return access_token
-
+from utils.global_calendar_event import (
+    create_calendar_event,
+    update_calendar_event,
+    get_calendar_event_info,
+    get_calendar_timezone
+)
 
 @router.get("/home/kpi")
 def get_user_kpi(
@@ -146,8 +129,14 @@ def get_deep_work_slot(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = get_google_access_token(auth_member, db)
-    time_zone = get_google_calendar_timezone(access_token)
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    calendar = member_calendar_repository.find_by_member_email_and_type(
+        member_id=auth_member.id,
+        calendar_email=auth_member.email,
+        calendar_type=CalendarTypeEnum.google
+    )
+    time_zone = get_calendar_timezone(calendar, db)
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
@@ -184,7 +173,14 @@ def post_deep_work_slots(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    calendar = auth_member.calendars[0]
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    calendar = member_calendar_repository.find_by_member_email_and_type(
+        member_id=auth_member.id,
+        calendar_email=auth_member.email,
+        calendar_type=CalendarTypeEnum.google
+    )
+
     summary = "Deep Work Time"
     events = []
     for timeslot in timeslots:
@@ -205,8 +201,14 @@ def get_agenda_beta(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    access_token = get_google_access_token(auth_member, db)
-    time_zone = get_google_calendar_timezone(access_token)
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    calendar = member_calendar_repository.find_by_member_email_and_type(
+        member_id=auth_member.id,
+        calendar_email=auth_member.email,
+        calendar_type=CalendarTypeEnum.google
+    )
+    time_zone = get_calendar_timezone(calendar, db)
 
     agenda_repository = AgendaBetaRepository(db)
 
@@ -263,7 +265,13 @@ def notify_agenda_completed(
 
         return calendar_event_date, calendar_event_time
 
-    calendar = auth_member.calendars[0]
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    calendar = member_calendar_repository.find_by_member_email_and_type(
+        member_id=auth_member.id,
+        calendar_email=auth_member.email,
+        calendar_type=CalendarTypeEnum.google
+    )
     event = get_calendar_event_info(calendar, event_id, db)
 
     if not event:
@@ -302,5 +310,10 @@ def add_agenda_description(
         auth_member: OrganizationMember = Depends(get_auth_member),
         db: Session = Depends(get_db)
 ):
-    calendar = auth_member.calendars[0]
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+    calendar = member_calendar_repository.find_by_member_email_and_type(
+        member_id=auth_member.id,
+        calendar_email=auth_member.email,
+        calendar_type=CalendarTypeEnum.google
+    )
     update_calendar_event(calendar, event_id, data.description, db)

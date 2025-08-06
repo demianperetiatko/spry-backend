@@ -45,6 +45,7 @@ class OrganizationMemberCalendar(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     member_id = Column(UUID(as_uuid=True), ForeignKey('organization_members.id'), nullable=False)
+    calendar_email = Column(String(100), nullable=True)
 
     type = Column(Enum(CalendarTypeEnum), nullable=False, default=CalendarTypeEnum.google)
 

@@ -2,6 +2,7 @@ from typing import Optional, List
 from models.repositories import BaseRepo
 from models import OrganizationMember, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 from models import OrganizationMemberCalendar
+from models.organization_member import CalendarTypeEnum
 
 
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
@@ -76,4 +77,20 @@ class OrganizationMemberCalendarRepository(BaseRepo[OrganizationMemberCalendar])
             self.session.query(OrganizationMemberCalendar)
             .filter(OrganizationMemberCalendar.member_id == member_id)
             .all()
+        )
+
+    def find_by_member_email_and_type(
+            self,
+            member_id: str,
+            calendar_email: str,
+            calendar_type: CalendarTypeEnum,
+    ) -> Optional[OrganizationMemberCalendar]:
+        return (
+            self.session.query(OrganizationMemberCalendar)
+            .filter(
+                OrganizationMemberCalendar.member_id == member_id,
+                OrganizationMemberCalendar.calendar_email == calendar_email,
+                OrganizationMemberCalendar.type == calendar_type,
+            )
+            .first()
         )

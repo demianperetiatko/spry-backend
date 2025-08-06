@@ -125,3 +125,25 @@ def get_calendar_events(
             else:
                 raise ValueError(f"Failed to refresh access token")
         return get_google_calendar_events(access_token, start_date, end_date)
+
+
+def get_calendar_timezone(
+        calendar: OrganizationMemberCalendar,
+        db: Session
+):
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    if calendar.type == CalendarTypeEnum.google:
+        if calendar.access_token and calendar.access_token_expiry and calendar.access_token_expiry > datetime.utcnow():
+            access_token = calendar.access_token
+        else:
+            data = refresh_google_access_token(calendar.refresh_token)
+            if isinstance(data, dict) and 'access_token' in data:
+                access_token = data['access_token']
+                expires_in_seconds = data.get('expires_in', 3600)
+                calendar.access_token = access_token
+                calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=expires_in_seconds)
+                member_calendar_repository.update(calendar)
+            else:
+                raise ValueError(f"Failed to refresh access token")
+        return get_google_calendar_timezone(access_token)
