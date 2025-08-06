@@ -49,6 +49,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.email,
                 OrganizationMember.hourly_cost,
                 OrganizationMember.status,
+                OrganizationMember.role,
             )
             .filter(OrganizationMember.organization_id == organization_id)
         )

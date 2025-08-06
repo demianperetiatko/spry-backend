@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum
+from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository, \
     OrganizationTeamMemberRepository
 
@@ -37,7 +37,13 @@ def get_member(
         ("photo_url", "photo_url"),
         ("email", "email"),
         ("status", "status", lambda i: i.status.lower()),
-        ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id))
+        ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id)),
+        ("role", "role", lambda i: [
+            role for role in [
+                "admin" if i.role == OrganizationMemberRoleEnum.owner else None,
+                "manager" if org_member_repository.is_manager_of_organization(i.id) else None
+            ] if role is not None
+        ]),
     ]
     if member_has_permissions(auth_member, 'finance:view', db):
         columns.append(
