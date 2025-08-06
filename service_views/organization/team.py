@@ -9,9 +9,9 @@ from models import Organization, OrganizationMember
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
 from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
-from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
+from models.repositories.organization_team_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
 
-from utils.middleware import get_auth_member, get_auth_organization
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
 from utils.table import DBTable
 
 router = APIRouter()
@@ -41,7 +41,8 @@ class TeamRequest(BaseModel):
     @model_validator(mode='before')
     def validate_manager(cls, values):
         team_members = values.get('team_members', [])
-        manager_count = sum(1 for member in team_members if member.get('type') == OrganizationTeamMemberTypeEnum.manager)
+        manager_count = sum(
+            1 for member in team_members if member.get('type') == OrganizationTeamMemberTypeEnum.manager)
 
         if manager_count != 1:
             raise ValueError(f"There must be exactly one member with type '{OrganizationTeamMemberTypeEnum.manager}'.")
@@ -53,7 +54,8 @@ class TeamRequest(BaseModel):
 def get_teams(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('teams:view')
 ):
     org_team_repository = OrganizationTeamRepository(db)
     org_team_member_repository = OrganizationTeamMemberRepository(db)
@@ -72,13 +74,13 @@ def get_teams(
     return DBTable(query_teams, columns).fetch_dicts()
 
 
-
 @router.get("/team/{team_id}")
 def get_team_by_id(
         team_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('teams:view')
 ):
     team_repository = OrganizationTeamRepository(db)
     team_member_repository = OrganizationTeamMemberRepository(db)
@@ -96,10 +98,10 @@ def create_team(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db),
+        _: None = require_permission('teams:create')
 ):
     org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
-
 
     team = OrganizationTeam(name=team_info.name, organization_id=auth_organization.id)
     team_repository.create(team)
@@ -120,6 +122,7 @@ def update_team(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db),
+        _: None = require_permission('teams:edit')
 ):
     team_repository = OrganizationTeamRepository(db)
     team_member_repository = OrganizationTeamMemberRepository(db)
@@ -143,12 +146,14 @@ def update_team(
 
     return {"message": "Team updated successfully"}
 
+
 @router.delete("/team/{team_id}")
 def delete_team(
         team_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('teams:delete')
 ):
     team_repository = OrganizationTeamRepository(db)
     team_member_repository = OrganizationTeamMemberRepository(db)

@@ -32,10 +32,9 @@ def get_auth_organization(
 
 def require_permission(required_permission: str):
     def permission_dependency(member: OrganizationMember = Depends(get_auth_member), db: Session = Depends(get_db)):
-        if member_has_permissions(member, required_permission, db):
+        if not member_has_permissions(member, required_permission, db):
             raise HTTPException(
                 status_code=403,
                 detail="You do not have permission to perform this action"
             )
-
-    return permission_dependency
+    return Depends(permission_dependency)

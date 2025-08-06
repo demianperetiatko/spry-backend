@@ -11,7 +11,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 
 from models.repositories.organization_member_repository import OrganizationMemberRepository
 
-from utils.middleware import get_auth_member, get_auth_organization
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
 
 from utils.analytics import group_events_by_date
 from utils.analytics.filters import filter_meetings, filter_active
@@ -92,7 +92,8 @@ def get_team_kpi(
         end_date: str = Query(...),
         auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-organization:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -157,7 +158,8 @@ async def get_team_meetings(
         end_date: str = Query(...),
         type: AnalyticsType = Query(AnalyticsType.time),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-organization:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -194,7 +196,8 @@ def get_team_meeting_participants(
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-organization:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -221,7 +224,8 @@ def get_team_meeting_distribution(
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-organization:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -275,7 +279,8 @@ def get_team_productivity(
         sort_by: SortBy = Query(SortBy.meetings_time),
         sort_order: SortOrderType = Query(SortOrderType.asc),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-organization:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -311,6 +316,7 @@ def get_team_productivity(
             data.append(info)
         except Exception as e:
             continue
+
     def calculete(data, key):
         from utils.analytics.utils import calculate_chance
         from utils.analytics.constants import WORKDAY_HOURS

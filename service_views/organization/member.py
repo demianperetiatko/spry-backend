@@ -11,7 +11,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
 from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationMemberRepository
 
-from utils.middleware import get_auth_member, get_auth_organization
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
 from utils.send_message import send_user_invitation
 from utils.table import DBTable
 from utils.cost import calculate_hourly_cost, calculate_total_cost
@@ -25,7 +25,8 @@ router = APIRouter()
 def get_member(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('members:view')
 ):
     org_team_repository = OrganizationTeamRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
@@ -57,7 +58,8 @@ def add_members_to_organization(
         member_info: MemberRequest,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('members:create')
 ):
     org_member_repository = OrganizationMemberRepository(db)
 
@@ -106,7 +108,8 @@ def update_member(
         update_member: UpdateMember,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('members:edit')
 ):
     org_member_repository = OrganizationMemberRepository(db)
     org_team_repository = OrganizationTeamRepository(db)
@@ -138,7 +141,8 @@ def delete_member_from_organization(
         member_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('members:delete')
 ):
     organization_member_repository = OrganizationMemberRepository(db)
 
@@ -166,7 +170,8 @@ def resend_invitation(
         member_id: str,
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('members:create')
 ):
     organization_member_repository = OrganizationMemberRepository(db)
     member = organization_member_repository.find_by_member_id(auth_organization.id, member_id)

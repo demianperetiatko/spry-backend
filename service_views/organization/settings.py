@@ -8,7 +8,7 @@ from models import get_db, Organization, OrganizationMember, OrganizationCostPer
     OrganizationCostTypeEnum
 from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from utils.middleware import get_auth_member, get_auth_organization
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
 
 from utils.cost import calculate_hourly_cost
 
@@ -86,7 +86,8 @@ class UpdateCostSettings(BaseModel):
 def get_settings_cost(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('meetings-costs:view')
 ):
     return {
         'cost_is_active': auth_organization.cost_is_active or False,
@@ -104,6 +105,7 @@ def update_settings_cost(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db),
+        _: None = require_permission('meetings-costs:view')
 ):
     org_repository = OrganizationRepository(db)
     org_member_repository = OrganizationMemberRepository(db)

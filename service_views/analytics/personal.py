@@ -9,7 +9,7 @@ from models.repositories.organization_repository import OrganizationRepository, 
 
 from models.repositories.organization_member_repository import OrganizationMemberRepository
 
-from utils.middleware import get_auth_member, get_auth_organization
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
 
 from utils.analytics import group_events_by_date, analyze_event_participants
 from utils.analytics.filters import filter_meetings, filter_active
@@ -44,6 +44,7 @@ from utils.permissions import member_has_permissions
 
 from utils.calendar.events import get_member_calendar_events
 
+
 def get_all_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
     try:
         calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
@@ -51,6 +52,7 @@ def get_all_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db)
         return meetings
     except Exception as e:
         return []
+
 
 def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
     try:
@@ -69,7 +71,8 @@ def get_personal_kpi(
         end_date: str = Query(...),
         auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -124,7 +127,8 @@ def get_personal_meetings_chart(
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -156,7 +160,8 @@ def get_personal_meeting_participants(
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -187,7 +192,8 @@ def get_personal_meeting_distribution(
         start_date: str = Query(...),
         end_date: str = Query(...),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -231,7 +237,8 @@ def get_personal_productivity(
         end_date: str = Query(...),
 
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
@@ -340,7 +347,8 @@ def get_personal_table(
         type: TableType = Query(TableType.collaboration),
         auth_member: OrganizationMember = Depends(get_auth_member),
         org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        _: None = require_permission('analytics-members:view')
 ):
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
