@@ -21,17 +21,12 @@ from utils import get_user_profile
 
 router = APIRouter()
 
-from utils.google_api import refresh_google_access_token, get_google_calendar_timezone
-
 from utils.analytics.utils import get_member_calendar_events
 from models.organization_member import CalendarTypeEnum
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
-from utils.global_calendar_event import (
-    create_calendar_event,
-    update_calendar_event,
-    get_calendar_event_info,
-    get_calendar_timezone
-)
+
+from utils.calendar.factory import CalendarHandlerFactory
+
 
 @router.get("/home/kpi")
 def get_user_kpi(
@@ -136,7 +131,8 @@ def get_deep_work_slot(
         calendar_email=auth_member.email,
         calendar_type=CalendarTypeEnum.google
     )
-    time_zone = get_calendar_timezone(calendar, db)
+    calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
+    time_zone = calendar_handler.get_timezone()
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
@@ -183,13 +179,12 @@ def post_deep_work_slots(
 
     summary = "Deep Work Time"
     events = []
+    calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
     for timeslot in timeslots:
-        event = create_calendar_event(
-            calendar,
+        event = calendar_handler.create_event(
             summary=summary,
             start_date=timeslot.start_time,
             end_date=timeslot.end_time,
-            db=db
         )
         events.append(event)
 
@@ -208,7 +203,8 @@ def get_agenda_beta(
         calendar_email=auth_member.email,
         calendar_type=CalendarTypeEnum.google
     )
-    time_zone = get_calendar_timezone(calendar, db)
+    calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
+    time_zone = calendar_handler.get_timezone()
 
     agenda_repository = AgendaBetaRepository(db)
 
@@ -272,7 +268,8 @@ def notify_agenda_completed(
         calendar_email=auth_member.email,
         calendar_type=CalendarTypeEnum.google
     )
-    event = get_calendar_event_info(calendar, event_id, db)
+    calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
+    event = calendar_handler.get_event_info(event_id)
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -316,4 +313,5 @@ def add_agenda_description(
         calendar_email=auth_member.email,
         calendar_type=CalendarTypeEnum.google
     )
-    update_calendar_event(calendar, event_id, data.description, db)
+    calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
+    return calendar_handler.update_event(event_id, data.description)

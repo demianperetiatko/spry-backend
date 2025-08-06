@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
-from utils.global_calendar_event import get_calendar_events
+from utils.calendar.factory import CalendarHandlerFactory
 
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
 
@@ -34,5 +34,6 @@ def get_member_calendar_events(member_id: str, start_date: datetime, end_date: d
     if len(calendars) == 0:
         raise ValueError("No calendar events found.")
     for calendar in calendars:
-        events.extend(get_calendar_events(calendar, start_date, end_date, db))
+        handler = CalendarHandlerFactory.get_handler(calendar, db)
+        events.extend(handler.get_events(start_date, end_date))
     return events
