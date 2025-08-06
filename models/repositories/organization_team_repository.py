@@ -44,6 +44,7 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             self.session.query(
                 OrganizationTeam.id.label("team_id"),
                 OrganizationTeam.name.label("team_name"),
+                OrganizationTeamMember.member_id.label("manager_id"),
                 (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager).label("is_manager"),
             )
             .join(OrganizationTeamMember, OrganizationTeam.id == OrganizationTeamMember.team_id)
