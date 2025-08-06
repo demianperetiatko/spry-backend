@@ -42,7 +42,7 @@ from utils.analytics.constants import WORKDAY_HOURS
 
 from utils.permissions import member_has_permissions
 
-from utils.analytics.calendar_events import get_member_calendar_events
+from utils.calendar.events import get_member_calendar_events
 
 def get_all_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
     try:

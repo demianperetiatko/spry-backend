@@ -28,7 +28,7 @@ router = APIRouter()
 
 from utils.google_api.calendar_event import get_calendar_timezone
 
-from utils.analytics.calendar_events import get_member_calendar_events
+from utils.calendar.events import get_member_calendar_events
 from models.organization_member import CalendarTypeEnum
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
 def get_google_access_token(member: OrganizationMember, db):

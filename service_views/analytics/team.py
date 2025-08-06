@@ -38,7 +38,7 @@ from utils.analytics.calendar_stats import calculate_total_events_duration, calc
 
 from utils.permissions import member_has_permissions
 
-from utils.analytics.calendar_events import get_member_calendar_events
+from utils.calendar.events import get_member_calendar_events
 
 router = APIRouter()
 
