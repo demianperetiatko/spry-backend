@@ -35,14 +35,17 @@ from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
-from utils.analytics.calendar_stats import calculate_total_events_duration, calculate_buffer_time, \
-    calculate_transition_time, calculate_deep_work_time
-from utils.analytics.utils import calculate_chance
-from utils.analytics.constants import WORKDAY_HOURS
 
 from utils.permissions import member_has_permissions
 
 from utils.analytics.utils import get_member_calendar_events
+
+from utils.analytics.kpi import (
+    kpi_total_time_percent,
+    kpi_deep_work_time_percent,
+    kpi_buffers_time_percent,
+    kpi_transition_time_percent
+)
 
 
 def get_all_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
@@ -258,69 +261,13 @@ def get_personal_productivity(
 
     prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
 
-    def get_meetings_time():
-        total_time = calculate_total_events_duration(events)
-        prev_total_time = calculate_total_events_duration(prev_events)
-
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        change = calculate_chance(percent_of_day, prev_percent_of_day)
-
-        return {
-            "value": percent_of_day,
-            "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": change >= 0
-        }
-
-    def get_buffers_time():
-        total_time = calculate_buffer_time(events)
-        prev_total_time = calculate_buffer_time(prev_events)
-
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        change = calculate_chance(percent_of_day, prev_percent_of_day)
-
-        return {
-            "value": percent_of_day,
-            "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": change >= 0
-        }
-
-    def get_deep_work_time():
-        total_time = calculate_deep_work_time(events, count_work_day)
-        prev_total_time = calculate_deep_work_time(prev_events, count_work_day)
-
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        change = calculate_chance(percent_of_day, prev_percent_of_day)
-
-        return {
-            "value": percent_of_day,
-            "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": change >= 0
-        }
-
-    def get_transition_time():
-        total_time = calculate_transition_time(events)
-        prev_total_time = calculate_transition_time(prev_events)
-
-        percent_of_day = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        prev_percent_of_day = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
-        change = calculate_chance(percent_of_day, prev_percent_of_day)
-
-        return {
-            "value": percent_of_day,
-            "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": change >= 0
-        }
-
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Time on meetings", lambda i: get_meetings_time()),
-            ("deep_work", " Deep work", lambda i: get_deep_work_time()),
-            ("transition_time", "Transition time", lambda i: get_transition_time()),
-            ("buffers", "Buffers", lambda i: get_buffers_time()),
+            ("meetings_time", "Time on meetings", lambda i: kpi_total_time_percent(events, prev_events, count_work_day)),
+            ("deep_work", " Deep work", lambda i: kpi_deep_work_time_percent(events, prev_events, count_work_day)),
+            ("transition_time", "Transition time", lambda i: kpi_transition_time_percent(events, prev_events, count_work_day)),
+            ("buffers", "Buffers", lambda i: kpi_buffers_time_percent(events, prev_events, count_work_day)),
         ]
     )
 

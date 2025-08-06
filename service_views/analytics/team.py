@@ -40,6 +40,13 @@ from utils.permissions import member_has_permissions
 
 from utils.analytics.utils import get_member_calendar_events
 
+from utils.analytics.kpi import (
+    kpi_total_time_percent,
+    kpi_deep_work_time_percent,
+    kpi_buffers_time_percent,
+    kpi_transition_time_percent
+)
+
 router = APIRouter()
 
 
@@ -293,11 +300,16 @@ def get_team_productivity(
     prev_end_date_dt = end_date_dt - delta
 
     org_team_members = get_team_members(org.id, team_id, db)
+    all_events = []
+    prev_all_events = []
     data = []
     for member in org_team_members:
         try:
             events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+            all_events.extend(events)
+
             prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
+            prev_all_events.extend(prev_events)
 
             info = {
                 'id': member.id,
@@ -317,23 +329,15 @@ def get_team_productivity(
         except Exception as e:
             continue
 
-    def calculete(data, key):
-        from utils.analytics.utils import calculate_chance
-        from utils.analytics.constants import WORKDAY_HOURS
-        kpi = sum([info[key] for info in data])
-        prev_kpi = sum([info[f'prev_{key}'] for info in data])
-        percent_of_day = 0
-        change = 0
-        if len(data) != 0:
-            percent_of_day = round((kpi / (count_work_day * WORKDAY_HOURS * len(data))) * 100)
-            prev_percent_of_day = round((prev_kpi / (count_work_day * WORKDAY_HOURS * len(data))) * 100)
-            change = calculate_chance(percent_of_day, prev_percent_of_day)
-
-        return {
-            "value": percent_of_day,
-            "change": f"{'+' if change >= 0 else ''}{change}%",
-            "positive": change >= 0
-        }
+    productivity = Diagram(
+        items=[],
+        metrics=[
+            ("meetings_time", "Time on meetings", lambda i: kpi_total_time_percent(all_events, prev_all_events, count_work_day)),
+            ("deep_work", " Deep work", lambda i: kpi_deep_work_time_percent(all_events, prev_all_events, count_work_day)),
+            ("transition_time", "Transition time", lambda i: kpi_transition_time_percent(all_events, prev_all_events, count_work_day)),
+            ("buffers", "Buffers", lambda i: kpi_buffers_time_percent(all_events, prev_all_events, count_work_day)),
+        ]
+    )
 
     def calculate_percent(data, key):
         from utils.analytics.constants import WORKDAY_HOURS
@@ -342,15 +346,6 @@ def get_team_productivity(
             return 0
         return round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
 
-    productivity = Diagram(
-        items=data,
-        metrics=[
-            ("meetings_time", "Time on meetings", lambda i: calculete(i, "meetings_time")),
-            ("deep_work", "Deep work", lambda i: calculete(i, "deep_work")),
-            ("transition_time", "Transition time", lambda i: calculete(i, "transition_time")),
-            ("buffers", "Buffers", lambda i: calculete(i, "buffers")),
-        ]
-    )
 
     if list_type == ListType.teams:
         help_data = []

@@ -1,10 +1,9 @@
-from datetime import datetime
-
+from .constants import WORKDAY_HOURS
 from utils.analytics.utils import calculate_chance
 from utils.analytics.calendar_stats import calculate_total_events_duration, count_cancelled_events, count_events, \
     calculate_event_ratio, calculate_avg_daily_meetings_hour, calculate_total_events_cost, \
     count_events_without_description, \
-    calculate_deep_work_time
+    calculate_deep_work_time, calculate_buffer_time, calculate_transition_time
 
 
 def kpi_total_time(events: list, prev_events: list) -> dict:
@@ -18,6 +17,7 @@ def kpi_total_time(events: list, prev_events: list) -> dict:
         "positive": False if change > 0 else True,
         "type_value": 'time',
     }
+
 
 def kpi_avg_daily_meetings_time(events: list, prev_events: list, count_work_day: int, count_people: int = 1) -> dict:
     avg_daily_meetings_time = calculate_avg_daily_meetings_hour(events, count_work_day * count_people)
@@ -135,4 +135,70 @@ def kpi_deep_work_time(events: list, prev_events: list, count_work_day) -> dict:
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": True if change > 0 else False,
         "type_value": 'time',
+    }
+
+
+def kpi_total_time_percent(events: list, prev_events: list, count_work_day: int) -> dict:
+    total_time = calculate_total_events_duration(events)
+    prev_total_time = calculate_total_events_duration(prev_events)
+
+    percent = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+    prev_percent = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+
+    change = calculate_chance(percent, prev_percent)
+    return {
+        "value": percent,
+        "change": f"{'+' if change >= 0 else ''}{change}%",
+        "positive": False if change > 0 else True,
+        "type_value": 'percent',
+    }
+
+
+def kpi_deep_work_time_percent(events: list, prev_events: list, count_work_day: int) -> dict:
+    total_time = calculate_deep_work_time(events, count_work_day)
+    prev_total_time = calculate_deep_work_time(prev_events, count_work_day)
+
+    percent = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+    prev_percent = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+
+    change = calculate_chance(percent, prev_percent)
+    return {
+        "value": percent,
+        "change": f"{'+' if change >= 0 else ''}{change}%",
+        "positive": True if change > 0 else False,
+        "type_value": 'percent',
+    }
+
+
+def kpi_buffers_time_percent(events: list, prev_events: list, count_work_day: int) -> dict:
+    total_time = calculate_buffer_time(events)
+    prev_total_time = calculate_buffer_time(prev_events)
+
+    percent = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+    prev_percent = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+
+    change = calculate_chance(percent, prev_percent)
+
+    return {
+        "value": percent,
+        "change": f"{'+' if change >= 0 else ''}{change}%",
+        "positive": False if change > 0 else True,
+        "type_value": 'percent',
+    }
+
+
+def kpi_transition_time_percent(events: list, prev_events: list, count_work_day: int) -> dict:
+    total_time = calculate_transition_time(events)
+    prev_total_time = calculate_transition_time(prev_events)
+
+    percent = round((total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+    prev_percent = round((prev_total_time / (count_work_day * WORKDAY_HOURS)) * 100)
+
+    change = calculate_chance(percent, prev_percent)
+
+    return {
+        "value": percent,
+        "change": f"{'+' if change >= 0 else ''}{change}%",
+        "positive": False if change > 0 else True,
+        "type_value": 'percent',
     }
