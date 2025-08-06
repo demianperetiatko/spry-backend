@@ -87,7 +87,8 @@ def get_settings_cost(
         auth_member: OrganizationMember = Depends(get_auth_member),
         auth_organization: Organization = Depends(get_auth_organization),
         db: Session = Depends(get_db),
-        _: None = require_permission('meetings-costs:view')
+        # TODO: move currency to /auth
+        # _: None = require_permission('meetings-costs:view')
 ):
     return {
         'cost_is_active': auth_organization.cost_is_active or False,
