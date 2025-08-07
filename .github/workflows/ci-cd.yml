@@ -26,18 +26,22 @@ jobs:
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
           echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> $GITHUB_ENV
-          echo "SPRY_DEMO1_576_JSON=${{ secrets.SPRY_DEMO1_576_JSON }}" >> $GITHUB_ENV
+          echo "DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR=${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR }}" >> $GITHUB_ENV
+
+      - name: Write service demo account files
+        run: |
+          mkdir -p demo_account_key
+          echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON }}' > demo_google_account_service_key/spry_demo1_576.json
 
       - name: Prepare app.yaml
         run: |
-          ESCAPED_SPRY_JSON=$(echo "${{ secrets.SPRY_DEMO1_576_JSON }}" | sed -e 's/"/\\"/g' -e 's/[\/&|]/\\&/g')
-
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV }}|g" app.yaml
           sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
           sed -i "s|\${SENDGRID_API_KEY}|${{ secrets.SENDGRID_API_KEY }}|g" app.yaml
-          sed -i "s|\${SPRY_DEMO1_576_JSON}|\"$ESCAPED_SPRY_JSON\"|g" app.yaml
+          sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR }}|g" app.yaml
+
       - name: Deploy to App Engine
         run: gcloud app deploy --quiet
