@@ -19,7 +19,7 @@ class OrganizationCostVisibilityEnum(str, enum.Enum):
 
 class OrganizationCostTypeEnum(str, enum.Enum):
     per_member = "per_member"
-    average = "per_member"
+    average = "average"
 
 
 class Organization(Base):
