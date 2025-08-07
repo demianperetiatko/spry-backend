@@ -26,7 +26,6 @@ jobs:
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
           echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> $GITHUB_ENV
-          echo "SPRY_DEMO1_576_JSON=${{ secrets.SPRY_DEMO1_576_JSON }}" >> $GITHUB_ENV
 
       - name: Prepare app.yaml
         run: |
