@@ -37,7 +37,7 @@ class GoogleCalendarHandler(BaseCalendarHandler):
         self.repo.update(self.calendar)
         return self.calendar.access_token
 
-    def create_event(self, summary, start_date, end_date, description, location):
+    def create_event(self, summary, start_date, end_date, description="", location=""):
         time_zone = get_google_calendar_timezone(self.access_token)
         return create_google_calendar_event(
             access_token=self.access_token,
