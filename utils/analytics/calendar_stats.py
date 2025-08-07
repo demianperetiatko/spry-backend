@@ -22,11 +22,11 @@ def get_unique_events(events: List[Dict]) -> List[Dict]:
 
 def event_duration(event: Dict) -> float:
     total_seconds = 0
-    start_str = event.get("start", {}).get("dateTime")
-    end_str = event.get("end", {}).get("dateTime")
+    start_str = event.get("start", {}).get("dateTime", "")
+    end_str = event.get("end", {}).get("dateTime", "")
     if start_str and end_str:
-        start_time = datetime.fromisoformat(start_str)
-        end_time = datetime.fromisoformat(end_str)
+        start_time = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+        end_time = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
         total_seconds += (end_time - start_time).total_seconds()
     return total_seconds / 3600
 

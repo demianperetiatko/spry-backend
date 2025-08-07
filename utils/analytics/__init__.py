@@ -13,8 +13,8 @@ def get_events_for_day(events, date):
     events_for_day = []
     for event in events:
         if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
-            event_start = datetime.fromisoformat(event['start']['dateTime'])
-            event_end = datetime.fromisoformat(event['end']['dateTime'])
+            event_start = datetime.fromisoformat(event['start']['dateTime'].replace("Z", "+00:00"))
+            event_end = datetime.fromisoformat(event['end']['dateTime'].replace("Z", "+00:00"))
             if event_start.date() == date.date() or event_end.date() == date.date():
                 events_for_day.append(event)
         if 'date' in event.get('start', {}) and 'date' in event.get('end', {}):
