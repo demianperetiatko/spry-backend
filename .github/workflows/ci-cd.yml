@@ -30,7 +30,7 @@ jobs:
 
       - name: Write service demo account files
         run: |
-          mkdir -p demo_account_key
+          mkdir -p demo_google_account_service_key
           echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON }}' > demo_google_account_service_key/spry_demo1_576.json
 
       - name: Prepare app.yaml
