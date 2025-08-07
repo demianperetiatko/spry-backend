@@ -38,6 +38,8 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
             return self.calendar.access_token
 
         env_var_name = self._get_env_var_name_from_email(self.calendar.calendar_email)
+        print("env_var_name", env_var_name)
+        print("env_var_name_val",os.environ.get(env_var_name))
         if env_var_name not in os.environ:
             raise EnvironmentError(f"Missing service account JSON in env: {env_var_name}")
 
