@@ -23,7 +23,11 @@ class GoogleCalendarHandler(BaseCalendarHandler):
         self.access_token = self._get_valid_access_token()
 
     def _get_valid_access_token(self) -> str:
-        if self.calendar.access_token and self.calendar.access_token_expiry > datetime.utcnow():
+        if (
+            self.calendar.access_token
+            and self.calendar.access_token_expiry is not None
+            and self.calendar.access_token_expiry > datetime.utcnow()
+        ):
             return self.calendar.access_token
         data = refresh_google_access_token(self.calendar.refresh_token)
         if not isinstance(data, dict) or 'access_token' not in data:
