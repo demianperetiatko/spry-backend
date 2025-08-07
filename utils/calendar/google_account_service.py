@@ -37,17 +37,13 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
         ):
             return self.calendar.access_token
 
-        env_var_name = self._get_env_var_name_from_email(self.calendar.calendar_email)
-        print("env_var_name", env_var_name)
-        print("env_var_name_val",os.environ.get(env_var_name))
-        if env_var_name not in os.environ:
-            raise EnvironmentError(f"Missing service account JSON in env: {env_var_name}")
+        credentials_path = self._get_credentials_path_from_email(self.calendar.calendar_email)
+        if not os.path.exists(credentials_path):
+            raise FileNotFoundError(f"Service account file not found at: {credentials_path}")
 
-        service_account_json = os.environ[env_var_name]
-        service_account_info = json.loads(service_account_json)
-
-        credentials = service_account.Credentials.from_service_account_info(
-            service_account_info, scopes=SCOPES
+        credentials = service_account.Credentials.from_service_account_file(
+            credentials_path,
+            scopes=SCOPES
         )
         auth_req = google.auth.transport.requests.Request()
         credentials.refresh(auth_req)
@@ -58,10 +54,12 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
 
         return self.calendar.access_token
 
-    def _get_env_var_name_from_email(self, email: str) -> str:
+    def _get_credentials_path_from_email(self, email: str) -> str:
         prefix = email.split('@')[0]
-        clean = prefix.replace('.', '_').replace("-","_")
-        return f"SPRY_{clean.upper()}_JSON"
+        safe_name = prefix.replace('-', '_').replace('.', '_')
+        filename = f"spry_{safe_name}.json"
+        directory = os.getenv("GOOGLE_ACCOUNT_DIR", "demo_google_account_service_key")
+        return os.path.join(directory, filename)
 
     def create_event(self, summary, start_date, end_date, description="", location=""):
         time_zone = get_google_calendar_timezone(self.access_token)
