@@ -82,6 +82,17 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
             OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager
         ).first() is not None
 
+    def is_editor_manager_in_target_teams(self, editor_id: str, target_id: str) -> bool:
+        return self.session.query(OrganizationTeamMember).filter(
+            OrganizationTeamMember.member_id == editor_id,
+            OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager,
+            OrganizationTeamMember.team_id.in_(
+                self.session.query(OrganizationTeamMember.team_id).filter(
+                    OrganizationTeamMember.member_id == target_id
+                )
+            )
+        ).first() is not None
+
     def delete_all_team_member(self, team_id) -> None:
         self.session.query(OrganizationTeamMember).filter(
             OrganizationTeamMember.team_id == team_id
