@@ -89,10 +89,32 @@ def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> 
         }
 
 
-def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, currency) -> dict:
+def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, count_work_day, currency) -> dict:
     if currency:
-        total_cost = calculate_total_events_cost(events, members) / len(members)
-        prev_total_cost = calculate_total_events_cost(prev_events, members) / len(members)
+        total_cost = calculate_total_events_cost(events, members) / (len(members) * count_work_day)
+        prev_total_cost = calculate_total_events_cost(prev_events, members) / (len(members) * count_work_day)
+
+        change = calculate_chance(total_cost, prev_total_cost)
+
+        return {
+            "value": total_cost,
+            "change": f"{'+' if change >= 0 else ''}{change}%",
+            "positive": False if change > 0 else True,
+            "type_value": 'currency',
+        }
+    else:
+        return {
+            "value": None,
+            "change": None,
+            "positive": None,
+            "type_value": 'currency',
+        }
+
+
+def kpi_avg_member_meetings_cost(events: list, prev_events: list, members: list, currency) -> dict:
+    if currency:
+        total_cost = calculate_total_events_cost(events, members) / (len(members))
+        prev_total_cost = calculate_total_events_cost(prev_events, members) / (len(members))
 
         change = calculate_chance(total_cost, prev_total_cost)
 

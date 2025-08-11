@@ -35,7 +35,6 @@ from datetime import datetime, timedelta
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
-
 from utils.permissions import member_has_permissions
 
 from utils.analytics.utils import get_member_calendar_events
@@ -112,7 +111,7 @@ def get_personal_kpi(
             {"key": "total_meetings_cost", "title": "Total meetings cost",
              **kpi_total_cost(set_events, set_prev_events, [member], currency)},
             {"key": "avg_daily_meetings_cost", "title": "Avg. daily meetings cost",
-             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member], currency)},
+             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, [member], count_work_day, currency)},
         ])
     kpis.extend([
         {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
@@ -264,9 +263,11 @@ def get_personal_productivity(
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Time on meetings", lambda i: kpi_total_time_percent(events, prev_events, count_work_day)),
+            (
+            "meetings_time", "Time on meetings", lambda i: kpi_total_time_percent(events, prev_events, count_work_day)),
             ("deep_work", " Deep work", lambda i: kpi_deep_work_time_percent(events, prev_events, count_work_day)),
-            ("transition_time", "Transition time", lambda i: kpi_transition_time_percent(events, prev_events, count_work_day)),
+            ("transition_time", "Transition time",
+             lambda i: kpi_transition_time_percent(events, prev_events, count_work_day)),
             ("buffers", "Buffers", lambda i: kpi_buffers_time_percent(events, prev_events, count_work_day)),
         ]
     )

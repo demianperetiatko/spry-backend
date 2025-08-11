@@ -25,7 +25,7 @@ from utils.analytics.calendar_stats import calculate_event_ratio, calculate_tota
 from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
     percent_events_with_more_than_5_attendees, calculate_total_events_cost
 from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
-    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description
+    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description, kpi_avg_member_meetings_cost
 from utils.analytics.utils import count_weekdays
 from utils.analytics.calendar_stats import get_unique_events
 
@@ -122,12 +122,15 @@ def get_team_kpi(
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
+    members_with_events_ids = {event['member_id'] for event in team_events}
+    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
+
     kpis = [
         {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
         {"key": "meetings_time_ratio", "title": "Meetings time ratio",
-         **kpi_meetings_ratio(events, prev_events, count_work_day, len(team_events))},
+         **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
         {"key": "avg_daily_meetings_time", "title": "Avg. time per member",
-         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(team_events))},
+         **kpi_avg_daily_meetings_time(events, prev_events, count_work_day, len(org_team_members))},
     ]
     if member_has_permissions(auth_member, 'finance:view', db):
         currency = None
@@ -137,7 +140,7 @@ def get_team_kpi(
             {"key": "total_meetings_cost", "title": "Total meetings cost",
              **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
             {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
-             **kpi_avg_daily_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
+             **kpi_avg_member_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
         ])
     kpis.extend([
         {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
@@ -172,8 +175,12 @@ async def get_team_meetings(
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
+    team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
+
+    members_with_events_ids = {event['member_id'] for event in team_events}
+    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
 
     if type == AnalyticsType.time:
         response = Chart(
@@ -240,9 +247,13 @@ def get_team_meeting_distribution(
 
     org_members = org_member_repository.find_by_organization_id(org.id)
     org_team_members = get_team_members(org.id, team_id, db)
-
-    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
+    team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
+
+    members_with_events_ids = {event['member_id'] for event in team_events}
+    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
+
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
 
@@ -332,9 +343,12 @@ def get_team_productivity(
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Time on meetings", lambda i: kpi_total_time_percent(all_events, prev_all_events, count_work_day)),
-            ("deep_work", " Deep work", lambda i: kpi_deep_work_time_percent(all_events, prev_all_events, count_work_day)),
-            ("transition_time", "Transition time", lambda i: kpi_transition_time_percent(all_events, prev_all_events, count_work_day)),
+            ("meetings_time", "Time on meetings",
+             lambda i: kpi_total_time_percent(all_events, prev_all_events, count_work_day)),
+            ("deep_work", " Deep work",
+             lambda i: kpi_deep_work_time_percent(all_events, prev_all_events, count_work_day)),
+            ("transition_time", "Transition time",
+             lambda i: kpi_transition_time_percent(all_events, prev_all_events, count_work_day)),
             ("buffers", "Buffers", lambda i: kpi_buffers_time_percent(all_events, prev_all_events, count_work_day)),
         ]
     )
@@ -345,7 +359,6 @@ def get_team_productivity(
         if count_work_day == 0:
             return 0
         return round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
-
 
     if list_type == ListType.teams:
         help_data = []
@@ -437,7 +450,6 @@ def get_team_meetings_table(
                     "cost": calculate_total_events_cost(member_events, [member]),
                     "ratio": calculate_event_ratio(member_events, count_work_day)
                 }
-                print(info)
                 result.append(info)
             except Exception as e:
                 continue
@@ -490,8 +502,10 @@ def get_team_meetings_table(
         if member_has_permissions(auth_member, 'finance:view', db):
             columns.append(('collab_cost', 'collab_cost'))
     else:
-        events = flatten_team_events(
-            get_team_events(org_team_members, start_date_dt, end_date_dt, db, can_filter_filter_active=False))
+        team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db, can_filter_filter_active=False)
+        events = flatten_team_events(team_events)
+        members_with_events_ids = {event['member_id'] for event in team_events}
+        org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),
