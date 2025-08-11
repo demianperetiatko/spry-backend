@@ -25,7 +25,7 @@ class OrganizationRepository(BaseRepo[Organization]):
 
     def is_user_owner_of_organization(self, user_id: str) -> bool:
         res = self.session.query(OrganizationMember).filter(OrganizationMember.id == user_id).filter(
-            OrganizationMember.role == OrganizationMemberRoleEnum.owner).first()
+            OrganizationMember.role == OrganizationMemberRoleEnum.admin).first()
         return True if res else False
 
     def is_user_manager_of_organization(self, email: str) -> bool:

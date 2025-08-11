@@ -40,7 +40,7 @@ def get_member(
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id)),
         ("role", "role", lambda i: [
             role for role in [
-                "admin" if i.role == OrganizationMemberRoleEnum.owner else None,
+                "admin" if i.role == OrganizationMemberRoleEnum.admin else None,
                 "manager" if org_member_repository.is_manager_of_organization(i.id) else None
             ] if role is not None
         ]),

@@ -11,7 +11,7 @@ def get_member_permissions(member: OrganizationMember, db):
 
     permissions = []
     # members
-    if member.role == OrganizationMemberRoleEnum.owner:
+    if member.role == OrganizationMemberRoleEnum.admin:
         permissions.extend([
             "members:view",
             "members:create",
@@ -27,7 +27,7 @@ def get_member_permissions(member: OrganizationMember, db):
         permissions.append("members:view")
 
     # team
-    if member.role == OrganizationMemberRoleEnum.owner:
+    if member.role == OrganizationMemberRoleEnum.admin:
         permissions.extend([
             "teams:view",
             "teams:create",
@@ -43,7 +43,7 @@ def get_member_permissions(member: OrganizationMember, db):
         permissions.append("teams:view")
 
     # meetings-costs
-    if member.role == OrganizationMemberRoleEnum.owner:
+    if member.role == OrganizationMemberRoleEnum.admin:
         permissions.append("meetings-costs:view")
 
     # analytics
@@ -53,7 +53,7 @@ def get_member_permissions(member: OrganizationMember, db):
     ])
 
     # finance:view
-    if member.role == OrganizationMemberRoleEnum.owner:
+    if member.role == OrganizationMemberRoleEnum.admin:
         permissions.append("finance:view")
     elif member.organization.cost_is_active == True:
         if (member.organization.cost_visibility == OrganizationCostVisibilityEnum.manager

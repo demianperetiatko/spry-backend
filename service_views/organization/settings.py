@@ -49,7 +49,7 @@ class UpdateCostSettings(BaseModel):
     @field_validator("cost_visibility")
     def validate_cost_visibility(cls, value, info):
         ALLOWED_PERIODS = [
-            OrganizationCostVisibilityEnum.owner,
+            OrganizationCostVisibilityEnum.admin,
             OrganizationCostVisibilityEnum.manager,
             OrganizationCostVisibilityEnum.all
         ]

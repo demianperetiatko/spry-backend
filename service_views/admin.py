@@ -40,7 +40,7 @@ def admin_add_organization(
     org_repository.create(new_org)
     new_member = OrganizationMember(
         email=request.email,
-        role=OrganizationMemberRoleEnum.owner,
+        role=OrganizationMemberRoleEnum.admin,
         status=OrganizationMemberStatusEnum.pending,
         organization=new_org
     )
