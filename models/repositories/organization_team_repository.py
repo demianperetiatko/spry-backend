@@ -75,6 +75,13 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
     def find_by_team_id(self, team_id):
         return self.query_find_by_team_id(team_id).all()
 
+    def is_member_manager(self, team_id: str, member_id: str) -> bool:
+        return self.session.query(OrganizationTeamMember).filter(
+            OrganizationTeamMember.team_id == team_id,
+            OrganizationTeamMember.member_id == member_id,
+            OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager
+        ).first() is not None
+
     def delete_all_team_member(self, team_id) -> None:
         self.session.query(OrganizationTeamMember).filter(
             OrganizationTeamMember.team_id == team_id

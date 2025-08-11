@@ -5,11 +5,12 @@ from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from models import get_db
-from models import Organization, OrganizationMember
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
 
-from models import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
-from models.repositories.organization_team_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
+from models.organization import Organization
+from models.organization_member import OrganizationMember, OrganizationMemberRoleEnum
+from models.organization_team import OrganizationTeam, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
+from models.repositories.organization_team_repository import OrganizationTeamRepository, \
+    OrganizationTeamMemberRepository
 
 from utils.middleware import get_auth_member, get_auth_organization, require_permission
 from utils.table import DBTable
@@ -100,7 +101,6 @@ def create_team(
         db: Session = Depends(get_db),
         _: None = require_permission('teams:create')
 ):
-    org_repository = OrganizationRepository(db)
     team_repository = OrganizationTeamRepository(db)
 
     team = OrganizationTeam(name=team_info.name, organization_id=auth_organization.id)
@@ -113,6 +113,15 @@ def create_team(
             type=member_info.type,
         )
         team_repository.create(team_member)
+
+
+def can_member_edit_team(team: OrganizationTeam, member: OrganizationMember, db: Session):
+    if member.role == OrganizationMemberRoleEnum.admin:
+        return True
+    team_member_rep = OrganizationTeamMemberRepository(db)
+    if team_member_rep.is_member_manager(team.id, member.id):
+        return True
+    return False
 
 
 @router.put("/team/{team_id}")
@@ -130,6 +139,12 @@ def update_team(
     team = team_repository.find_by_team_id(auth_organization.id, team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
+
+    if not can_member_edit_team(team, auth_member, db):
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to perform this action"
+        )
 
     team.name = team_info.name
     team_repository.update(team)
