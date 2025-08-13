@@ -123,8 +123,9 @@ def get_team_kpi(
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
     members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
-
+    print(org_team_members)
+    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
+    print(org_team_members)
     kpis = [
         {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
         {"key": "meetings_time_ratio", "title": "Meetings time ratio",
@@ -180,7 +181,7 @@ async def get_team_meetings(
     set_events = get_unique_events(events)
 
     members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
+    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
 
     if type == AnalyticsType.time:
         response = Chart(
@@ -252,7 +253,7 @@ def get_team_meeting_distribution(
     set_events = get_unique_events(events)
 
     members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
+    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
 
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
@@ -505,7 +506,7 @@ def get_team_meetings_table(
         team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db, can_filter_filter_active=False)
         events = flatten_team_events(team_events)
         members_with_events_ids = {event['member_id'] for event in team_events}
-        org_team_members = [m for m in org_team_members if m.id in members_with_events_ids]
+        org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),
