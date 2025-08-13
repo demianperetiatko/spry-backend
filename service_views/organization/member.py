@@ -40,7 +40,7 @@ def get_member(
         ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id)),
         ("role", "role", lambda i: [
             role for role in [
-                "admin" if i.role == OrganizationMemberRoleEnum.owner else None,
+                "admin" if i.role == OrganizationMemberRoleEnum.admin else None,
                 "manager" if org_member_repository.is_manager_of_organization(i.id) else None
             ] if role is not None
         ]),
@@ -48,7 +48,8 @@ def get_member(
     if member_has_permissions(auth_member, 'finance:view', db):
         columns.append(
             ("cost", "cost",
-             lambda i: calculate_total_cost(float(i.hourly_cost), auth_organization.cost_period) if i.hourly_cost else None)
+             lambda i: calculate_total_cost(float(i.hourly_cost),
+                                            auth_organization.cost_period) if i.hourly_cost else None)
         )
 
     query_members = org_member_repository.query_find_by_organization_id(auth_member.organization_id)
@@ -108,6 +109,15 @@ class UpdateMember(BaseModel):
     teams: Optional[List[UpdateTeamMember]]
 
 
+def can_member_edit_member(editor: OrganizationMember, target: OrganizationMember, db: Session) -> bool:
+    org_team_member_repository = OrganizationTeamMemberRepository(db)
+    if editor.role == OrganizationMemberRoleEnum.admin:
+        return True
+    if org_team_member_repository.is_editor_manager_in_target_teams(editor.id, target.id):
+        return True
+    return False
+
+
 @router.put("/member/{member_id}/")
 def update_member(
         member_id: str,
@@ -122,6 +132,16 @@ def update_member(
     org_team_member_repository = OrganizationTeamMemberRepository(db)
 
     member = org_member_repository.find_by_id(member_id)
+
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if not can_member_edit_member(auth_member, member, db):
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to perform this action"
+        )
+
     hourly_cost = None
     if update_member.cost:
         hourly_cost = calculate_hourly_cost(update_member.cost, auth_organization.cost_period)

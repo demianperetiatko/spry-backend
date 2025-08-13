@@ -90,7 +90,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         if member.status == OrganizationMemberStatusEnum.pending:
             is_new_user = True
             member.name = user_info.get('name')
-            member.photo_url = user_info.get('picture')
+            member.photo_url = user_info.get('photo_url')
             member.status = OrganizationMemberStatusEnum.active
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)
@@ -107,7 +107,7 @@ async def logout(request: Request):
 async def delete_user(request: Request, member: OrganizationMember = Depends(get_auth_member),
                       db: Session = Depends(get_db)):
     request.session.clear()
-    if member.role == OrganizationMemberRoleEnum.owner:
+    if member.role == OrganizationMemberRoleEnum.admin:
         return {
             "status": "error",
         }

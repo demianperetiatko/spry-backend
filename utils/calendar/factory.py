@@ -13,6 +13,6 @@ class CalendarHandlerFactory:
     def get_handler(calendar: OrganizationMemberCalendar, db: Session) -> BaseCalendarHandler:
         if calendar.type == CalendarTypeEnum.google:
             return GoogleAccountCalendarHandler(calendar, db)
-        elif calendar.type == CalendarTypeEnum.google_services:
+        elif calendar.type == CalendarTypeEnum.google_service:
             return GoogleAccountServiceCalendarHandler(calendar, db)
         raise NotImplementedError(f"Calendar type {calendar.type} not supported")

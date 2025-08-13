@@ -13,7 +13,7 @@ class OrganizationCostPeriodEnum(str, enum.Enum):
     hour = "hour"
 
 class OrganizationCostVisibilityEnum(str, enum.Enum):
-    owner = "owner"
+    admin = "admin"
     manager = "manager"
     all = "all"
 

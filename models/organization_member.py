@@ -13,7 +13,7 @@ class OrganizationMemberStatusEnum(str, enum.Enum):
     pending = "pending"
 
 class OrganizationMemberRoleEnum(str, enum.Enum):
-    owner = "owner"
+    admin = "admin"
     member = "member"
 
 
@@ -37,7 +37,7 @@ class OrganizationMember(Base):
 
 class CalendarTypeEnum(str, enum.Enum):
     google = "google"
-    google_services = "google_services"
+    google_service = "google_service"
 
 
 class OrganizationMemberCalendar(Base):
