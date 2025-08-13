@@ -30,7 +30,7 @@ async def auth(
     def get_user_type(user, db):
         organization_repository = OrganizationRepository(db)
         if organization_repository.is_user_owner_of_organization(user.id):
-            return "owner"
+            return "admin"
         elif organization_repository.is_user_manager_of_organization(user.email):
             return "manager"
         return "member"
