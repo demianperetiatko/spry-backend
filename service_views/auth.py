@@ -14,6 +14,7 @@ from models.repositories.organization_member_repository import OrganizationMembe
 from utils.google_api import create_google_login_uri, handle_callback_and_get_user_info
 from utils.middleware import get_auth_member
 from utils.permissions import get_member_permissions
+from utils.gcp.bucket import upload_file_from_url
 
 router = APIRouter(
     prefix='/auth',
@@ -90,7 +91,7 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         if member.status == OrganizationMemberStatusEnum.pending:
             is_new_user = True
             member.name = user_info.get('name')
-            member.photo_url = user_info.get('photo_url')
+            member.photo_url = upload_file_from_url(user_info.get('photo_url'))
             member.status = OrganizationMemberStatusEnum.active
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)

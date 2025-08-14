@@ -6,6 +6,7 @@ from models import get_db, OrganizationMember
 from models.repositories.organization_repository import OrganizationMemberRepository
 
 from utils.middleware import get_auth_member
+from utils.gcp.bucket import upload_file
 
 router = APIRouter()
 
@@ -24,4 +25,6 @@ def update_profile(
 ):
     org_member_repository = OrganizationMemberRepository(db)
     member.name = name
+    if photo_file:
+        member.photo_url = upload_file(photo_file, filename=str(member.id))
     updated_user = org_member_repository.update(member)
