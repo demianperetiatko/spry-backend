@@ -38,6 +38,7 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
             return self.calendar.access_token
 
         credentials_path = self._get_credentials_path_from_email(self.calendar.calendar_email)
+        print(credentials_path)
         if not os.path.exists(credentials_path):
             raise FileNotFoundError(f"Service account file not found at: {credentials_path}")
 
