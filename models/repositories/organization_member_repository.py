@@ -53,6 +53,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.role,
             )
             .filter(OrganizationMember.organization_id == organization_id)
+            .order_by(OrganizationMember.email)
         )
 
     def find_by_organization_id(self, organization_id):
