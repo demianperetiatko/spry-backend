@@ -59,7 +59,7 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
         prefix = email.split('@')[0]
         safe_name = prefix.replace('-', '_').replace('.', '_')
         filename = f"spry_{safe_name}.json"
-        directory = os.getenv("GOOGLE_ACCOUNT_DIR", "demo_google_account_service_key")
+        directory = os.getenv("DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER", "demo_google_account_service_key")
         return os.path.join(directory, filename)
 
     def create_event(self, summary, start_date, end_date, description="", location=""):

@@ -163,3 +163,5 @@ cython_debug/
 data/
 
 demo_google_account_service_key/
+
+gcp-spry-backend-prod.json

@@ -16,6 +16,7 @@ services:
     volumes:
       - .:/code
       - ./demo_google_account_service_key:/code/demo_google_account_service_key
+      - ./gcp-spry-backend-prod.json:/code/gcp-spry-backend-prod.json
     ports:
       - "8000:8000"
     env_file:

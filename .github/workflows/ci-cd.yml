@@ -26,12 +26,28 @@ jobs:
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
           echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> $GITHUB_ENV
-          echo "DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR=${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR }}" >> $GITHUB_ENV
+          echo "DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER=${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}" >> $GITHUB_ENV
+          echo "GCP_SERVICE_KEY_PATH=${{ secrets.GCP_SERVICE_KEY_PATH }}" >> $GITHUB_ENV
+          echo "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }}" >> $GITHUB_ENV
+      
 
       - name: Write service demo account files
         run: |
-          mkdir -p demo_google_account_service_key
-          echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON }}' > demo_google_account_service_key/spry_demo1_576.json
+          mkdir -p "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}"
+          echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo1_576.json"
+          echo '${{ secrets.GCP_SPRY_DEMO2_619_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo2_619.json"
+          echo '${{ secrets.GCP_SPRY_DEMO3_675_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo3_675.json"
+          echo '${{ secrets.GCP_SPRY_DEMO4_832_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo4_832.json"
+          echo '${{ secrets.GCP_SPRY_DEMO5_483_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo5_483.json"
+          echo '${{ secrets.GCP_SPRY_DEMO6_150_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo6_150.json"
+          echo '${{ secrets.GCP_SPRY_DEMO7_895_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo7_895.json"
+          echo '${{ secrets.GCP_SPRY_DEMO8_455_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo8_455.json"
+          echo '${{ secrets.GCP_SPRY_DEMO9_606_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo9_606.json"
+          echo '${{ secrets.GCP_SPRY_DEMO10_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo10.json"
+
+      - name: Write GCP account files
+        run: |
+          echo '${{ secrets.GCP_SERVICE_KEY_JSON }}' > "${{ secrets.GCP_SERVICE_KEY_PATH }}"
 
       - name: Prepare app.yaml
         run: |
@@ -41,7 +57,9 @@ jobs:
           sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
           sed -i "s|\${SENDGRID_API_KEY}|${{ secrets.SENDGRID_API_KEY }}|g" app.yaml
-          sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_KEY_DIR }}|g" app.yaml
+          sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}|g" app.yaml
+          sed -i "s|\${GCP_SERVICE_KEY_PATH}|${{ secrets.GCP_SERVICE_KEY_PATH }}|g" app.yaml
+          sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME }}|g" app.yaml
 
       - name: Deploy to App Engine
         run: gcloud app deploy --quiet
