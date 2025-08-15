@@ -1,6 +1,5 @@
 import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import requests
 from jinja2 import Template
 from premailer import transform
 
@@ -20,19 +19,52 @@ def inline_styles(html: str) -> str:
     return transform(html)
 
 
-def send_email(to_email: str, subject: str, html_content: str, from_email: str = 'hello@spryplan.com'):
+def send_email(to_address: str,
+               subject: str,
+               html_content: str,
+               from_address: str = "notifications@spryplan.com",
+               reply_tos: list = None):
     try:
         inlined_html = inline_styles(html_content)
-        message = Mail(
-            from_email=from_email,
-            to_emails=to_email,
-            subject=subject,
-            html_content=inlined_html
+        payload = {
+            "Messages": [
+                {
+                    "From": {
+                        "Email": from_address,
+                        "Name": 'Spry Plan'
+                    },
+                    "To": [
+                        {
+                            "Email": to_address,
+                            "Name": to_address.split("@")[0]
+                        }
+                    ],
+                    "Subject": subject,
+                    "HTMLPart": inlined_html,
+                    "TextPart": ""  # Optional plain text version
+                }
+            ]
+        }
+
+        if reply_tos:
+            payload["Messages"][0]["ReplyTo"] = {
+                "Email": reply_tos[0],
+                "Name": reply_tos[0].split("@")[0]
+            }
+
+        response = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            auth=(os.getenv("MAILJET_API_KEY"), os.getenv("MAILJET_SECRET_KEY")),
+            json=payload
         )
-        sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
-        sg.send(message)
+
+        if response.status_code == 200:
+            message_id = response.json()['Messages'][0]['To'][0]['MessageUUID']
+            return message_id
+        else:
+            raise Exception("Email sending failed")
     except Exception as e:
-        print("Send Email (SendGridAPIClient):", e)
+        raise e
 
 
 def send_user_invitation(email: str, administrator_name: str = '', organisation_name: str = ''):
@@ -43,7 +75,7 @@ def send_user_invitation(email: str, administrator_name: str = '', organisation_
     })
 
     send_email(
-        to_email=email,
+        to_address=email,
         subject="✨ You’re Invited to Spry! ✨",
         html_content=html_content
     )
@@ -64,7 +96,7 @@ def send_agenda_request(email: str,
         "calendar_event_link": calendar_event_link
     })
     send_email(
-        to_email=email,
+        to_address=email,
         subject="📄 Request of agenda for upcoming meeting",
         html_content=html_content
     )
@@ -74,7 +106,7 @@ def send_admin_invitation(email: str):
     raw_template = read_template("emails/admin_invitation.html")
     html_content = render_template(raw_template, {})
     send_email(
-        to_email=email,
+        to_address=email,
         subject="🚀 You’re the first admin for your organization on Spry!",
         html_content=html_content
     )

@@ -25,7 +25,8 @@ jobs:
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
           echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
-          echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> $GITHUB_ENV
+          echo "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY }}" >> $GITHUB_ENV
+          echo "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY }}" >> $GITHUB_ENV
           echo "DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER=${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}" >> $GITHUB_ENV
           echo "GCP_SERVICE_KEY_PATH=${{ secrets.GCP_SERVICE_KEY_PATH }}" >> $GITHUB_ENV
           echo "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }}" >> $GITHUB_ENV
@@ -56,7 +57,8 @@ jobs:
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
-          sed -i "s|\${SENDGRID_API_KEY}|${{ secrets.SENDGRID_API_KEY }}|g" app.yaml
+          sed -i "s|\${MAILJET_API_KEY}|${{ secrets.MAILJET_API_KEY}}|g" app.yaml
+          sed -i "s|\${MAILJET_SECRET_KEY}|${{ secrets.MAILJET_SECRET_KEY }}|g" app.yaml
           sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}|g" app.yaml
           sed -i "s|\${GCP_SERVICE_KEY_PATH}|${{ secrets.GCP_SERVICE_KEY_PATH }}|g" app.yaml
           sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME }}|g" app.yaml
