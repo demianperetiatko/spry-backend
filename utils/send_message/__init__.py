@@ -22,7 +22,7 @@ def inline_styles(html: str) -> str:
 def send_email(to_address: str,
                subject: str,
                html_content: str,
-               from_address: str = "hello@spryplan.com",
+               from_address: str = "notifications@spryplan.com",
                reply_tos: list = None):
     try:
         inlined_html = inline_styles(html_content)
@@ -31,7 +31,7 @@ def send_email(to_address: str,
                 {
                     "From": {
                         "Email": from_address,
-                        "Name": from_address.split("@")[0]
+                        "Name": 'Spry Plan'
                     },
                     "To": [
                         {
