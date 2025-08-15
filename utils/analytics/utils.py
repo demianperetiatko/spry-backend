@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Tuple
 from sqlalchemy.orm import Session
 
 from utils.calendar.factory import CalendarHandlerFactory
@@ -25,6 +26,24 @@ def calculate_chance(new, old):
         else:
             return -100
     return round(((new - old) / old) * 100)
+
+
+def get_periods(start_date_str: str, end_date_str: str) -> Tuple[Tuple[datetime, datetime], Tuple[datetime, datetime]]:
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+    current_start = datetime.combine(start_date.date(), datetime.min.time())
+    current_end = datetime.combine(end_date.date(), datetime.max.time())
+
+    delta = current_end - current_start
+
+    prev_end = current_start - timedelta(days=1)
+    prev_start = prev_end - delta
+
+    prev_start = datetime.combine(prev_start.date(), datetime.min.time())
+    prev_end = datetime.combine(prev_end.date(), datetime.max.time())
+
+    return (current_start, current_end), (prev_start, prev_end)
 
 
 def get_member_calendar_events(member_id: str, start_date: datetime, end_date: datetime, db: Session):
