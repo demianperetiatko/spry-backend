@@ -294,15 +294,8 @@ def get_team_productivity(
         db: Session = Depends(get_db),
         _: None = require_permission('analytics-organization:view')
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-
+    (start_date_dt, end_date_dt), (prev_start_date_dt, prev_end_date_dt) = get_periods(start_date, end_date)
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
-
-    delta = end_date_dt - start_date_dt
-
-    prev_start_date_dt = start_date_dt - delta
-    prev_end_date_dt = end_date_dt - delta
 
     org_team_members = get_team_members(org.id, team_id, db)
     all_events = []
