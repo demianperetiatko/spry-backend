@@ -59,15 +59,11 @@ def send_email(to_address: str,
         )
 
         if response.status_code == 200:
-            print(response.json())
             message_id = response.json()['Messages'][0]['To'][0]['MessageUUID']
-            print(f"Sent mail {message_id} from {from_address} to {to_address}.")
             return message_id
         else:
-            print(f"Failed to send email: {response.status_code}, {response.text}")
             raise Exception("Email sending failed")
     except Exception as e:
-        print(f"Couldn't send mail from {from_address} to {to_address}: {e}")
         raise e
 
 
