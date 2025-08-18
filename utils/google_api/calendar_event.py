@@ -1,11 +1,20 @@
 import requests
 from datetime import datetime
 
-
-def create_google_calendar_event(access_token: str, summary: str, start_time: datetime, end_time: datetime,
-                                 calendar_id: str = "primary", time_zone: str = "UTC",
-                                 description: str = "", location: str = "") -> dict:
-    url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
+def create_google_calendar_event(
+    access_token: str,
+    summary: str,
+    start_time: datetime,
+    end_time: datetime,
+    calendar_id: str = "primary",
+    time_zone: str = "UTC",
+    description: str = "",
+    location: str = "",
+    attendees: list[str] | None = None,
+    recurrence: list[str] | None = None,
+    create_google_meet: bool = False
+) -> dict:
+    url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events?conferenceDataVersion=1"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -22,15 +31,30 @@ def create_google_calendar_event(access_token: str, summary: str, start_time: da
         "end": {
             "dateTime": end_time.isoformat(),
             "timeZone": time_zone
-        }
+        },
     }
+
+    if attendees:
+        event_data["attendees"] = [{"email": email} for email in attendees]
+
+    if recurrence:
+        event_data["recurrence"] = recurrence
+
+    if create_google_meet:
+        event_data["conferenceData"] = {
+            "createRequest": {
+                "requestId": f"meet-{datetime.utcnow().timestamp()}",
+                "conferenceSolutionKey": {"type": "hangoutsMeet"}
+            }
+        }
 
     response = requests.post(url, headers=headers, json=event_data)
 
-    if response.status_code == 200 or response.status_code == 201:
+    if response.status_code in (200, 201):
         return response.json()
     else:
         raise Exception(f"Failed to create event: {response.status_code} - {response.text}")
+
 
 
 def update_google_calendar_event(
