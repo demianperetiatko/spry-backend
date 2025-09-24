@@ -372,6 +372,7 @@ def get_team_productivity(
         columns = [
             ("id", "id"),
             ("name", "name"),
+            ('meeting_hours', 'meeting_hours', lambda i: i.get('meetings_time', 0)),
             ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
             ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
             ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
@@ -384,6 +385,7 @@ def get_team_productivity(
             ("member_profile", "member_profile",
              lambda i: {"name": i.get("name", " "), "email": i.get("email"),
                         "photo_url": i.get("member_photo_url")}),
+            ('meeting_hours', 'meeting_hours', lambda i: i.get('meetings_time', 0)),
             ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
             ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
             ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
