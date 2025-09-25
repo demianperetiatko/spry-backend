@@ -196,7 +196,8 @@ def calculate_buffer_time(events: List[Dict]) -> float:
     for start, end in event_times[1:]:
         gap_hours = (start - current_block_end).total_seconds() / 3600
         if gap_hours < 2 * BUFFER_PER_SIDE_HOURS:
-            extra_gap_time += gap_hours
+            if gap_hours > 0:
+                extra_gap_time += gap_hours
             if end > current_block_end:
                 current_block_end = end
         else:
