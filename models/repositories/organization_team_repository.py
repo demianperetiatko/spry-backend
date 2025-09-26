@@ -22,10 +22,16 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
                 OrganizationMember.name.label("manager_name"),
                 OrganizationMember.photo_url.label("manager_photo"),
             )
-            .join(OrganizationTeamMember, OrganizationTeamMember.team_id == OrganizationTeam.id)
-            .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
+            .outerjoin(
+                OrganizationTeamMember,
+                (OrganizationTeamMember.team_id == OrganizationTeam.id) &
+                (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
+            )
+            .outerjoin(
+                OrganizationMember,
+                OrganizationMember.id == OrganizationTeamMember.member_id
+            )
             .filter(OrganizationTeam.organization_id == organization_id)
-            .filter(OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
         )
 
     def find_by_organization_id(self, organization_id):
