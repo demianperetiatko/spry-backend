@@ -51,7 +51,7 @@ from utils.analytics.utils import get_periods
 router = APIRouter()
 
 
-def get_team_members(org_id, team_id, db: Session):
+def get_team_members(org_id, team_id, db: Session): # todo: fix
     if team_id is None:
         org_member_repository = OrganizationMemberRepository(db)
         return org_member_repository.find_by_organization_id(org_id)
@@ -266,7 +266,11 @@ def get_team_meeting_distribution(
 
 
 def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
-    calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
+    if hasattr(member, 'member_id'):  # quick fix: member.id contains OrganizationTeamMember.id if team_id is not None (func get_team_members)
+        member_id = member.member_id
+    else:
+        member_id = member.id
+    calendar_events = get_member_calendar_events(member_id, start_date_dt, end_date_dt, db)
     meetings = filter_meetings(calendar_events)
     meetings = filter_active(meetings, member.email)
     return meetings
