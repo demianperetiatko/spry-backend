@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from models import OrganizationMember
 from models import get_db
-from models.repositories.organization_repository import OrganizationMemberRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 from utils.gcp.bucket import upload_file
 from utils.middleware import get_auth_member
 

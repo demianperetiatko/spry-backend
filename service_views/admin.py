@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 
 from models import Organization
 from models import OrganizationMember
+from models import OrganizationMemberStatusEnum
 from models import get_db
 from models.repositories.organization_member_repository import OrganizationMemberRepository
 from models.repositories.organization_repository import OrganizationMemberRoleEnum
-from models.repositories.organization_repository import OrganizationMemberStatusEnum
 from models.repositories.organization_repository import OrganizationRepository
 from utils.send_message import send_admin_invitation
 

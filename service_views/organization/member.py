@@ -16,9 +16,9 @@ from models import OrganizationMemberStatusEnum
 from models import OrganizationTeamMember
 from models import OrganizationTeamMemberTypeEnum
 from models import get_db
-from models.repositories.organization_repository import OrganizationMemberRepository
-from models.repositories.organization_repository import OrganizationTeamMemberRepository
-from models.repositories.organization_repository import OrganizationTeamRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
+from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
+from models.repositories.organization_team_repository import OrganizationTeamRepository
 from utils.cost import calculate_hourly_cost
 from utils.cost import calculate_total_cost
 from utils.middleware import get_auth_member

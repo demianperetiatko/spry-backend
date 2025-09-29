@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import Dict
 from typing import List
 
-from models.repositories.organization_repository import OrganizationTeamMemberRepository
-from models.repositories.organization_repository import OrganizationTeamRepository
+from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
+from models.repositories.organization_team_repository import OrganizationTeamRepository
 from utils.analytics.calendar_stats import calculate_recurring_events_cost
 from utils.analytics.calendar_stats import calculate_recurring_events_duration
 from utils.analytics.calendar_stats import calculate_total_events_cost

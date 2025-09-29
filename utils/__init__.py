@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from models.repositories.organization_repository import OrganizationMemberRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 
 
 def get_user_profile(email: str, db: Session):

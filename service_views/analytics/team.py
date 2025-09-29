@@ -11,8 +11,8 @@ from models import Organization
 from models import OrganizationMember
 from models import get_db
 from models.repositories.organization_member_repository import OrganizationMemberRepository
-from models.repositories.organization_repository import OrganizationTeamMemberRepository
-from models.repositories.organization_repository import OrganizationTeamRepository
+from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
+from models.repositories.organization_team_repository import OrganizationTeamRepository
 from utils.analytics import group_events_by_date
 from utils.analytics.calendar_stats import calculate_buffer_time
 from utils.analytics.calendar_stats import calculate_event_ratio

@@ -1,7 +1,7 @@
 from models import OrganizationCostVisibilityEnum
 from models import OrganizationMember
 from models import OrganizationMemberRoleEnum
-from models.repositories.organization_repository import OrganizationMemberRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 
 
 def get_member_permissions(member: OrganizationMember, db):

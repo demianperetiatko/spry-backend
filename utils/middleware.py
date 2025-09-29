@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from models import OrganizationMember
 from models import get_db
-from models.repositories.organization_repository import OrganizationMemberRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 from models.repositories.organization_repository import OrganizationRepository
 from utils.permissions import member_has_permissions
 

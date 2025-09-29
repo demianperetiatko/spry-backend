@@ -12,7 +12,7 @@ from models import OrganizationCostTypeEnum
 from models import OrganizationCostVisibilityEnum
 from models import OrganizationMember
 from models import get_db
-from models.repositories.organization_repository import OrganizationMemberRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 from models.repositories.organization_repository import OrganizationRepository
 from utils.cost import calculate_hourly_cost
 from utils.middleware import get_auth_member
