@@ -177,10 +177,6 @@ def delete_member_from_organization(
     if not member or member.organization_id != auth_organization.id:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    db.query(OrganizationTeamMember).filter(
-        OrganizationTeamMember.member_id == member_id
-    ).delete(synchronize_session=False)
-    db.commit()
     organization_member_repository.delete(member)
 
 

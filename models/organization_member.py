@@ -33,6 +33,7 @@ class OrganizationMember(Base):
     organization = relationship("Organization", back_populates="members")
     calendars = relationship("OrganizationMemberCalendar", back_populates="member", cascade='all, delete-orphan')
     teams = relationship("OrganizationTeamMember", back_populates="member", cascade='all, delete-orphan')
+    agenda_items = relationship("AgendaBeta", back_populates="member", cascade='all, delete-orphan')
 
 
 class CalendarTypeEnum(str, enum.Enum):
