@@ -1,10 +1,18 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 
 
 class BaseCalendarHandler(ABC):
     @abstractmethod
-    def create_event(self, summary: str, start_date: datetime, end_date: datetime, description: str = "", location: str = ""):
+    def create_event(
+        self,
+        summary: str,
+        start_date: datetime,
+        end_date: datetime,
+        description: str = "",
+        location: str = "",
+    ):
         pass
 
     @abstractmethod

@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from typing import Tuple
+
 from sqlalchemy.orm import Session
 
-from utils.calendar.factory import CalendarHandlerFactory
-
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+from utils.calendar.factory import CalendarHandlerFactory
 
 
 def count_weekdays(start, end):

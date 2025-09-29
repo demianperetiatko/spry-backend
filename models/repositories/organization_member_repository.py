@@ -1,8 +1,12 @@
-from typing import Optional, List
-from models.repositories import BaseRepo
-from models import OrganizationMember, OrganizationTeamMember, OrganizationTeamMemberTypeEnum
+from typing import List
+from typing import Optional
+
+from models import OrganizationMember
 from models import OrganizationMemberCalendar
+from models import OrganizationTeamMember
+from models import OrganizationTeamMemberTypeEnum
 from models.organization_member import CalendarTypeEnum
+from models.repositories import BaseRepo
 
 
 class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
@@ -11,9 +15,7 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
 
     def update_member_cost(self, organization_id, average_cost: Optional[float]):
         formatted_cost = f"{average_cost:.2f}" if average_cost is not None else None
-        self.session.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == organization_id
-        ).update(
+        self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id).update(
             {OrganizationMember.hourly_cost: formatted_cost}, synchronize_session=False
         )
         return self.session.commit()
@@ -34,17 +36,13 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
         )
 
     def find_by_email(self, email: str) -> OrganizationMember:
-        return (
-            self.session.query(OrganizationMember)
-            .filter(OrganizationMember.email == email.lower())
-            .first()
-        )
+        return self.session.query(OrganizationMember).filter(OrganizationMember.email == email.lower()).first()
 
     def query_find_by_organization_id(self, organization_id):
         return (
             self.session.query(
                 OrganizationMember.id,
-                OrganizationMember.id.label('member_id'),
+                OrganizationMember.id.label("member_id"),
                 OrganizationMember.name,
                 OrganizationMember.photo_url,
                 OrganizationMember.email,
@@ -74,17 +72,13 @@ class OrganizationMemberCalendarRepository(BaseRepo[OrganizationMemberCalendar])
         super().__init__(session, OrganizationMemberCalendar)
 
     def find_by_member_id(self, member_id) -> List[OrganizationMemberCalendar]:
-        return (
-            self.session.query(OrganizationMemberCalendar)
-            .filter(OrganizationMemberCalendar.member_id == member_id)
-            .all()
-        )
+        return self.session.query(OrganizationMemberCalendar).filter(OrganizationMemberCalendar.member_id == member_id).all()
 
     def find_by_member_email_and_type(
-            self,
-            member_id: str,
-            calendar_email: str,
-            calendar_type: CalendarTypeEnum,
+        self,
+        member_id: str,
+        calendar_email: str,
+        calendar_type: CalendarTypeEnum,
     ) -> Optional[OrganizationMemberCalendar]:
         return (
             self.session.query(OrganizationMemberCalendar)

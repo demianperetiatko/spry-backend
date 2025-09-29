@@ -1,5 +1,7 @@
 import os
+
 import requests
+
 
 def refresh_google_access_token(refresh_token: str) -> str:
     url = "https://oauth2.googleapis.com/token"

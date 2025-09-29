@@ -1,37 +1,40 @@
-from zoneinfo import ZoneInfo
-from fastapi import Depends, APIRouter, HTTPException, Query
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, field_validator, model_validator
+from datetime import datetime
+from datetime import timedelta
 from typing import List
-from models import get_db
+from zoneinfo import ZoneInfo
+
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from pydantic import BaseModel
+from pydantic import model_validator
+from sqlalchemy.orm import Session
+
 from models import OrganizationMember
-
-from datetime import datetime, timedelta
-from utils.middleware import get_auth_member
-
-from utils.analytics.filters import filter_meetings, filter_by_title
-from utils.send_message import send_agenda_request
-
-from utils.analytics.kpi import kpi_total_time, kpi_count_meetings, kpi_deep_work_time
-
+from models import get_db
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
-
 from utils import get_user_profile
+from utils.analytics.filters import filter_by_title
+from utils.analytics.filters import filter_meetings
+from utils.analytics.kpi import kpi_count_meetings
+from utils.analytics.kpi import kpi_deep_work_time
+from utils.analytics.kpi import kpi_total_time
+from utils.middleware import get_auth_member
+from utils.send_message import send_agenda_request
 
 router = APIRouter()
 
-from utils.analytics.utils import get_member_calendar_events
 from models.organization_member import CalendarTypeEnum
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
-
+from utils.analytics.utils import get_member_calendar_events
 from utils.calendar.factory import CalendarHandlerFactory
 
 
 @router.get("/home/kpi")
 def get_user_kpi(
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     today = datetime.today()
 
@@ -50,17 +53,34 @@ def get_user_kpi(
     events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
     prev_events = filter_meetings(get_member_calendar_events(auth_member.id, prev_start_date, prev_end_date, db))
     return {
-        'data': [
-            {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
-            {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(events, prev_events)},
-            {"key": "time_deep_work", "title": "Deep work time", **kpi_deep_work_time(events, prev_events, 5)},
+        "data": [
+            {
+                "key": "time_on_meetings",
+                "title": "Time on meetings",
+                **kpi_total_time(events, prev_events),
+            },
+            {
+                "key": "meetings_count",
+                "title": "Meetings count",
+                **kpi_count_meetings(events, prev_events),
+            },
+            {
+                "key": "time_deep_work",
+                "title": "Deep work time",
+                **kpi_deep_work_time(events, prev_events, 5),
+            },
         ]
     }
 
 
-def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
-                         work_start="10:00", work_end="18:00",
-                         min_duration=timedelta(hours=2)):
+def find_week_free_slots(
+    start_date: datetime,
+    end_date: datetime,
+    busy_slots,
+    work_start="10:00",
+    work_end="18:00",
+    min_duration=timedelta(hours=2),
+):
     free_slots = []
 
     busy_by_day = {}
@@ -109,35 +129,36 @@ def find_week_free_slots(start_date: datetime, end_date: datetime, busy_slots,
         current_date += timedelta(days=1)
 
     result = []
-    for (s, e) in free_slots:
-        result.append({
-            "startTime": s.strftime("%H:%M:%S"),
-            "endTime": e.strftime("%H:%M:%S"),
-            "date": s.strftime("%Y-%m-%d"),
-            "duration": round((e - s).total_seconds() / 3600, 2)
-        })
+    for s, e in free_slots:
+        result.append(
+            {
+                "startTime": s.strftime("%H:%M:%S"),
+                "endTime": e.strftime("%H:%M:%S"),
+                "date": s.strftime("%Y-%m-%d"),
+                "duration": round((e - s).total_seconds() / 3600, 2),
+            }
+        )
     return result
 
 
 @router.get("/home/deep-work/time-slot")
 def get_deep_work_slot(
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
 
     calendar = member_calendar_repository.find_by_member_email_and_type(
         member_id=auth_member.id,
         calendar_email=auth_member.email,
-        calendar_type=CalendarTypeEnum.google
+        calendar_type=CalendarTypeEnum.google,
     )
     calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
     time_zone = calendar_handler.get_timezone()
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
-    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(
-        tzinfo=None)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
 
     events = get_member_calendar_events(auth_member.id, start_date, end_date, db)
     busy_times = []
@@ -156,7 +177,7 @@ class TimeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def check_time_order(self):
         if self.start_time >= self.end_time:
             raise ValueError("`start_time` must be earlier than `end_time`.")
@@ -165,16 +186,16 @@ class TimeSlot(BaseModel):
 
 @router.post("/home/deep-work/time-slot")
 def post_deep_work_slots(
-        timeslots: List[TimeSlot],
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    timeslots: List[TimeSlot],
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
 
     calendar = member_calendar_repository.find_by_member_email_and_type(
         member_id=auth_member.id,
         calendar_email=auth_member.email,
-        calendar_type=CalendarTypeEnum.google
+        calendar_type=CalendarTypeEnum.google,
     )
 
     summary = "Deep Work Time"
@@ -193,15 +214,15 @@ def post_deep_work_slots(
 
 @router.get("/home/agenda-beta")
 def get_agenda_beta(
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
 
     calendar = member_calendar_repository.find_by_member_email_and_type(
         member_id=auth_member.id,
         calendar_email=auth_member.email,
-        calendar_type=CalendarTypeEnum.google
+        calendar_type=CalendarTypeEnum.google,
     )
     calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
     time_zone = calendar_handler.get_timezone()
@@ -210,13 +231,12 @@ def get_agenda_beta(
 
     today = datetime.now(ZoneInfo(time_zone))
     start_date = today.replace(tzinfo=None)
-    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(
-        tzinfo=None)
+    end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
 
     events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
     meetings = []
     for event in events:
-        if 'description' in event:
+        if "description" in event:
             continue
 
         start_time = event["start"]["dateTime"]
@@ -233,7 +253,7 @@ def get_agenda_beta(
             "members": [get_user_profile(a["email"], db) for a in event.get("attendees", []) if "email" in a],
             "organizer": get_user_profile(organizer_email, db),
             "is_organizer": auth_member.email == organizer_email,
-            "invitation_sent": True if agenda else False
+            "invitation_sent": True if agenda else False,
         }
         meetings.append(meeting)
     return {
@@ -244,9 +264,9 @@ def get_agenda_beta(
 
 @router.post("/home/agenda-beta/{event_id}/notify")
 def notify_agenda_completed(
-        event_id: str,
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    event_id: str,
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     def format_event_datetime(event):
         start_str = event.get("start", {}).get("dateTime")
@@ -266,7 +286,7 @@ def notify_agenda_completed(
     calendar = member_calendar_repository.find_by_member_email_and_type(
         member_id=auth_member.id,
         calendar_email=auth_member.email,
-        calendar_type=CalendarTypeEnum.google
+        calendar_type=CalendarTypeEnum.google,
     )
     calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
     event = calendar_handler.get_event_info(event_id)
@@ -280,10 +300,7 @@ def notify_agenda_completed(
     agenda_repository = AgendaBetaRepository(db)
     agenda = agenda_repository.find_by_event_id(event_id, auth_member.id)
     if not agenda:
-        new_agenda = AgendaBeta(
-            event_id=event_id,
-            member_id=auth_member.id
-        )
+        new_agenda = AgendaBeta(event_id=event_id, member_id=auth_member.id)
         agenda_repository.create(new_agenda)
         calendar_event_date, calendar_event_time = format_event_datetime(event)
 
@@ -293,7 +310,8 @@ def notify_agenda_completed(
             calendar_event_date=calendar_event_date,
             calendar_event_time=calendar_event_time,
             calendar_event_count_attendee=str(len(event.get("attendees", []))),
-            calendar_event_link=event.get('htmlLink', "#"))
+            calendar_event_link=event.get("htmlLink", "#"),
+        )
 
 
 class AgendaDescriptionRequest(BaseModel):
@@ -302,16 +320,16 @@ class AgendaDescriptionRequest(BaseModel):
 
 @router.post("/home/agenda-beta/{event_id}/add")
 def add_agenda_description(
-        event_id: str,
-        data: AgendaDescriptionRequest,
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)
+    event_id: str,
+    data: AgendaDescriptionRequest,
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
 ):
     member_calendar_repository = OrganizationMemberCalendarRepository(db)
     calendar = member_calendar_repository.find_by_member_email_and_type(
         member_id=auth_member.id,
         calendar_email=auth_member.email,
-        calendar_type=CalendarTypeEnum.google
+        calendar_type=CalendarTypeEnum.google,
     )
     calendar_handler = CalendarHandlerFactory.get_handler(calendar, db)
     return calendar_handler.update_event(event_id, data.description)

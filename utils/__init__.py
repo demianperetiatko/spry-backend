@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from models.repositories.organization_repository import  OrganizationMemberRepository
+
+from models.repositories.organization_repository import OrganizationMemberRepository
+
 
 def get_user_profile(email: str, db: Session):
     name = None
@@ -10,8 +12,4 @@ def get_user_profile(email: str, db: Session):
         name = user.name
         photo_url = user.photo_url
 
-    return {
-        "name": name,
-        "email": email,
-        "photo_url": photo_url
-    }
+    return {"name": name, "email": email, "photo_url": photo_url}

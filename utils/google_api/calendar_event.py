@@ -1,5 +1,7 @@
-import requests
 from datetime import datetime
+
+import requests
+
 
 def create_google_calendar_event(
     access_token: str,
@@ -12,26 +14,20 @@ def create_google_calendar_event(
     location: str = "",
     attendees: list[str] | None = None,
     recurrence: list[str] | None = None,
-    create_google_meet: bool = False
+    create_google_meet: bool = False,
 ) -> dict:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events?conferenceDataVersion=1"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     event_data = {
         "summary": summary,
         "description": description,
         "location": location,
-        "start": {
-            "dateTime": start_time.isoformat(),
-            "timeZone": time_zone
-        },
-        "end": {
-            "dateTime": end_time.isoformat(),
-            "timeZone": time_zone
-        },
+        "start": {"dateTime": start_time.isoformat(), "timeZone": time_zone},
+        "end": {"dateTime": end_time.isoformat(), "timeZone": time_zone},
     }
 
     if attendees:
@@ -44,7 +40,7 @@ def create_google_calendar_event(
         event_data["conferenceData"] = {
             "createRequest": {
                 "requestId": f"meet-{datetime.utcnow().timestamp()}",
-                "conferenceSolutionKey": {"type": "hangoutsMeet"}
+                "conferenceSolutionKey": {"type": "hangoutsMeet"},
             }
         }
 
@@ -56,21 +52,13 @@ def create_google_calendar_event(
         raise Exception(f"Failed to create event: {response.status_code} - {response.text}")
 
 
-
-def update_google_calendar_event(
-        access_token: str,
-        calendar_id: str,
-        event_id: str,
-        description: str
-) -> dict:
+def update_google_calendar_event(access_token: str, calendar_id: str, event_id: str, description: str) -> dict:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events/{event_id}"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
-    body = {
-        "description": description
-    }
+    body = {"description": description}
 
     response = requests.patch(url, headers=headers, json=body)
 
@@ -86,7 +74,12 @@ def get_calendars_list(access_token: str) -> dict:
     return calendar_list
 
 
-def get_google_calendar_events(access_token: str, start_time: datetime, end_time: datetime, calendar_id: str = "primary") -> list:
+def get_google_calendar_events(
+    access_token: str,
+    start_time: datetime,
+    end_time: datetime,
+    calendar_id: str = "primary",
+) -> list:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
     headers = {"Authorization": f"Bearer {access_token}"}
     params = {
@@ -94,7 +87,7 @@ def get_google_calendar_events(access_token: str, start_time: datetime, end_time
         "timeMax": end_time.isoformat() + "Z",
         "singleEvents": True,
         "orderBy": "startTime",
-        "maxResults": 2500
+        "maxResults": 2500,
     }
 
     response = requests.get(url, headers=headers, params=params)
@@ -104,11 +97,10 @@ def get_google_calendar_events(access_token: str, start_time: datetime, end_time
     else:
         return []
 
+
 def get_google_calendar_event_info(access_token: str, event_id: str, calendar_id: str = "primary") -> dict | None:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events/{event_id}"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     response = requests.get(url, headers=headers)
 
@@ -120,9 +112,7 @@ def get_google_calendar_event_info(access_token: str, event_id: str, calendar_id
 
 def get_google_calendar_timezone(access_token: str, calendar_id: str = "primary") -> str:
     url = f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     response = requests.get(url, headers=headers)
     if response.status_code == 200:

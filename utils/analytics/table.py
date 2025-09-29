@@ -1,10 +1,13 @@
-from sqlalchemy.orm import Session
 from collections import defaultdict
-from typing import List, Dict
+from typing import Dict
+from typing import List
 
-from utils.analytics.calendar_stats import calculate_recurring_events_cost, calculate_recurring_events_duration, \
-    calculate_total_events_duration, calculate_total_events_cost
-from models.repositories.organization_repository import OrganizationTeamRepository, OrganizationTeamMemberRepository
+from models.repositories.organization_repository import OrganizationTeamMemberRepository
+from models.repositories.organization_repository import OrganizationTeamRepository
+from utils.analytics.calendar_stats import calculate_recurring_events_cost
+from utils.analytics.calendar_stats import calculate_recurring_events_duration
+from utils.analytics.calendar_stats import calculate_total_events_cost
+from utils.analytics.calendar_stats import calculate_total_events_duration
 
 
 def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
@@ -18,10 +21,7 @@ def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
             continue
 
         for attendee in event.get("attendees", []):
-            if (
-                    attendee.get("email") in member_emails and
-                    attendee.get("responseStatus") == "declined"
-            ):
+            if attendee.get("email") in member_emails and attendee.get("responseStatus") == "declined":
                 total_cancellations += 1
                 break
 
@@ -41,14 +41,16 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
             grouped_events[recurring_id].append(event)
 
     for recurring_id, event_group in grouped_events.items():
-        recurring_events_summary.append({
-            "id": recurring_id,
-            "meeting_name": event_group[0].get('summary'),
-            "attendees": len(event_group[0].get('attendees', [])),
-            "cancellation_rate": calculate_cancellation_rate(event_group, members),
-            "total_time": calculate_recurring_events_duration(event_group),
-            "total_cost": calculate_recurring_events_cost(event_group, members),
-        })
+        recurring_events_summary.append(
+            {
+                "id": recurring_id,
+                "meeting_name": event_group[0].get("summary"),
+                "attendees": len(event_group[0].get("attendees", [])),
+                "cancellation_rate": calculate_cancellation_rate(event_group, members),
+                "total_time": calculate_recurring_events_duration(event_group),
+                "total_cost": calculate_recurring_events_cost(event_group, members),
+            }
+        )
 
     return recurring_events_summary
 
@@ -73,8 +75,8 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
         event_collab = []
 
         for event in events:
-            attendees = event.get('attendees', [])
-            attendee_emails = [attendee.get('email') for attendee in attendees if 'email' in attendee]
+            attendees = event.get("attendees", [])
+            attendee_emails = [attendee.get("email") for attendee in attendees if "email" in attendee]
 
             found = False
             for email in attendee_emails:

@@ -1,9 +1,10 @@
+import mimetypes
 import os
 import uuid
+
 import requests
-import mimetypes
-from google.cloud import storage
 from fastapi import UploadFile
+from google.cloud import storage
 
 BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
 DEFAULT_UPLOAD_PREFIX = "image/profile/"
@@ -60,7 +61,7 @@ def upload_file_from_url(file_url: str, prefix: str = DEFAULT_UPLOAD_PREFIX, fil
     return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
 
 
-def delete_file(blob_name: str) ->  None:
+def delete_file(blob_name: str) -> None:
     client = get_gcp_client()
     if not client:
         return None

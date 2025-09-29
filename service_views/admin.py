@@ -1,13 +1,19 @@
-from fastapi import Depends, APIRouter, HTTPException, Header
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
+from fastapi import Header
+from pydantic import BaseModel
+from pydantic import EmailStr
 from sqlalchemy.orm import Session
-from models import get_db, Organization, OrganizationMember
-from models.repositories.organization_repository import OrganizationRepository,\
-    OrganizationMemberRoleEnum, OrganizationMemberStatusEnum
 
+from models import Organization
+from models import OrganizationMember
+from models import get_db
 from models.repositories.organization_member_repository import OrganizationMemberRepository
+from models.repositories.organization_repository import OrganizationMemberRoleEnum
+from models.repositories.organization_repository import OrganizationMemberStatusEnum
+from models.repositories.organization_repository import OrganizationRepository
 from utils.send_message import send_admin_invitation
-
 
 router = APIRouter()
 
@@ -21,9 +27,9 @@ class OrganizationCreateRequest(BaseModel):
 
 @router.post("/admin/organization")
 def admin_add_organization(
-        request: OrganizationCreateRequest,
-        db: Session = Depends(get_db),
-        x_api_key: str = Header(..., alias="X-API-Key")
+    request: OrganizationCreateRequest,
+    db: Session = Depends(get_db),
+    x_api_key: str = Header(..., alias="X-API-Key"),
 ):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API Key")
@@ -42,12 +48,8 @@ def admin_add_organization(
         email=request.email,
         role=OrganizationMemberRoleEnum.admin,
         status=OrganizationMemberStatusEnum.pending,
-        organization=new_org
+        organization=new_org,
     )
     org_member_repository.create(new_member)
     send_admin_invitation(request.email)
-    return {
-        'status': 'success',
-        'organization_id': new_org.id,
-        'email': request.email
-    }
+    return {"status": "success", "organization_id": new_org.id, "email": request.email}

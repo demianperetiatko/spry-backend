@@ -1,18 +1,18 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+
 from sqlalchemy.orm import Session
 
 from models import OrganizationMemberCalendar
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
-from .base import BaseCalendarHandler
+from utils.google_api import create_google_calendar_event
+from utils.google_api import get_google_calendar_event_info
+from utils.google_api import get_google_calendar_events
+from utils.google_api import get_google_calendar_timezone
+from utils.google_api import refresh_google_access_token
+from utils.google_api import update_google_calendar_event
 
-from utils.google_api import (
-    refresh_google_access_token,
-    create_google_calendar_event,
-    update_google_calendar_event,
-    get_google_calendar_events,
-    get_google_calendar_event_info,
-    get_google_calendar_timezone,
-)
+from .base import BaseCalendarHandler
 
 
 class GoogleAccountCalendarHandler(BaseCalendarHandler):
@@ -30,10 +30,10 @@ class GoogleAccountCalendarHandler(BaseCalendarHandler):
         ):
             return self.calendar.access_token
         data = refresh_google_access_token(self.calendar.refresh_token)
-        if not isinstance(data, dict) or 'access_token' not in data:
+        if not isinstance(data, dict) or "access_token" not in data:
             raise ValueError("Failed to refresh access token")
-        self.calendar.access_token = data['access_token']
-        self.calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=data.get('expires_in', 3600))
+        self.calendar.access_token = data["access_token"]
+        self.calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=data.get("expires_in", 3600))
         self.repo.update(self.calendar)
         return self.calendar.access_token
 
