@@ -1,57 +1,67 @@
-from fastapi import Depends, APIRouter, HTTPException, Query
-from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember
-
-from models.repositories.organization_repository import OrganizationRepository, \
-    OrganizationTeamRepository, OrganizationTeamMemberRepository
-
-from models.repositories.organization_member_repository import OrganizationMemberRepository
-
-from utils.middleware import get_auth_member, get_auth_organization, require_permission
-
+from models import Organization, OrganizationMember, get_db
+from models.repositories.organization_member_repository import (
+    OrganizationMemberRepository,
+)
+from models.repositories.organization_repository import (
+    OrganizationTeamMemberRepository,
+    OrganizationTeamRepository,
+)
 from utils.analytics import group_events_by_date
-from utils.analytics.filters import filter_meetings, filter_active
-
-from utils.analytics.calendar_stats import calculate_recurring_events_duration, calculate_single_events_duration, \
-    calculate_recurring_events_cost, calculate_single_events_cost, percent_inside_team_events, \
-    percent_with_other_teams_events, percent_outside_organization_events
-from utils.analytics.calendar_stats import calculate_event_ratio, calculate_total_events_duration, \
-    count_user_organized_events
-
-from utils.analytics.calendar_stats import percent_events_with_2_attendees, percent_events_with_3_to_5_attendees, \
-    percent_events_with_more_than_5_attendees, calculate_total_events_cost
-from utils.analytics.kpi import kpi_total_time, kpi_avg_daily_meetings_time, kpi_meetings_ratio, kpi_count_meetings, \
-    kpi_total_cost, kpi_avg_daily_meetings_cost, kpi_without_description, kpi_avg_member_meetings_cost
-from utils.analytics.utils import count_weekdays
-from utils.analytics.calendar_stats import get_unique_events
-
+from utils.analytics.calendar_stats import (
+    calculate_buffer_time,
+    calculate_event_ratio,
+    calculate_person_deep_work_time,
+    calculate_recurring_events_cost,
+    calculate_recurring_events_duration,
+    calculate_single_events_cost,
+    calculate_single_events_duration,
+    calculate_total_events_cost,
+    calculate_total_events_duration,
+    calculate_transition_time,
+    count_user_organized_events,
+    get_unique_events,
+    percent_events_with_2_attendees,
+    percent_events_with_3_to_5_attendees,
+    percent_events_with_more_than_5_attendees,
+    percent_inside_team_events,
+    percent_outside_organization_events,
+    percent_with_other_teams_events,
+)
+from utils.analytics.filters import filter_active, filter_meetings
+from utils.analytics.kpi import (
+    kpi_avg_daily_meetings_time,
+    kpi_avg_member_meetings_cost,
+    kpi_count_meetings,
+    kpi_meetings_ratio,
+    kpi_team_buffers_time_percent,
+    kpi_team_deep_work_time_percent,
+    kpi_team_total_time_percent,
+    kpi_team_transition_time_percent,
+    kpi_total_cost,
+    kpi_total_time,
+    kpi_without_description,
+)
 from utils.analytics.table import process_recurring_events, process_teams_collab
-
+from utils.analytics.utils import (
+    count_weekdays,
+    get_member_calendar_events,
+    get_periods,
+)
+from utils.middleware import get_auth_member, get_auth_organization, require_permission
+from utils.permissions import member_has_permissions
 from utils.plots import Chart, Diagram
 from utils.table import DataTable, SortOrderType
-from utils.analytics.calendar_stats import calculate_total_events_duration, calculate_buffer_time, \
-    calculate_transition_time, calculate_deep_work_time
-
-from utils.permissions import member_has_permissions
-
-from utils.analytics.utils import get_member_calendar_events
-
-from utils.analytics.kpi import (
-    kpi_total_time_percent,
-    kpi_deep_work_time_percent,
-    kpi_buffers_time_percent,
-    kpi_transition_time_percent
-)
-from utils.analytics.utils import get_periods
 
 router = APIRouter()
 
 
-def get_team_members(org_id, team_id, db: Session): # todo: fix
+def get_team_members(org_id, team_id, db: Session):  # todo: fix
     if team_id is None:
         org_member_repository = OrganizationMemberRepository(db)
         return org_member_repository.find_by_organization_id(org_id)
@@ -75,19 +85,25 @@ def flatten_team_events(team_events):
     return all_events
 
 
-def get_team_events(org_team_members, start_date, end_date, db, can_filter_filter_active=True):
+def get_team_events(
+    org_team_members, start_date, end_date, db, can_filter_filter_active=True
+):
     res = []
     for member in org_team_members:
         try:
-            calendar_events = get_member_calendar_events(member.member_id, start_date, end_date, db)
+            calendar_events = get_member_calendar_events(
+                member.member_id, start_date, end_date, db
+            )
             events = filter_meetings(calendar_events)
             if can_filter_filter_active:
                 events = filter_active(events, member.email)
-            res.append({
-                "member_id": member.member_id,
-                "member_email": member.email,
-                "events": events,
-            })
+            res.append(
+                {
+                    "member_id": member.member_id,
+                    "member_email": member.email,
+                    "events": events,
+                }
+            )
         except Exception as e:
             continue
     return res
@@ -95,15 +111,17 @@ def get_team_events(org_team_members, start_date, end_date, db, can_filter_filte
 
 @router.get("/analytic/organization/meeting/kpi")
 def get_team_kpi(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('analytics-organization:view')
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    org: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("analytics-organization:view"),
 ):
-    (start_date_dt, end_date_dt), (prev_start_date_dt, prev_end_date_dt) = get_periods(start_date, end_date)
+    (start_date_dt, end_date_dt), (prev_start_date_dt, prev_end_date_dt) = get_periods(
+        start_date, end_date
+    )
 
     org_team_members = get_team_members(org.id, team_id, db)
 
@@ -111,40 +129,77 @@ def get_team_kpi(
     events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
 
-    prev_team_events = get_team_events(org_team_members, prev_start_date_dt, prev_end_date_dt, db)
+    prev_team_events = get_team_events(
+        org_team_members, prev_start_date_dt, prev_end_date_dt, db
+    )
     prev_events = flatten_team_events(prev_team_events)
     set_prev_events = get_unique_events(prev_events)
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
-    members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
-    kpis = [
-        {"key": "time_on_meetings", "title": "Time on meetings", **kpi_total_time(events, prev_events)},
-        {"key": "meetings_time_ratio", "title": "Meetings time ratio",
-         **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members))},
-        {"key": "avg_hours_per_person", "title": "Avg. hours per member",
-         **kpi_avg_daily_meetings_time(events, prev_events, 1, len(org_team_members))}, # quick fix
+    members_with_events_ids = {event["member_id"] for event in team_events}
+    org_team_members = [
+        m for m in org_team_members if m.member_id in members_with_events_ids
     ]
-    if member_has_permissions(auth_member, 'finance:view', db):
+    kpis = [
+        {
+            "key": "time_on_meetings",
+            "title": "Time on meetings",
+            **kpi_total_time(events, prev_events),
+        },
+        {
+            "key": "meetings_time_ratio",
+            "title": "Meetings time ratio",
+            **kpi_meetings_ratio(
+                events, prev_events, count_work_day, len(org_team_members)
+            ),
+        },
+        {
+            "key": "avg_hours_per_person",
+            "title": "Avg. hours per member",
+            **kpi_avg_daily_meetings_time(
+                events, prev_events, 1, len(org_team_members)
+            ),
+        },  # quick fix
+    ]
+    if member_has_permissions(auth_member, "finance:view", db):
         currency = None
         if org.cost_is_active and org.currency:
             currency = org.currency
-        kpis.extend([
-            {"key": "total_meetings_cost", "title": "Total meetings cost",
-             **kpi_total_cost(set_events, set_prev_events, org_team_members, currency)},
-            {"key": "avg_daily_meetings_cost", "title": "Avg. cost per member",
-             **kpi_avg_member_meetings_cost(set_events, set_prev_events, org_team_members, currency)},
-        ])
-    kpis.extend([
-        {"key": "meetings_count", "title": "Meetings count", **kpi_count_meetings(set_events, set_prev_events)},
-        {"key": "meetings_wo_agenda", "title": "Meetings w/o agenda",
-         **kpi_without_description(set_events, set_prev_events)},
-    ])
+        kpis.extend(
+            [
+                {
+                    "key": "total_meetings_cost",
+                    "title": "Total meetings cost",
+                    **kpi_total_cost(
+                        set_events, set_prev_events, org_team_members, currency
+                    ),
+                },
+                {
+                    "key": "avg_daily_meetings_cost",
+                    "title": "Avg. cost per member",
+                    **kpi_avg_member_meetings_cost(
+                        set_events, set_prev_events, org_team_members, currency
+                    ),
+                },
+            ]
+        )
+    kpis.extend(
+        [
+            {
+                "key": "meetings_count",
+                "title": "Meetings count",
+                **kpi_count_meetings(set_events, set_prev_events),
+            },
+            {
+                "key": "meetings_wo_agenda",
+                "title": "Meetings w/o agenda",
+                **kpi_without_description(set_events, set_prev_events),
+            },
+        ]
+    )
 
-    return {
-        'data': kpis
-    }
+    return {"data": kpis}
 
 
 from enum import Enum
@@ -157,24 +212,30 @@ class AnalyticsType(str, Enum):
 
 @router.get("/analytic/organization/meeting")
 async def get_team_meetings(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        type: AnalyticsType = Query(AnalyticsType.time),
-        org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('analytics-organization:view')
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    type: AnalyticsType = Query(AnalyticsType.time),
+    org: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("analytics-organization:view"),
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(
+        hour=0, minute=0, second=0
+    )
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59
+    )
 
     org_team_members = get_team_members(org.id, team_id, db)
     team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db)
     events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
 
-    members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
+    members_with_events_ids = {event["member_id"] for event in team_events}
+    org_team_members = [
+        m for m in org_team_members if m.member_id in members_with_events_ids
+    ]
 
     if type == AnalyticsType.time:
         response = Chart(
@@ -184,59 +245,86 @@ async def get_team_meetings(
                 ("recurring", calculate_recurring_events_duration),
                 ("one_time", calculate_single_events_duration),
                 ("ratio", calculate_event_ratio),
-            ]
+            ],
         )
     else:
         response = Chart(
             x_axis="date",
             items=group_events_by_date(set_events, start_date_dt, end_date_dt),
             metrics=[
-                ("recurring", lambda i: calculate_recurring_events_cost(i, org_team_members)),
-                ("one_time", lambda i: calculate_single_events_cost(i, org_team_members)),
-            ])
+                (
+                    "recurring",
+                    lambda i: calculate_recurring_events_cost(i, org_team_members),
+                ),
+                (
+                    "one_time",
+                    lambda i: calculate_single_events_cost(i, org_team_members),
+                ),
+            ],
+        )
 
     return response.as_dict()
 
 
 @router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('analytics-organization:view')
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    org: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("analytics-organization:view"),
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(
+        hour=0, minute=0, second=0
+    )
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59
+    )
 
     org_team_members = get_team_members(org.id, team_id, db)
-    events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
+    events = flatten_team_events(
+        get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+    )
 
     response = Diagram(
         items=events,
         metrics=[
-            ("one_to_one", "One-on-one", lambda i: {'value': percent_events_with_2_attendees(i)}),
-            ("three_to_five", "3-5", lambda i: {'value': percent_events_with_3_to_5_attendees(i)}),
-            ("more_than_five", "6+", lambda i: {'value': percent_events_with_more_than_5_attendees(i)}),
-        ]
+            (
+                "one_to_one",
+                "One-on-one",
+                lambda i: {"value": percent_events_with_2_attendees(i)},
+            ),
+            (
+                "three_to_five",
+                "3-5",
+                lambda i: {"value": percent_events_with_3_to_5_attendees(i)},
+            ),
+            (
+                "more_than_five",
+                "6+",
+                lambda i: {"value": percent_events_with_more_than_5_attendees(i)},
+            ),
+        ],
     )
-    return {
-        "data": response.as_dict()
-    }
+    return {"data": response.as_dict()}
 
 
 @router.get("/analytic/organization/meeting/distribution")
 def get_team_meeting_distribution(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('analytics-organization:view')
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    org: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("analytics-organization:view"),
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(
+        hour=0, minute=0, second=0
+    )
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59
+    )
     org_member_repository = OrganizationMemberRepository(db)
 
     org_members = org_member_repository.find_by_organization_id(org.id)
@@ -245,8 +333,10 @@ def get_team_meeting_distribution(
     events = flatten_team_events(team_events)
     set_events = get_unique_events(events)
 
-    members_with_events_ids = {event['member_id'] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
+    members_with_events_ids = {event["member_id"] for event in team_events}
+    org_team_members = [
+        m for m in org_team_members if m.member_id in members_with_events_ids
+    ]
 
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
@@ -254,51 +344,68 @@ def get_team_meeting_distribution(
     response = Diagram(
         items=set_events,
         metrics=[
-            ("inside_team", "Inside the team", lambda i: {'value': percent_inside_team_events(i, team_emails)}),
-            ("cross_team", "With other teams",
-             lambda i: {'value': percent_with_other_teams_events(i, team_emails, org_emails)}),
-            ("external", "Outside the org.", lambda i: {'value': percent_outside_organization_events(i, org_emails)}),
-        ]
+            (
+                "inside_team",
+                "Inside the team",
+                lambda i: {"value": percent_inside_team_events(i, team_emails)},
+            ),
+            (
+                "cross_team",
+                "With other teams",
+                lambda i: {
+                    "value": percent_with_other_teams_events(i, team_emails, org_emails)
+                },
+            ),
+            (
+                "external",
+                "Outside the org.",
+                lambda i: {"value": percent_outside_organization_events(i, org_emails)},
+            ),
+        ],
     )
-    return {
-        "data": response.as_dict()
-    }
+    return {"data": response.as_dict()}
 
 
 def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
-    if hasattr(member, 'member_id'):  # quick fix: member.id contains OrganizationTeamMember.id if team_id is not None (func get_team_members)
+    if hasattr(
+        member, "member_id"
+    ):  # quick fix: member.id contains OrganizationTeamMember.id if team_id is not None (func get_team_members)
         member_id = member.member_id
     else:
         member_id = member.id
-    calendar_events = get_member_calendar_events(member_id, start_date_dt, end_date_dt, db)
+    calendar_events = get_member_calendar_events(
+        member_id, start_date_dt, end_date_dt, db
+    )
     meetings = filter_meetings(calendar_events)
     meetings = filter_active(meetings, member.email)
     return meetings
 
 
 class ListType(str, Enum):
-    members = 'members'
-    teams = 'teams'
+    members = "members"
+    teams = "teams"
 
 
 class SortBy(str, Enum):
-    meetings_time = 'meetings_time'
-    deep_work = 'deep_work'
+    meetings_time = "meetings_time"
+    deep_work = "deep_work"
 
 
 @router.get("/analytic/organization/productivity")
 def get_team_productivity(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        list_type: ListType = Query(ListType.members),
-        sort_by: SortBy = Query(SortBy.meetings_time),
-        sort_order: SortOrderType = Query(SortOrderType.asc),
-        org: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('analytics-organization:view')
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    list_type: ListType = Query(ListType.members),
+    sort_by: SortBy = Query(SortBy.meetings_time),
+    sort_order: SortOrderType = Query(SortOrderType.asc),
+    org: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("analytics-organization:view"),
 ):
-    (start_date_dt, end_date_dt), (prev_start_date_dt, prev_end_date_dt) = get_periods(start_date, end_date)
+    (start_date_dt, end_date_dt), (prev_start_date_dt, prev_end_date_dt) = get_periods(
+        start_date, end_date
+    )
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
     org_team_members = get_team_members(org.id, team_id, db)
@@ -310,18 +417,22 @@ def get_team_productivity(
             events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
             all_events.extend(events)
 
-            prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
+            prev_events = get_personal_meetings(
+                member, prev_start_date_dt, prev_end_date_dt, db
+            )
             prev_all_events.extend(prev_events)
 
             info = {
-                'id': member.id,
-                'name': member.name,
-                'email': member.email,
+                "id": member.id,
+                "name": member.name,
+                "email": member.email,
                 "photo_url": member.photo_url,
                 "meetings_time": calculate_total_events_duration(events),
                 "prev_meetings_time": calculate_total_events_duration(prev_events),
-                "deep_work": calculate_deep_work_time(events, count_work_day),
-                "prev_deep_work": calculate_deep_work_time(prev_events, count_work_day),
+                "deep_work": calculate_person_deep_work_time(events, count_work_day),
+                "prev_deep_work": calculate_person_deep_work_time(
+                    prev_events, count_work_day
+                ),
                 "transition_time": calculate_transition_time(events),
                 "prev_transition_time": calculate_transition_time(prev_events),
                 "buffers": calculate_buffer_time(events),
@@ -334,18 +445,40 @@ def get_team_productivity(
     productivity = Diagram(
         items=[],
         metrics=[
-            ("meetings_time", "Time on meetings",
-             lambda i: kpi_total_time_percent(all_events, prev_all_events, count_work_day)),
-            ("deep_work", " Deep work",
-             lambda i: kpi_deep_work_time_percent(all_events, prev_all_events, count_work_day)),
-            ("transition_time", "Transition time",
-             lambda i: kpi_transition_time_percent(all_events, prev_all_events, count_work_day)),
-            ("buffers", "Buffers", lambda i: kpi_buffers_time_percent(all_events, prev_all_events, count_work_day)),
-        ]
+            (
+                "meetings_time",
+                "Time on meetings",
+                lambda i: kpi_team_total_time_percent(
+                    all_events, prev_all_events, count_work_day, len(org_team_members)
+                ),
+            ),
+            (
+                "deep_work",
+                " Deep work",
+                lambda i: kpi_team_deep_work_time_percent(
+                    all_events, prev_all_events, count_work_day, len(org_team_members)
+                ),
+            ),
+            (
+                "transition_time",
+                "Transition time",
+                lambda i: kpi_team_transition_time_percent(
+                    all_events, prev_all_events, count_work_day, len(org_team_members)
+                ),
+            ),
+            (
+                "buffers",
+                "Buffers",
+                lambda i: kpi_team_buffers_time_percent(
+                    all_events, prev_all_events, count_work_day, len(org_team_members)
+                ),
+            ),
+        ],
     )
 
     def calculate_percent(data, key):
         from utils.analytics.constants import WORKDAY_HOURS
+
         kpi = data[key]
         if count_work_day == 0:
             return 0
@@ -363,43 +496,72 @@ def get_team_productivity(
         for team in teams:
             members = org_team_member_repository.find_by_team_id(team.id)
             team_member_ids = {member.member_id for member in members}
-            team_members_data = [m for m in data if m['id'] in team_member_ids]
-            help_data.append({
-                "id": team.id,
-                "name": team.name,
-                "meetings_time": sum(m["meetings_time"] for m in team_members_data),
-                "deep_work": sum(m["deep_work"] for m in team_members_data),
-                "transition_time": sum(m["transition_time"] for m in team_members_data),
-                "buffers": sum(m["buffers"] for m in team_members_data),
-            })
+            team_members_data = [m for m in data if m["id"] in team_member_ids]
+            help_data.append(
+                {
+                    "id": team.id,
+                    "name": team.name,
+                    "meetings_time": sum(m["meetings_time"] for m in team_members_data),
+                    "deep_work": sum(m["deep_work"] for m in team_members_data),
+                    "transition_time": sum(
+                        m["transition_time"] for m in team_members_data
+                    ),
+                    "buffers": sum(m["buffers"] for m in team_members_data),
+                }
+            )
 
         columns = [
             ("id", "id"),
             ("name", "name"),
-            ('meeting_hours', 'meeting_hours', lambda i: i.get('meetings_time', 0)),
-            ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
-            ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
-            ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
-            ('buffers', 'buffers', lambda i: calculate_percent(i, "buffers")),
+            ("meeting_hours", "meeting_hours", lambda i: i.get("meetings_time", 0)),
+            (
+                "meetings_time",
+                "meetings_time",
+                lambda i: calculate_percent(i, "meetings_time"),
+            ),
+            ("deep_work", "deep_work", lambda i: calculate_percent(i, "deep_work")),
+            (
+                "transition_time",
+                "transition_time",
+                lambda i: calculate_percent(i, "transition_time"),
+            ),
+            ("buffers", "buffers", lambda i: calculate_percent(i, "buffers")),
         ]
-        res_data = DataTable(help_data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
+        res_data = (
+            DataTable(help_data, columns)
+            .fetch_dicts(sort_by, sort_order)
+            .get("data", [])
+        )
     else:
         columns = [
             ("id", "id"),
-            ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name", " "), "email": i.get("email"),
-                        "photo_url": i.get("member_photo_url")}),
-            ('meeting_hours', 'meeting_hours', lambda i: i.get('meetings_time', 0)),
-            ('meetings_time', 'meetings_time', lambda i: calculate_percent(i, "meetings_time")),
-            ('deep_work', 'deep_work', lambda i: calculate_percent(i, "deep_work")),
-            ('transition_time', 'transition_time', lambda i: calculate_percent(i, "transition_time")),
-            ('buffers', 'buffers', lambda i: calculate_percent(i, "buffers")),
+            (
+                "member_profile",
+                "member_profile",
+                lambda i: {
+                    "name": i.get("name", " "),
+                    "email": i.get("email"),
+                    "photo_url": i.get("member_photo_url"),
+                },
+            ),
+            ("meeting_hours", "meeting_hours", lambda i: i.get("meetings_time", 0)),
+            (
+                "meetings_time",
+                "meetings_time",
+                lambda i: calculate_percent(i, "meetings_time"),
+            ),
+            ("deep_work", "deep_work", lambda i: calculate_percent(i, "deep_work")),
+            (
+                "transition_time",
+                "transition_time",
+                lambda i: calculate_percent(i, "transition_time"),
+            ),
+            ("buffers", "buffers", lambda i: calculate_percent(i, "buffers")),
         ]
-        res_data = DataTable(data, columns).fetch_dicts(sort_by, sort_order).get('data', [])
-    return {
-        "productivity": productivity.as_dict(),
-        "data": res_data
-    }
+        res_data = (
+            DataTable(data, columns).fetch_dicts(sort_by, sort_order).get("data", [])
+        )
+    return {"productivity": productivity.as_dict(), "data": res_data}
 
 
 class TableType(str, Enum):
@@ -411,19 +573,23 @@ class TableType(str, Enum):
 
 @router.get("/analytic/organization/meeting/table")
 def get_team_meetings_table(
-        team_id: Optional[str] = Query(None),
-        start_date: str = Query(...),
-        end_date: str = Query(...),
-        type: TableType = Query(TableType.attendees),
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        org: Organization = Depends(get_auth_organization),
-        sort_by: Optional[str] = Query(None),
-        sort_order: SortOrderType = Query(SortOrderType.asc),
-        db: Session = Depends(get_db)
+    team_id: Optional[str] = Query(None),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    type: TableType = Query(TableType.attendees),
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    org: Organization = Depends(get_auth_organization),
+    sort_by: Optional[str] = Query(None),
+    sort_order: SortOrderType = Query(SortOrderType.asc),
+    db: Session = Depends(get_db),
 ):
-    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-    sort_by = sort_by.split('.')[-1] if isinstance(sort_by, str) else sort_order
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(
+        hour=0, minute=0, second=0
+    )
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59
+    )
+    sort_by = sort_by.split(".")[-1] if isinstance(sort_by, str) else sort_order
 
     org_team_members = get_team_members(org.id, team_id, db)
 
@@ -433,7 +599,9 @@ def get_team_meetings_table(
         result = []
         for member in org_team_members:
             try:
-                member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                member_events = get_personal_meetings(
+                    member, start_date_dt, end_date_dt, db
+                )
                 info = {
                     "id": member.id,
                     "name": member.name,
@@ -441,27 +609,35 @@ def get_team_meetings_table(
                     "member_photo_url": member.photo_url,
                     "time": calculate_total_events_duration(member_events),
                     "cost": calculate_total_events_cost(member_events, [member]),
-                    "ratio": calculate_event_ratio(member_events, count_work_day)
+                    "ratio": calculate_event_ratio(member_events, count_work_day),
                 }
                 result.append(info)
             except Exception as e:
                 continue
         columns = [
             ("id", "id"),
-            ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name", " "), "email": i.get("email"),
-                        "photo_url": i.get("member_photo_url")}),
+            (
+                "member_profile",
+                "member_profile",
+                lambda i: {
+                    "name": i.get("name", " "),
+                    "email": i.get("email"),
+                    "photo_url": i.get("member_photo_url"),
+                },
+            ),
             ("time", "time"),
-            ("ratio", "ratio")
+            ("ratio", "ratio"),
         ]
-        if member_has_permissions(auth_member, 'finance:view', db):
+        if member_has_permissions(auth_member, "finance:view", db):
             columns.append(("cost", "cost"))
 
     elif type == TableType.organizers:
         result = []
         for member in org_team_members:
             try:
-                member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                member_events = get_personal_meetings(
+                    member, start_date_dt, end_date_dt, db
+                )
                 info = {
                     "id": member.id,
                     "name": member.name,
@@ -475,39 +651,68 @@ def get_team_meetings_table(
 
         columns = [
             ("id", "id"),
-            ("member_profile", "member_profile",
-             lambda i: {"name": i.get("name", ""), "email": i.get("emai"),
-                        "photo_url": i.get("photo_url")}),
-            ("count", "count")
+            (
+                "member_profile",
+                "member_profile",
+                lambda i: {
+                    "name": i.get("name", ""),
+                    "email": i.get("emai"),
+                    "photo_url": i.get("photo_url"),
+                },
+            ),
+            ("count", "count"),
         ]
     elif type == TableType.teams_collab:
-        events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
+        events = flatten_team_events(
+            get_team_events(org_team_members, start_date_dt, end_date_dt, db)
+        )
         result = process_teams_collab(get_unique_events(events), org.id, team_id, db)
 
         columns = [
             ("id", "id"),
             ("team_name", "team_name"),
-            ("team_manager_profile", "team_manager_profile",
-             lambda i: {"name": i.get('manager_name', ""), "email": i.get('manager_email'),
-                        "photo_url": i.get('manager_photo_url')}),
-            ('collab_time', 'collab_time'),
+            (
+                "team_manager_profile",
+                "team_manager_profile",
+                lambda i: {
+                    "name": i.get("manager_name", ""),
+                    "email": i.get("manager_email"),
+                    "photo_url": i.get("manager_photo_url"),
+                },
+            ),
+            ("collab_time", "collab_time"),
         ]
-        if member_has_permissions(auth_member, 'finance:view', db):
-            columns.append(('collab_cost', 'collab_cost'))
+        if member_has_permissions(auth_member, "finance:view", db):
+            columns.append(("collab_cost", "collab_cost"))
     else:
-        team_events = get_team_events(org_team_members, start_date_dt, end_date_dt, db, can_filter_filter_active=False)
+        team_events = get_team_events(
+            org_team_members,
+            start_date_dt,
+            end_date_dt,
+            db,
+            can_filter_filter_active=False,
+        )
         events = flatten_team_events(team_events)
-        members_with_events_ids = {event['member_id'] for event in team_events}
-        org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
+        members_with_events_ids = {event["member_id"] for event in team_events}
+        org_team_members = [
+            m for m in org_team_members if m.member_id in members_with_events_ids
+        ]
         result = process_recurring_events(events, org_team_members)
         columns = [
             ("id", "id"),
-            ("meeting_profile", "meeting",
-             lambda i: {"name": i.get('meeting_name'), "duration": "", "recurring_type": "", }),
+            (
+                "meeting_profile",
+                "meeting",
+                lambda i: {
+                    "name": i.get("meeting_name"),
+                    "duration": "",
+                    "recurring_type": "",
+                },
+            ),
             ("attendees", "attendees"),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
         ]
-        if member_has_permissions(auth_member, 'finance:view', db):
-            columns.append(('total_cost', 'total_cost'))
+        if member_has_permissions(auth_member, "finance:view", db):
+            columns.append(("total_cost", "total_cost"))
     return DataTable(result, columns).fetch_dicts(sort_by, sort_order)
