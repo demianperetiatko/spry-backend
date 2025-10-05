@@ -221,7 +221,10 @@ async def get_team_meetings(
             metrics=[
                 ("recurring", calculate_recurring_events_duration),
                 ("one_time", calculate_single_events_duration),
-                ("ratio", calculate_event_ratio),
+                (
+                    "ratio",
+                    lambda i: calculate_event_ratio(i, len(org_team_members) * 1),
+                ),
             ],
         )
     else:
