@@ -1,7 +1,11 @@
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict
+from typing import List
+from typing import Set
 
-from .constants import BUFFER_PER_SIDE_HOURS, MAX_TRANSITION_TIME_HOURS, WORKDAY_HOURS
+from .constants import BUFFER_PER_SIDE_HOURS
+from .constants import MAX_TRANSITION_TIME_HOURS
+from .constants import WORKDAY_HOURS
 from .filters import filter_events_by_attendee_count
 
 
@@ -84,37 +88,19 @@ def calculate_avg_daily_meetings_hour(events: list, total_work_days: int) -> flo
 
 
 def calculate_recurring_events_duration(events: List[Dict]) -> float:
-    return float(
-        sum(event_duration(event) for event in events if "recurringEventId" in event)
-    )
+    return float(sum(event_duration(event) for event in events if "recurringEventId" in event))
 
 
 def calculate_recurring_events_cost(events: List[Dict], members) -> float:
-    return float(
-        sum(
-            event_cost(event, members)
-            for event in events
-            if "recurringEventId" in event
-        )
-    )
+    return float(sum(event_cost(event, members) for event in events if "recurringEventId" in event))
 
 
 def calculate_single_events_duration(events: List[Dict]) -> float:
-    return float(
-        sum(
-            event_duration(event) for event in events if "recurringEventId" not in event
-        )
-    )
+    return float(sum(event_duration(event) for event in events if "recurringEventId" not in event))
 
 
 def calculate_single_events_cost(events: List[Dict], members) -> float:
-    return float(
-        sum(
-            event_cost(event, members)
-            for event in events
-            if "recurringEventId" not in event
-        )
-    )
+    return float(sum(event_cost(event, members) for event in events if "recurringEventId" not in event))
 
 
 def calculate_total_events_duration(events: List[Dict]) -> float:
@@ -129,8 +115,7 @@ def count_user_organized_events(events: List[Dict], email: str) -> int:
     organized_events = [
         event
         for event in events
-        if event.get("organizer", {}).get("email") == email
-        or event.get("creator", {}).get("self") == True
+        if event.get("organizer", {}).get("email") == email or event.get("creator", {}).get("self") == True
     ]
     return len(organized_events)
 
@@ -145,10 +130,7 @@ def count_cancelled_events(events: list, email: str) -> int:
 
         attendees = event.get("attendees", [])
         for attendee in attendees:
-            if (
-                attendee.get("email") == email
-                and attendee.get("responseStatus") == "declined"
-            ):
+            if attendee.get("email") == email and attendee.get("responseStatus") == "declined":
                 total_cancelled_meetings += 1
                 break
 
@@ -159,17 +141,11 @@ def percent_inside_team_events(events: List[Dict], team_emails: List[str]) -> fl
     if not events:
         return 0.0
     team_set = set(team_emails)
-    count = sum(
-        1
-        for event in events
-        if (emails := get_attendee_emails(event)) and emails.issubset(team_set)
-    )
+    count = sum(1 for event in events if (emails := get_attendee_emails(event)) and emails.issubset(team_set))
     return round(count / len(events) * 100)
 
 
-def percent_with_other_teams_events(
-    events: List[Dict], team_emails: List[str], org_emails: List[str]
-) -> float:
+def percent_with_other_teams_events(events: List[Dict], team_emails: List[str], org_emails: List[str]) -> float:
     if not events:
         return 0.0
     team_set = set(team_emails)
@@ -177,24 +153,16 @@ def percent_with_other_teams_events(
     count = sum(
         1
         for event in events
-        if (emails := get_attendee_emails(event))
-        and emails.issubset(org_set)
-        and not emails.issubset(team_set)
+        if (emails := get_attendee_emails(event)) and emails.issubset(org_set) and not emails.issubset(team_set)
     )
     return round(count / len(events) * 100)
 
 
-def percent_outside_organization_events(
-    events: List[Dict], org_emails: List[str]
-) -> float:
+def percent_outside_organization_events(events: List[Dict], org_emails: List[str]) -> float:
     if not events:
         return 0.0
     org_set = set(org_emails)
-    count = sum(
-        1
-        for event in events
-        if (emails := get_attendee_emails(event)) and not emails.issubset(org_set)
-    )
+    count = sum(1 for event in events if (emails := get_attendee_emails(event)) and not emails.issubset(org_set))
     return round(count / len(events) * 100)
 
 
@@ -205,12 +173,8 @@ def count_events_without_description(events: List[Dict]) -> int:
 def calculate_buffer_time(events: List[Dict]) -> float:
     event_times = []
     for event in events:
-        start_str = event.get("start", {}).get("dateTime") or event.get(
-            "start", {}
-        ).get("date")
-        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get(
-            "date"
-        )
+        start_str = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
         if not start_str or not end_str:
             continue
 
@@ -232,8 +196,7 @@ def calculate_buffer_time(events: List[Dict]) -> float:
         if gap_hours < 2 * BUFFER_PER_SIDE_HOURS:
             if gap_hours > 0:
                 extra_gap_time += gap_hours
-            if end > current_block_end:
-                current_block_end = end
+            current_block_end = max(current_block_end, end)
         else:
             blocks.append((current_block_start, current_block_end))
             current_block_start, current_block_end = start, end
@@ -245,12 +208,8 @@ def calculate_buffer_time(events: List[Dict]) -> float:
 def calculate_transition_time(events: List[Dict]) -> float:
     event_times = []
     for event in events:
-        start_str = event.get("start", {}).get("dateTime") or event.get(
-            "start", {}
-        ).get("date")
-        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get(
-            "date"
-        )
+        start_str = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+        end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
         if not start_str or not end_str:
             continue
 
@@ -275,9 +234,7 @@ def calculate_transition_time(events: List[Dict]) -> float:
     return total_gap
 
 
-def _calculate_deep_work_time(
-    events: list[dict], count_work_day: int, team_size: int
-) -> float:
+def _calculate_deep_work_time(events: list[dict], count_work_day: int, team_size: int) -> float:
     event_time = calculate_total_events_duration(events)
     buffer_time = calculate_buffer_time(events)
     transition_time = calculate_transition_time(events)
@@ -292,7 +249,5 @@ def calculate_person_deep_work_time(events: list[dict], count_work_day: int) -> 
     return _calculate_deep_work_time(events, count_work_day, team_size=1)
 
 
-def calculate_team_deep_work_time(
-    events: list[dict], count_work_day: int, team_size: int
-) -> float:
+def calculate_team_deep_work_time(events: list[dict], count_work_day: int, team_size: int) -> float:
     return _calculate_deep_work_time(events, count_work_day, team_size)

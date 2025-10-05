@@ -1,9 +1,7 @@
-from sqlalchemy.orm import Session
-from fastapi import Depends
-
-from models import get_db, Organization, OrganizationMember, OrganizationMemberRoleEnum, OrganizationCostVisibilityEnum
-
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
+from models import OrganizationCostVisibilityEnum
+from models import OrganizationMember
+from models import OrganizationMemberRoleEnum
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 
 
 def get_member_permissions(member: OrganizationMember, db):
@@ -12,33 +10,41 @@ def get_member_permissions(member: OrganizationMember, db):
     permissions = []
     # members
     if member.role == OrganizationMemberRoleEnum.admin:
-        permissions.extend([
-            "members:view",
-            "members:create",
-            "members:edit",
-            "members:delete",
-        ])
+        permissions.extend(
+            [
+                "members:view",
+                "members:create",
+                "members:edit",
+                "members:delete",
+            ]
+        )
     elif org_manager_repository.is_manager_of_organization(member.id):
-        permissions.extend([
-            "members:view",
-            "members:edit",
-        ])
+        permissions.extend(
+            [
+                "members:view",
+                "members:edit",
+            ]
+        )
     else:
         permissions.append("members:view")
 
     # team
     if member.role == OrganizationMemberRoleEnum.admin:
-        permissions.extend([
-            "teams:view",
-            "teams:create",
-            "teams:edit",
-            "teams:delete",
-        ])
+        permissions.extend(
+            [
+                "teams:view",
+                "teams:create",
+                "teams:edit",
+                "teams:delete",
+            ]
+        )
     elif org_manager_repository.is_manager_of_organization(member.id):
-        permissions.extend([
-            "teams:view",
-            "teams:edit",
-        ])
+        permissions.extend(
+            [
+                "teams:view",
+                "teams:edit",
+            ]
+        )
     else:
         permissions.append("teams:view")
 
@@ -47,17 +53,21 @@ def get_member_permissions(member: OrganizationMember, db):
         permissions.append("meetings-costs:view")
 
     # analytics
-    permissions.extend([
-        "analytics-organization:view",
-        "analytics-members:view",
-    ])
+    permissions.extend(
+        [
+            "analytics-organization:view",
+            "analytics-members:view",
+        ]
+    )
 
     # finance:view
     if member.role == OrganizationMemberRoleEnum.admin:
         permissions.append("finance:view")
     elif member.organization.cost_is_active == True:
-        if (member.organization.cost_visibility == OrganizationCostVisibilityEnum.manager
-                and org_manager_repository.is_manager_of_organization(member.id)):
+        if (
+            member.organization.cost_visibility == OrganizationCostVisibilityEnum.manager
+            and org_manager_repository.is_manager_of_organization(member.id)
+        ):
             permissions.append("finance:view")
         elif member.organization.cost_visibility == OrganizationCostVisibilityEnum.all:
             permissions.append("finance:view")

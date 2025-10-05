@@ -1,11 +1,13 @@
-from typing import Callable, Dict, List, Any, Tuple, Optional
+from typing import Any
+from typing import List
+from typing import Tuple
 
 
 class Diagram:
     def __init__(
-            self,
-            items: List[dict],
-            metrics: List[Tuple[str, str, Any]],
+        self,
+        items: List[dict],
+        metrics: List[Tuple[str, str, Any]],
     ):
         self.items = items
         self.metrics = metrics

@@ -1,23 +1,25 @@
-from sqlalchemy.orm import Session
 from collections import defaultdict
-from typing import List, Dict
-from datetime import datetime, timedelta, date
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+from typing import Dict
+from typing import List
 
+from sqlalchemy.orm import Session
 
-from utils.analytics.calendar_stats import event_duration, event_cost
-
-
+from utils.analytics.calendar_stats import event_cost
+from utils.analytics.calendar_stats import event_duration
 
 
 def get_events_for_day(events, date):
     events_for_day = []
     for event in events:
-        if 'dateTime' in event.get('start', {}) and 'dateTime' in event.get('end', {}):
-            event_start = datetime.fromisoformat(event['start']['dateTime'].replace("Z", "+00:00"))
-            event_end = datetime.fromisoformat(event['end']['dateTime'].replace("Z", "+00:00"))
+        if "dateTime" in event.get("start", {}) and "dateTime" in event.get("end", {}):
+            event_start = datetime.fromisoformat(event["start"]["dateTime"].replace("Z", "+00:00"))
+            event_end = datetime.fromisoformat(event["end"]["dateTime"].replace("Z", "+00:00"))
             if event_start.date() == date.date() or event_end.date() == date.date():
                 events_for_day.append(event)
-        if 'date' in event.get('start', {}) and 'date' in event.get('end', {}):
+        if "date" in event.get("start", {}) and "date" in event.get("end", {}):
             # TODO: calendar events that last all day
             continue
     return events_for_day
@@ -44,8 +46,5 @@ def analyze_event_participants(events: list, user_email: str) -> list:
             if email and email.lower() != user_email.lower():
                 participant_durations[email] += duration_hours
 
-    result = [
-        {"email": email, "collab_time": round(hours, 2)}
-        for email, hours in participant_durations.items()
-    ]
+    result = [{"email": email, "collab_time": round(hours, 2)} for email, hours in participant_durations.items()]
     return result
