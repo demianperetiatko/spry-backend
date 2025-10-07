@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Query
 from fastapi import status
 from pydantic import BaseModel
 from pydantic import EmailStr
@@ -37,6 +38,10 @@ def get_member(
     auth_organization: Organization = Depends(get_auth_organization),
     db: Session = Depends(get_db),
     _: None = require_permission("members:view"),
+    name: Optional[str] = Query(None, description="Filter by member name"),
+    email: Optional[str] = Query(None, description="Filter by member email"),
+    limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
 ):
     org_team_repository = OrganizationTeamRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
@@ -61,6 +66,7 @@ def get_member(
             ],
         ),
     ]
+
     if member_has_permissions(auth_member, "finance:view", db):
         columns.append(
             (
@@ -70,8 +76,24 @@ def get_member(
             )
         )
 
-    query_members = org_member_repository.query_find_by_organization_id(auth_member.organization_id)
-    return DBTable(query_members, columns).fetch_dicts()
+    query = org_member_repository.query_find_by_organization_id(auth_member.organization_id)
+
+    if name:
+        query = query.filter(OrganizationMember.name.ilike(f"%{name.strip()}%"))
+    if email:
+        query = query.filter(OrganizationMember.email.ilike(f"%{email.strip()}%"))
+
+    total = query.count()
+    query = query.limit(limit).offset(offset)
+
+    data = DBTable(query, columns).fetch_dicts()
+
+    return {
+        "count": total,
+        "limit": limit,
+        "offset": offset,
+        "results": data,
+    }
 
 
 class MemberRequest(BaseModel):
