@@ -1,33 +1,35 @@
 import os
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Request, Depends, HTTPException
+from datetime import datetime
+from datetime import timedelta
+
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import Request
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
-from models import get_db, Organization, OrganizationMember, OrganizationMemberStatusEnum, OrganizationMemberRoleEnum, \
-    OrganizationMemberCalendar
+from models import OrganizationMember
+from models import OrganizationMemberCalendar
+from models import OrganizationMemberRoleEnum
+from models import OrganizationMemberStatusEnum
+from models import get_db
 from models.organization_member import CalendarTypeEnum
-
+from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+from models.repositories.organization_member_repository import OrganizationMemberRepository
 from models.repositories.organization_repository import OrganizationRepository
-from models.repositories.organization_member_repository import OrganizationMemberRepository, \
-    OrganizationMemberCalendarRepository
-from utils.google_api import create_google_login_uri, handle_callback_and_get_user_info
+from utils.gcp.bucket import upload_file_from_url
+from utils.google_api import create_google_login_uri
+from utils.google_api import handle_callback_and_get_user_info
 from utils.middleware import get_auth_member
 from utils.permissions import get_member_permissions
-from utils.gcp.bucket import upload_file_from_url
 
-router = APIRouter(
-    prefix='/auth',
-    tags=['auth']
-)
+router = APIRouter(prefix="/auth", tags=["auth"])
 
-FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv('APP_ENV') == "prod" else "http://localhost:3000"
+FRONTEND_DOMAIN = "https://app.spryplan.com" if os.getenv("APP_ENV") == "prod" else "http://localhost:3000"
 
 
 @router.get("/")
-async def auth(
-        member: OrganizationMember = Depends(get_auth_member),
-        db: Session = Depends(get_db)):
+async def auth(member: OrganizationMember = Depends(get_auth_member), db: Session = Depends(get_db)):
     def get_user_type(user, db):
         organization_repository = OrganizationRepository(db)
         if organization_repository.is_user_owner_of_organization(user.id):
@@ -70,28 +72,28 @@ async def auth_google(request: Request, db: Session = Depends(get_db)):
         member_calendar = member_calendar_repository.find_by_member_email_and_type(
             member_id=member.id,
             calendar_email=member.email,
-            calendar_type=CalendarTypeEnum.google
+            calendar_type=CalendarTypeEnum.google,
         )
         if not member_calendar:
             member_calendar = OrganizationMemberCalendar(
                 member_id=member.id,
                 calendar_email=member.email,
-                access_token=user_info['access_token'],
-                refresh_token=user_info['refresh_token'],
-                access_token_expiry=datetime.utcnow() + timedelta(seconds=user_info['expires_in']),
+                access_token=user_info["access_token"],
+                refresh_token=user_info["refresh_token"],
+                access_token_expiry=datetime.utcnow() + timedelta(seconds=user_info["expires_in"]),
                 type=CalendarTypeEnum.google,
             )
             member_calendar_repository.create(member_calendar)
         else:
-            member_calendar.access_token = user_info['access_token']
-            member_calendar.refresh_token = user_info['refresh_token']
-            member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info['expires_in'])
+            member_calendar.access_token = user_info["access_token"]
+            member_calendar.refresh_token = user_info["refresh_token"]
+            member_calendar.access_token_expiry = datetime.utcnow() + timedelta(seconds=user_info["expires_in"])
             member_calendar_repository.update(member_calendar)
 
         if member.status == OrganizationMemberStatusEnum.pending:
             is_new_user = True
-            member.name = user_info.get('name')
-            member.photo_url = upload_file_from_url(user_info.get('photo_url'))
+            member.name = user_info.get("name")
+            member.photo_url = upload_file_from_url(user_info.get("photo_url"))
             member.status = OrganizationMemberStatusEnum.active
         org_member_repository.update(member)
         request.session["user_id"] = str(member.id)
@@ -105,8 +107,11 @@ async def logout(request: Request):
 
 
 @router.get("/delete")
-async def delete_user(request: Request, member: OrganizationMember = Depends(get_auth_member),
-                      db: Session = Depends(get_db)):
+async def delete_user(
+    request: Request,
+    member: OrganizationMember = Depends(get_auth_member),
+    db: Session = Depends(get_db),
+):
     request.session.clear()
     if member.role == OrganizationMemberRoleEnum.admin:
         return {

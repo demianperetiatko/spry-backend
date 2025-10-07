@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
-from models.organization_member import OrganizationMemberCalendar, CalendarTypeEnum
-from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+from models.organization_member import CalendarTypeEnum
+from models.organization_member import OrganizationMemberCalendar
+
 from .base import BaseCalendarHandler
 from .google_account import GoogleAccountCalendarHandler
 from .google_account_service import GoogleAccountServiceCalendarHandler

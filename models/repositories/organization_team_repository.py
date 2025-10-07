@@ -1,11 +1,10 @@
 from typing import List
+
+from models import OrganizationMember
+from models import OrganizationTeam
+from models import OrganizationTeamMember
+from models import OrganizationTeamMemberTypeEnum
 from models.repositories import BaseRepo
-from models import (
-    OrganizationTeam,
-    OrganizationTeamMember,
-    OrganizationMember,
-    OrganizationTeamMemberTypeEnum,
-)
 
 
 class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
@@ -24,12 +23,12 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
             )
             .outerjoin(
                 OrganizationTeamMember,
-                (OrganizationTeamMember.team_id == OrganizationTeam.id) &
-                (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager)
+                (OrganizationTeamMember.team_id == OrganizationTeam.id)
+                & (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager),
             )
             .outerjoin(
                 OrganizationMember,
-                OrganizationMember.id == OrganizationTeamMember.member_id
+                OrganizationMember.id == OrganizationTeamMember.member_id,
             )
             .filter(OrganizationTeam.organization_id == organization_id)
         )
@@ -53,7 +52,10 @@ class OrganizationTeamRepository(BaseRepo[OrganizationTeam]):
                 OrganizationTeamMember.member_id.label("manager_id"),
                 (OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager).label("is_manager"),
             )
-            .join(OrganizationTeamMember, OrganizationTeam.id == OrganizationTeamMember.team_id)
+            .join(
+                OrganizationTeamMember,
+                OrganizationTeam.id == OrganizationTeamMember.team_id,
+            )
             .filter(OrganizationTeamMember.member_id == member_id)
             .all()
         )
@@ -74,7 +76,10 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
                 OrganizationTeamMember.type,
                 OrganizationMember.hourly_cost,
             )
-            .join(OrganizationMember, OrganizationMember.id == OrganizationTeamMember.member_id)
+            .join(
+                OrganizationMember,
+                OrganizationMember.id == OrganizationTeamMember.member_id,
+            )
             .filter(OrganizationTeamMember.team_id == team_id)
         )
 
@@ -82,24 +87,30 @@ class OrganizationTeamMemberRepository(BaseRepo[OrganizationTeamMember]):
         return self.query_find_by_team_id(team_id).all()
 
     def is_member_manager(self, team_id: str, member_id: str) -> bool:
-        return self.session.query(OrganizationTeamMember).filter(
-            OrganizationTeamMember.team_id == team_id,
-            OrganizationTeamMember.member_id == member_id,
-            OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager
-        ).first() is not None
+        return (
+            self.session.query(OrganizationTeamMember)
+            .filter(
+                OrganizationTeamMember.team_id == team_id,
+                OrganizationTeamMember.member_id == member_id,
+                OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager,
+            )
+            .first()
+            is not None
+        )
 
     def is_editor_manager_in_target_teams(self, editor_id: str, target_id: str) -> bool:
-        return self.session.query(OrganizationTeamMember).filter(
-            OrganizationTeamMember.member_id == editor_id,
-            OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager,
-            OrganizationTeamMember.team_id.in_(
-                self.session.query(OrganizationTeamMember.team_id).filter(
-                    OrganizationTeamMember.member_id == target_id
-                )
+        return (
+            self.session.query(OrganizationTeamMember)
+            .filter(
+                OrganizationTeamMember.member_id == editor_id,
+                OrganizationTeamMember.type == OrganizationTeamMemberTypeEnum.manager,
+                OrganizationTeamMember.team_id.in_(
+                    self.session.query(OrganizationTeamMember.team_id).filter(OrganizationTeamMember.member_id == target_id)
+                ),
             )
-        ).first() is not None
+            .first()
+            is not None
+        )
 
     def delete_all_team_member(self, team_id) -> None:
-        self.session.query(OrganizationTeamMember).filter(
-            OrganizationTeamMember.team_id == team_id
-        ).delete()
+        self.session.query(OrganizationTeamMember).filter(OrganizationTeamMember.team_id == team_id).delete()

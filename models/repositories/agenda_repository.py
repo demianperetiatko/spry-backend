@@ -1,7 +1,7 @@
-from typing import TypeVar, List
+from typing import TypeVar
 
-from models.repositories import BaseRepo
 from models import AgendaBeta
+from models.repositories import BaseRepo
 
 T = TypeVar("T")
 

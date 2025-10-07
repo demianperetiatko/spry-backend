@@ -1,8 +1,13 @@
-import uuid
 import enum
+import uuid
+
+from sqlalchemy import Column
+from sqlalchemy import DateTime
 from sqlalchemy import Enum
+from sqlalchemy import ForeignKey
+from sqlalchemy import String
+from sqlalchemy import Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, String, ForeignKey, Text, Enum, DateTime
 from sqlalchemy.orm import relationship
 
 from models import Base
@@ -12,28 +17,33 @@ class OrganizationMemberStatusEnum(str, enum.Enum):
     active = "active"
     pending = "pending"
 
+
 class OrganizationMemberRoleEnum(str, enum.Enum):
     admin = "admin"
     member = "member"
 
 
 class OrganizationMember(Base):
-    __tablename__ = 'organization_members'
+    __tablename__ = "organization_members"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey('organizations.id'), nullable=False)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name = Column(String(100))
     email = Column(String(100), nullable=False, unique=True)
     photo_url = Column(Text)
     hourly_cost = Column(String(255))
 
-    status = Column(Enum(OrganizationMemberStatusEnum), nullable=False, default=OrganizationMemberStatusEnum.pending)
+    status = Column(
+        Enum(OrganizationMemberStatusEnum),
+        nullable=False,
+        default=OrganizationMemberStatusEnum.pending,
+    )
     role = Column(Enum(OrganizationMemberRoleEnum), default=OrganizationMemberRoleEnum.member)
 
     organization = relationship("Organization", back_populates="members")
-    calendars = relationship("OrganizationMemberCalendar", back_populates="member", cascade='all, delete-orphan')
-    teams = relationship("OrganizationTeamMember", back_populates="member", cascade='all, delete-orphan')
-    agenda_items = relationship("AgendaBeta", back_populates="member", cascade='all, delete-orphan')
+    calendars = relationship("OrganizationMemberCalendar", back_populates="member", cascade="all, delete-orphan")
+    teams = relationship("OrganizationTeamMember", back_populates="member", cascade="all, delete-orphan")
+    agenda_items = relationship("AgendaBeta", back_populates="member", cascade="all, delete-orphan")
 
 
 class CalendarTypeEnum(str, enum.Enum):
@@ -42,10 +52,10 @@ class CalendarTypeEnum(str, enum.Enum):
 
 
 class OrganizationMemberCalendar(Base):
-    __tablename__ = 'organization_member_calendars'
+    __tablename__ = "organization_member_calendars"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    member_id = Column(UUID(as_uuid=True), ForeignKey('organization_members.id'), nullable=False)
+    member_id = Column(UUID(as_uuid=True), ForeignKey("organization_members.id"), nullable=False)
     calendar_email = Column(String(100), nullable=True)
 
     type = Column(Enum(CalendarTypeEnum), nullable=False, default=CalendarTypeEnum.google)
@@ -54,4 +64,4 @@ class OrganizationMemberCalendar(Base):
     access_token_expiry = Column(DateTime)
     refresh_token = Column(Text, nullable=False)
 
-    member = relationship('OrganizationMember', back_populates='calendars')
+    member = relationship("OrganizationMember", back_populates="calendars")

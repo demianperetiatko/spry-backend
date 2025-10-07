@@ -1,5 +1,6 @@
 from models import OrganizationCostPeriodEnum
 
+
 def calculate_hourly_cost(cost: float, period) -> float:
     if period == OrganizationCostPeriodEnum.year:
         return cost / (54 * 40)
@@ -7,6 +8,7 @@ def calculate_hourly_cost(cost: float, period) -> float:
         return cost / (4 * 40)
     elif period == OrganizationCostPeriodEnum.hour:
         return cost
+
 
 def calculate_total_cost(hourly_cost: float, period) -> float:
     if period == OrganizationCostPeriodEnum.year:

@@ -1,5 +1,8 @@
 import uuid
-from typing import Type, TypeVar, Generic, Optional
+from typing import Generic
+from typing import Optional
+from typing import Type
+from typing import TypeVar
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query

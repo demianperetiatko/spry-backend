@@ -1,25 +1,22 @@
 import os
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+
+import google.auth.transport.requests
+from google.oauth2 import service_account
 from sqlalchemy.orm import Session
 
 from models import OrganizationMemberCalendar
 from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+from utils.google_api import create_google_calendar_event
+from utils.google_api import get_google_calendar_event_info
+from utils.google_api import get_google_calendar_events
+from utils.google_api import get_google_calendar_timezone
+from utils.google_api import update_google_calendar_event
+
 from .base import BaseCalendarHandler
 
-from utils.google_api import (
-    create_google_calendar_event,
-    update_google_calendar_event,
-    get_google_calendar_events,
-    get_google_calendar_event_info,
-    get_google_calendar_timezone,
-)
-
-from google.oauth2 import service_account
-import google.auth.transport.requests
-
-
-SCOPES = ['https://www.googleapis.com/auth/calendar']
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
 class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
@@ -42,10 +39,7 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
         if not os.path.exists(credentials_path):
             raise FileNotFoundError(f"Service account file not found at: {credentials_path}")
 
-        credentials = service_account.Credentials.from_service_account_file(
-            credentials_path,
-            scopes=SCOPES
-        )
+        credentials = service_account.Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
         auth_req = google.auth.transport.requests.Request()
         credentials.refresh(auth_req)
 
@@ -56,8 +50,8 @@ class GoogleAccountServiceCalendarHandler(BaseCalendarHandler):
         return self.calendar.access_token
 
     def _get_credentials_path_from_email(self, email: str) -> str:
-        prefix = email.split('@')[0]
-        safe_name = prefix.replace('-', '_').replace('.', '_')
+        prefix = email.split("@")[0]
+        safe_name = prefix.replace("-", "_").replace(".", "_")
         filename = f"spry_{safe_name}.json"
         directory = os.getenv("DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER", "demo_google_account_service_key")
         return os.path.join(directory, filename)

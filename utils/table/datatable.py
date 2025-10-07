@@ -26,7 +26,6 @@ class DataTable:
                 row_dict[dict_key] = value
             result.append(row_dict)
 
-
         return {
             "total_count": len(result),
             "data": result,

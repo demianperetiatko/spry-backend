@@ -1,5 +1,9 @@
-from typing import Callable, Dict, List, Any, Tuple
 from datetime import date
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 
 class Chart:
@@ -17,9 +21,7 @@ class Chart:
         formatted_data = []
 
         for day, events in self.items.items():
-            row = {
-                self.x_axis: day.strftime("%Y-%m-%d")
-            }
+            row = {self.x_axis: day.strftime("%Y-%m-%d")}
             for key, func in self.metrics:
                 try:
                     row[key] = func(events)

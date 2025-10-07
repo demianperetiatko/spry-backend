@@ -4,11 +4,14 @@ Revision ID: 40b56019e6e3
 Revises: 3e384429ab9c
 Create Date: 2025-08-11 14:20:50.692838
 """
-from typing import Sequence, Union
+
+from typing import Sequence
+from typing import Union
+
 from alembic import op
 
-revision: str = '40b56019e6e3'
-down_revision: Union[str, None] = '3e384429ab9c'
+revision: str = "40b56019e6e3"
+down_revision: Union[str, None] = "3e384429ab9c"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

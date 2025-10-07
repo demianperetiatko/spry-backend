@@ -1,18 +1,25 @@
 from typing import Optional
-from fastapi import Depends, APIRouter, HTTPException
-from pydantic import BaseModel, field_validator, model_validator
 
+from fastapi import APIRouter
+from fastapi import Depends
+from pydantic import BaseModel
+from pydantic import field_validator
 from sqlalchemy.orm import Session
 
-from models import get_db, Organization, OrganizationMember, OrganizationCostPeriodEnum, OrganizationCostVisibilityEnum, \
-    OrganizationCostTypeEnum
-from models.repositories.organization_repository import OrganizationRepository, OrganizationMemberRepository
-
-from utils.middleware import get_auth_member, get_auth_organization, require_permission
-
+from models import Organization
+from models import OrganizationCostPeriodEnum
+from models import OrganizationCostTypeEnum
+from models import OrganizationCostVisibilityEnum
+from models import OrganizationMember
+from models import get_db
+from models.repositories.organization_member_repository import OrganizationMemberRepository
+from models.repositories.organization_repository import OrganizationRepository
 from utils.cost import calculate_hourly_cost
+from utils.middleware import get_auth_member
+from utils.middleware import get_auth_organization
+from utils.middleware import require_permission
 
-router = APIRouter(prefix='/settings', tags=['settings'])
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class UpdateCostSettings(BaseModel):
@@ -25,9 +32,9 @@ class UpdateCostSettings(BaseModel):
 
     @field_validator("currency")
     def validate_currency(cls, value, info):
-        if info.data.get('cost_is_active') and value is None:
+        if info.data.get("cost_is_active") and value is None:
             raise ValueError("Currency must not be None when cost_is_active is True.")
-        if info.data.get('cost_is_active') is False and value is not None:
+        if info.data.get("cost_is_active") is False and value is not None:
             raise ValueError("Currency must be None when cost_is_active is False.")
         return value
 
@@ -38,11 +45,9 @@ class UpdateCostSettings(BaseModel):
             OrganizationCostPeriodEnum.month,
             OrganizationCostPeriodEnum.hour,
         ]
-        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
-            raise ValueError(
-                f"Invalid value for cost_period. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
-            )
-        if info.data.get('cost_is_active') is False and value is not None:
+        if info.data.get("cost_is_active") and value not in ALLOWED_PERIODS:
+            raise ValueError(f"Invalid value for cost_period. Allowed values are: {', '.join(ALLOWED_PERIODS)}")
+        if info.data.get("cost_is_active") is False and value is not None:
             raise ValueError("cost_period must be None when cost_is_active is False.")
         return value
 
@@ -51,13 +56,11 @@ class UpdateCostSettings(BaseModel):
         ALLOWED_PERIODS = [
             OrganizationCostVisibilityEnum.admin,
             OrganizationCostVisibilityEnum.manager,
-            OrganizationCostVisibilityEnum.all
+            OrganizationCostVisibilityEnum.all,
         ]
-        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
-            raise ValueError(
-                f"Invalid value for cost_visibility. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
-            )
-        if info.data.get('cost_is_active') is False and value is not None:
+        if info.data.get("cost_is_active") and value not in ALLOWED_PERIODS:
+            raise ValueError(f"Invalid value for cost_visibility. Allowed values are: {', '.join(ALLOWED_PERIODS)}")
+        if info.data.get("cost_is_active") is False and value is not None:
             raise ValueError("cost_visibility must be None when cost_is_active is False.")
         return value
 
@@ -67,11 +70,9 @@ class UpdateCostSettings(BaseModel):
             OrganizationCostTypeEnum.per_member,
             OrganizationCostTypeEnum.average,
         ]
-        if info.data.get('cost_is_active') and value not in ALLOWED_PERIODS:
-            raise ValueError(
-                f"Invalid value for cost_type. Allowed values are: {', '.join(ALLOWED_PERIODS)}"
-            )
-        if info.data.get('cost_is_active') is False and value is not None:
+        if info.data.get("cost_is_active") and value not in ALLOWED_PERIODS:
+            raise ValueError(f"Invalid value for cost_type. Allowed values are: {', '.join(ALLOWED_PERIODS)}")
+        if info.data.get("cost_is_active") is False and value is not None:
             raise ValueError("cost_type must be None when cost_is_active is False.")
         return value
 
@@ -82,31 +83,31 @@ class UpdateCostSettings(BaseModel):
         return value
 
 
-@router.get('/cost')
+@router.get("/cost")
 def get_settings_cost(
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        # TODO: move currency to /auth
-        # _: None = require_permission('meetings-costs:view')
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    auth_organization: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    # TODO: move currency to /auth
+    # _: None = require_permission('meetings-costs:view')
 ):
     return {
-        'cost_is_active': auth_organization.cost_is_active or False,
-        'currency': auth_organization.currency,
-        'cost_period': auth_organization.cost_period,
-        'cost_visibility': auth_organization.cost_visibility,
-        'cost_type': auth_organization.cost_type,
-        'average_cost': auth_organization.average_cost,
+        "cost_is_active": auth_organization.cost_is_active or False,
+        "currency": auth_organization.currency,
+        "cost_period": auth_organization.cost_period,
+        "cost_visibility": auth_organization.cost_visibility,
+        "cost_type": auth_organization.cost_type,
+        "average_cost": auth_organization.average_cost,
     }
 
 
-@router.put('/cost')
+@router.put("/cost")
 def update_settings_cost(
-        settings: UpdateCostSettings,
-        auth_member: OrganizationMember = Depends(get_auth_member),
-        auth_organization: Organization = Depends(get_auth_organization),
-        db: Session = Depends(get_db),
-        _: None = require_permission('meetings-costs:view')
+    settings: UpdateCostSettings,
+    auth_member: OrganizationMember = Depends(get_auth_member),
+    auth_organization: Organization = Depends(get_auth_organization),
+    db: Session = Depends(get_db),
+    _: None = require_permission("meetings-costs:view"),
 ):
     org_repository = OrganizationRepository(db)
     org_member_repository = OrganizationMemberRepository(db)
@@ -124,4 +125,3 @@ def update_settings_cost(
     auth_organization.cost_type = settings.cost_type
     auth_organization.average_cost = settings.average_cost
     org_repository.update(auth_organization)
-    return

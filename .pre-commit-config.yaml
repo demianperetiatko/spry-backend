@@ -1,0 +1,12 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff formatter
+        name: Run ruff formatter
+        language: system
+        entry: sh -c "docker run --pull always -v .:/io --rm ghcr.io/astral-sh/ruff:latest format ."
+
+      - id: ruff linter
+        name: Run ruff linter
+        language: system
+        entry: sh -c "docker run --pull always -v .:/io --rm ghcr.io/astral-sh/ruff:latest check --fix ."

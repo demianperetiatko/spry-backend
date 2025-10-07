@@ -1,15 +1,15 @@
 import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from service_views import (
-    admin as admin_view,
-    auth as auth_view,
-    profile as profile_view,
-    organization as organization_view,
-    analytics as analytics_view,
-    home as home_view,
-)
+
+from service_views import admin as admin_view
+from service_views import analytics as analytics_view
+from service_views import auth as auth_view
+from service_views import home as home_view
+from service_views import organization as organization_view
+from service_views import profile as profile_view
 
 app = FastAPI()
 
