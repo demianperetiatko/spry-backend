@@ -17,7 +17,7 @@ from utils.middleware import require_permission
 router = APIRouter()
 
 
-@router.get("/member/", response_model=PaginatedMembersResponse)
+@router.get("/members/", response_model=PaginatedMembersResponse)
 def get_organization_members(
     auth_member: OrganizationMember = Depends(get_auth_member),
     auth_organization: Organization = Depends(get_auth_organization),
