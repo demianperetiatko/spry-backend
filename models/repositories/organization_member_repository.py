@@ -1,8 +1,12 @@
 from typing import List
 from typing import Optional
 
+from sqlalchemy.orm import Query
+from sqlalchemy.orm import selectinload
+
 from models import OrganizationMember
 from models import OrganizationMemberCalendar
+from models import OrganizationTeam
 from models import OrganizationTeamMember
 from models import OrganizationTeamMemberTypeEnum
 from models.organization_member import CalendarTypeEnum
@@ -53,6 +57,32 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
             .filter(OrganizationMember.organization_id == organization_id)
             .order_by(OrganizationMember.email)
         )
+
+    def get_query_members_by_organization_id(
+        self,
+        organization_id: int,
+        name: str | None = None,
+        email: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> tuple[Query, int]:
+        query = self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id)
+
+        if name:
+            query = query.filter(OrganizationMember.name.ilike(f"%{name.strip()}%"))
+        if email:
+            query = query.filter(OrganizationMember.email.ilike(f"%{email.strip()}%"))
+
+        total = query.count()
+
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+
+        query = query.options(selectinload(OrganizationMember.teams).joinedload(OrganizationTeamMember.team))
+
+        return query, total
 
     def find_by_organization_id(self, organization_id):
         return self.query_find_by_organization_id(organization_id).all()

@@ -3,7 +3,7 @@ class DBTable:
         self.query = query
         self.columns = columns
 
-    def fetch_dicts(self):
+    def fetch_dicts(self):  # deprecated
         result = []
         for row in self.query.all():
             row_dict = {}
