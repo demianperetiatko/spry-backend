@@ -4,7 +4,6 @@ from typing import Optional
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-from fastapi import Query
 from fastapi import status
 from pydantic import BaseModel
 from pydantic import EmailStr
@@ -21,79 +20,12 @@ from models.repositories.organization_member_repository import OrganizationMembe
 from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
 from models.repositories.organization_team_repository import OrganizationTeamRepository
 from utils.cost import calculate_hourly_cost
-from utils.cost import calculate_total_cost
 from utils.middleware import get_auth_member
 from utils.middleware import get_auth_organization
 from utils.middleware import require_permission
-from utils.permissions import member_has_permissions
 from utils.send_message import send_user_invitation
-from utils.table import DBTable
 
 router = APIRouter()
-
-
-@router.get("/member/")
-def get_member(
-    auth_member: OrganizationMember = Depends(get_auth_member),
-    auth_organization: Organization = Depends(get_auth_organization),
-    db: Session = Depends(get_db),
-    _: None = require_permission("members:view"),
-    name: Optional[str] = Query(None, description="Filter by member name"),
-    email: Optional[str] = Query(None, description="Filter by member email"),
-    limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
-    offset: int = Query(0, ge=0, description="Pagination offset"),
-):
-    org_team_repository = OrganizationTeamRepository(db)
-    org_member_repository = OrganizationMemberRepository(db)
-
-    columns = [
-        ("id", "id"),
-        ("name", "name"),
-        ("photo_url", "photo_url"),
-        ("email", "email"),
-        ("status", "status", lambda i: i.status.lower()),
-        ("teams", "teams", lambda i: org_team_repository.find_by_member_id(i.id)),
-        (
-            "role",
-            "role",
-            lambda i: [
-                role
-                for role in [
-                    "admin" if i.role == OrganizationMemberRoleEnum.admin else None,
-                    "manager" if org_member_repository.is_manager_of_organization(i.id) else None,
-                ]
-                if role is not None
-            ],
-        ),
-    ]
-
-    if member_has_permissions(auth_member, "finance:view", db):
-        columns.append(
-            (
-                "cost",
-                "cost",
-                lambda i: calculate_total_cost(float(i.hourly_cost), auth_organization.cost_period) if i.hourly_cost else None,
-            )
-        )
-
-    query = org_member_repository.query_find_by_organization_id(auth_member.organization_id)
-
-    if name:
-        query = query.filter(OrganizationMember.name.ilike(f"%{name.strip()}%"))
-    if email:
-        query = query.filter(OrganizationMember.email.ilike(f"%{email.strip()}%"))
-
-    total = query.count()
-    query = query.limit(limit).offset(offset)
-
-    data = DBTable(query, columns).fetch_dicts()
-
-    return {
-        "count": total,
-        "limit": limit,
-        "offset": offset,
-        "results": data,
-    }
 
 
 class MemberRequest(BaseModel):
