@@ -6,7 +6,6 @@ from sqlalchemy.orm import selectinload
 
 from models import OrganizationMember
 from models import OrganizationMemberCalendar
-from models import OrganizationTeam
 from models import OrganizationTeamMember
 from models import OrganizationTeamMemberTypeEnum
 from models.organization_member import CalendarTypeEnum
@@ -61,17 +60,22 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
     def get_query_members_by_organization_id(
         self,
         organization_id: int,
-        name: str | None = None,
-        email: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
     ) -> tuple[Query, int]:
+        from sqlalchemy import or_
+
         query = self.session.query(OrganizationMember).filter(OrganizationMember.organization_id == organization_id)
 
-        if name:
-            query = query.filter(OrganizationMember.name.ilike(f"%{name.strip()}%"))
-        if email:
-            query = query.filter(OrganizationMember.email.ilike(f"%{email.strip()}%"))
+        if search_query:
+            search_term = f"%{search_query.strip()}%"
+            query = query.filter(
+                or_(
+                    OrganizationMember.name.ilike(search_term),
+                    OrganizationMember.email.ilike(search_term),
+                )
+            )
 
         total = query.count()
 

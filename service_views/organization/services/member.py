@@ -21,8 +21,7 @@ class MemberService:
         self,
         auth_member: OrganizationMember,
         auth_organization: Organization,
-        name: str | None = None,
-        email: str | None = None,
+        search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
     ) -> PaginatedMembersResponse:
@@ -30,8 +29,7 @@ class MemberService:
 
         query, total = self.org_member_repo.get_query_members_by_organization_id(
             organization_id=auth_member.organization_id,
-            name=name,
-            email=email,
+            search_query=search_query,
             limit=limit,
             offset=offset,
         )
