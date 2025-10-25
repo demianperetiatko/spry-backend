@@ -1,6 +1,9 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
 from models.repositories.organization_team_repository import OrganizationTeamRepository
@@ -8,6 +11,72 @@ from utils.analytics.calendar_stats import calculate_recurring_events_cost
 from utils.analytics.calendar_stats import calculate_recurring_events_duration
 from utils.analytics.calendar_stats import calculate_total_events_cost
 from utils.analytics.calendar_stats import calculate_total_events_duration
+
+
+def parse_recurrence_rule(recurrence: List[str]) -> Tuple[Optional[str], Optional[str]]:
+    if not recurrence:
+        return None, None
+
+    for rule in recurrence:
+        if rule.startswith("RRULE:"):
+            rule_parts = rule[6:].split(";")
+            freq = None
+            day = None
+
+            for part in rule_parts:
+                if part.startswith("FREQ="):
+                    freq = part[5:].lower()
+                elif part.startswith("BYDAY="):
+                    day = part[6:]
+
+            return freq, day
+
+    return None, None
+
+
+def format_recurring_type(frequency: Optional[str], day_of_week: Optional[str]) -> str:
+    if not frequency:
+        return ""
+
+    day_abbreviations = {"MO": "Mon", "TU": "Tue", "WE": "Wed", "TH": "Thu", "FR": "Fri", "SA": "Sat", "SU": "Sun"}
+
+    if frequency == "weekly" and day_of_week and day_of_week in day_abbreviations:
+        return f"Weekly on {day_abbreviations[day_of_week]}"
+    elif frequency == "daily":
+        return "Daily"
+    elif frequency == "monthly":
+        return "Monthly"
+    elif frequency == "yearly":
+        return "Yearly"
+    else:
+        return frequency.capitalize()
+
+
+def get_event_duration(event: Dict) -> str:
+    start_str = event.get("start", {}).get("dateTime", "")
+    end_str = event.get("end", {}).get("dateTime", "")
+
+    if not start_str or not end_str:
+        return ""
+
+    try:
+        start_time = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        end_time = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+        duration_minutes = int((end_time - start_time).total_seconds() / 60)
+        hours = duration_minutes // 60
+        minutes = duration_minutes % 60
+
+        if hours == 0 and minutes == 0:
+            return ""
+        elif hours == 0:
+            return f"{minutes}m"
+        elif minutes == 0:
+            return f"{hours}h"
+        else:
+            return f"{hours}h {minutes}m"
+    except (ValueError, TypeError):
+        return ""
 
 
 def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
@@ -31,7 +100,33 @@ def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
     return round((total_cancellations / total_instances * 100), 2)
 
 
-def process_recurring_events(events: List[Dict], members) -> List[Dict]:
+def get_recurrence_info_for_event(event: Dict, db, member_id: str | None = None) -> Tuple[Optional[str], Optional[str]]:
+    recurring_id = event.get("recurringEventId")
+    if not recurring_id:
+        return None, None
+
+    from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
+    from utils.calendar.factory import CalendarHandlerFactory
+
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+    calendars = member_calendar_repository.find_by_member_id(member_id or event.get("member_id", ""))
+
+    if not calendars:
+        return None, None
+
+    for calendar in calendars:
+        try:
+            handler = CalendarHandlerFactory.get_handler(calendar, db)
+            master_event = handler.get_event_info(recurring_id)
+            if master_event and "recurrence" in master_event:
+                return parse_recurrence_rule(master_event.get("recurrence", []))
+        except (Exception,):
+            continue
+
+    return None, None
+
+
+def process_recurring_events(events: List[Dict], members, db) -> List[Dict]:
     recurring_events_summary = []
 
     grouped_events = defaultdict(list)
@@ -41,14 +136,24 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
             grouped_events[recurring_id].append(event)
 
     for recurring_id, event_group in grouped_events.items():
+        first_event = event_group[0]
+
+        member_id = first_event.get("member_id") or (members[0].member_id if hasattr(members[0], "member_id") else members[0].id)
+        frequency, day_of_week = get_recurrence_info_for_event(first_event, db, member_id)
+
+        if frequency is None and day_of_week is None:
+            frequency, day_of_week = None, None
+
         recurring_events_summary.append(
             {
                 "id": recurring_id,
-                "meeting_name": event_group[0].get("summary"),
-                "attendees": len(event_group[0].get("attendees", [])),
+                "meeting_name": first_event.get("summary"),
+                "attendees": len(first_event.get("attendees", [])),
                 "cancellation_rate": calculate_cancellation_rate(event_group, members),
                 "total_time": calculate_recurring_events_duration(event_group),
                 "total_cost": calculate_recurring_events_cost(event_group, members),
+                "recurring_type": format_recurring_type(frequency, day_of_week),
+                "duration": get_event_duration(first_event),
             }
         )
 
