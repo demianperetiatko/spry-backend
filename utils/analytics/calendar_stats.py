@@ -77,7 +77,7 @@ def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float
     total_duration = calculate_total_events_duration(events)
     if total_work_days == 0:
         return 0
-    return round(total_duration * 100 / (8 * total_work_days))
+    return round((total_duration * 100) / (WORKDAY_HOURS * total_work_days), 1)
 
 
 def calculate_avg_daily_meetings_hour(events: list, total_work_days: int) -> float:
