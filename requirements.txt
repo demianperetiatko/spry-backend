@@ -50,3 +50,4 @@ sendgrid==6.11.0
 premailer==3.10.0
 google-auth==2.40.3
 google-cloud-storage==3.3.0
+tzdata==2025.2 # Time zones may change — update this library periodically
