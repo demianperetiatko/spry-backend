@@ -25,6 +25,7 @@ from utils.analytics.calendar_stats import calculate_total_events_cost
 from utils.analytics.calendar_stats import calculate_total_events_duration
 from utils.analytics.calendar_stats import calculate_transition_time
 from utils.analytics.calendar_stats import count_user_organized_events
+from utils.analytics.calendar_stats import get_attendee_emails
 from utils.analytics.calendar_stats import get_unique_events
 from utils.analytics.calendar_stats import percent_events_with_2_attendees
 from utils.analytics.calendar_stats import percent_events_with_3_to_5_attendees
@@ -33,6 +34,7 @@ from utils.analytics.calendar_stats import percent_inside_team_events
 from utils.analytics.calendar_stats import percent_outside_organization_events
 from utils.analytics.calendar_stats import percent_with_other_teams_events
 from utils.analytics.filters import filter_active
+from utils.analytics.filters import filter_events_by_attendee_count
 from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_avg_daily_meetings_time
 from utils.analytics.kpi import kpi_avg_member_meetings_cost
@@ -246,6 +248,20 @@ async def get_team_meetings(
     return response.as_dict()
 
 
+def calculate_percent_and_hours(events, filter_func):
+    """Calculate both percentage and total hours for filtered events."""
+    from utils.analytics.calendar_stats import event_duration
+
+    if not events:
+        return {"percent": 0.0, "hours": 0.0}
+
+    filtered = filter_func(events)
+    percent = round(len(filtered) / len(events) * 100, 2)
+    hours = round(sum(event_duration(event) for event in filtered), 1)
+
+    return {"percent": percent, "hours": hours}
+
+
 @router.get("/analytic/organization/meeting/participants")
 def get_team_meeting_participants(
     team_id: Optional[str] = Query(None),
@@ -267,17 +283,27 @@ def get_team_meeting_participants(
             (
                 "one_to_one",
                 "One-on-one",
-                lambda i: {"value": percent_events_with_2_attendees(i)},
+                lambda i: {
+                    "value": calculate_percent_and_hours(
+                        i, lambda e: filter_events_by_attendee_count(e, lambda count: count == 2)
+                    )
+                },
             ),
             (
                 "three_to_five",
                 "3-5",
-                lambda i: {"value": percent_events_with_3_to_5_attendees(i)},
+                lambda i: {
+                    "value": calculate_percent_and_hours(
+                        i, lambda e: filter_events_by_attendee_count(e, lambda count: 3 <= count <= 5)
+                    )
+                },
             ),
             (
                 "more_than_five",
                 "6+",
-                lambda i: {"value": percent_events_with_more_than_5_attendees(i)},
+                lambda i: {
+                    "value": calculate_percent_and_hours(i, lambda e: filter_events_by_attendee_count(e, lambda count: count > 5))
+                },
             ),
         ],
     )
@@ -309,23 +335,37 @@ def get_team_meeting_distribution(
     team_emails = [m.email for m in org_team_members]
     org_emails = [m.email for m in org_members]
 
+    team_set = set(team_emails)
+    org_set = set(org_emails)
+
+    def filter_inside_team(events):
+        return [e for e in events if (emails := get_attendee_emails(e)) and emails.issubset(team_set)]
+
+    def filter_cross_team(events):
+        return [
+            e for e in events if (emails := get_attendee_emails(e)) and emails.issubset(org_set) and not emails.issubset(team_set)
+        ]
+
+    def filter_external(events):
+        return [e for e in events if (emails := get_attendee_emails(e)) and not emails.issubset(org_set)]
+
     response = Diagram(
         items=set_events,
         metrics=[
             (
                 "inside_team",
                 "Inside the team",
-                lambda i: {"value": percent_inside_team_events(i, team_emails)},
+                lambda i: {"value": calculate_percent_and_hours(i, filter_inside_team)},
             ),
             (
                 "cross_team",
                 "With other teams",
-                lambda i: {"value": percent_with_other_teams_events(i, team_emails, org_emails)},
+                lambda i: {"value": calculate_percent_and_hours(i, filter_cross_team)},
             ),
             (
                 "external",
                 "Outside the org.",
-                lambda i: {"value": percent_outside_organization_events(i, org_emails)},
+                lambda i: {"value": calculate_percent_and_hours(i, filter_external)},
             ),
         ],
     )
