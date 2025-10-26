@@ -16,6 +16,7 @@ from models.repositories.organization_team_repository import OrganizationTeamRep
 from utils.analytics import group_events_by_date
 from utils.analytics.calendar_stats import calculate_buffer_time
 from utils.analytics.calendar_stats import calculate_event_ratio
+from utils.analytics.calendar_stats import calculate_percent_and_hours
 from utils.analytics.calendar_stats import calculate_person_deep_work_time
 from utils.analytics.calendar_stats import calculate_recurring_events_cost
 from utils.analytics.calendar_stats import calculate_recurring_events_duration
@@ -27,12 +28,6 @@ from utils.analytics.calendar_stats import calculate_transition_time
 from utils.analytics.calendar_stats import count_user_organized_events
 from utils.analytics.calendar_stats import get_attendee_emails
 from utils.analytics.calendar_stats import get_unique_events
-from utils.analytics.calendar_stats import percent_events_with_2_attendees
-from utils.analytics.calendar_stats import percent_events_with_3_to_5_attendees
-from utils.analytics.calendar_stats import percent_events_with_more_than_5_attendees
-from utils.analytics.calendar_stats import percent_inside_team_events
-from utils.analytics.calendar_stats import percent_outside_organization_events
-from utils.analytics.calendar_stats import percent_with_other_teams_events
 from utils.analytics.filters import filter_active
 from utils.analytics.filters import filter_events_by_attendee_count
 from utils.analytics.filters import filter_meetings
@@ -246,20 +241,6 @@ async def get_team_meetings(
         )
 
     return response.as_dict()
-
-
-def calculate_percent_and_hours(events, filter_func):
-    """Calculate both percentage and total hours for filtered events."""
-    from utils.analytics.calendar_stats import event_duration
-
-    if not events:
-        return {"percent": 0.0, "hours": 0.0}
-
-    filtered = filter_func(events)
-    percent = round(len(filtered) / len(events) * 100, 2)
-    hours = round(sum(event_duration(event) for event in filtered), 1)
-
-    return {"percent": percent, "hours": hours}
 
 
 @router.get("/analytic/organization/meeting/participants")
