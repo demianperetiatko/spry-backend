@@ -63,6 +63,7 @@ def calculate_percent_and_hours(events, filter_func):
     return {"percent": percent, "hours": hours}
 
 
+# todo: fix total_work_days (actually it's count_work_day * count_people)
 def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float:
     total_duration = calculate_total_events_duration(events)
     if total_work_days == 0:

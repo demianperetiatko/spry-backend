@@ -127,8 +127,6 @@ def get_team_kpi(
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
-    members_with_events_ids = {event["member_id"] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
     kpis = [
         {
             "key": "time_on_meetings",
