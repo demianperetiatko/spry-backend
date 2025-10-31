@@ -7,7 +7,7 @@ from pydantic import ConfigDict
 class MemberTeamDetailResponse(BaseModel):
     team_id: UUID
     team_name: str
-    manager_id: UUID
+    manager_id: UUID | None = None
     is_manager: bool
 
     model_config = ConfigDict(from_attributes=True)
