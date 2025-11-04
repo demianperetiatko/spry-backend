@@ -77,6 +77,14 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
 
 def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> dict:
     if currency:
+        if len(members) == 0:
+            return {
+                "value": None,
+                "change": None,
+                "positive": None,
+                "type_value": "currency",
+            }
+
         total_cost = calculate_total_events_cost(events, members)
         prev_total_cost = calculate_total_events_cost(prev_events, members)
 
@@ -99,6 +107,14 @@ def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> 
 
 def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, count_work_day, currency) -> dict:
     if currency:
+        if len(members) == 0 or count_work_day == 0:
+            return {
+                "value": None,
+                "change": None,
+                "positive": None,
+                "type_value": "currency",
+            }
+
         total_cost = calculate_total_events_cost(events, members) / (len(members) * count_work_day)
         prev_total_cost = calculate_total_events_cost(prev_events, members) / (len(members) * count_work_day)
 
