@@ -370,7 +370,7 @@ def get_personal_table(
         ]
     else:
         events = get_all_meetings(member, start_date_dt, end_date_dt, db)
-        result = process_recurring_events(events, [member])
+        result = process_recurring_events(events, [member], db)
         columns = [
             ("id", "id"),
             (

@@ -2,8 +2,11 @@ from collections import defaultdict
 from typing import Dict
 from typing import List
 
+from sqlalchemy.orm import Session
+
 from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
 from models.repositories.organization_team_repository import OrganizationTeamRepository
+from utils import get_user_profile
 from utils.analytics.calendar_stats import calculate_recurring_events_cost
 from utils.analytics.calendar_stats import calculate_recurring_events_duration
 from utils.analytics.calendar_stats import calculate_total_events_cost
@@ -31,7 +34,7 @@ def calculate_cancellation_rate(events: List[Dict], members: List) -> float:
     return round((total_cancellations / total_instances * 100), 2)
 
 
-def process_recurring_events(events: List[Dict], members) -> List[Dict]:
+def process_recurring_events(events: List[Dict], members, db: Session) -> List[Dict]:
     recurring_events_summary = []
 
     grouped_events = defaultdict(list)
@@ -41,6 +44,9 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
             grouped_events[recurring_id].append(event)
 
     for recurring_id, event_group in grouped_events.items():
+        organizer_email = event_group[0].get("organizer", {}).get("email", "")
+        organizer_profile = get_user_profile(organizer_email, db) if organizer_email else None
+
         recurring_events_summary.append(
             {
                 "id": recurring_id,
@@ -49,6 +55,7 @@ def process_recurring_events(events: List[Dict], members) -> List[Dict]:
                 "cancellation_rate": calculate_cancellation_rate(event_group, members),
                 "total_time": calculate_recurring_events_duration(event_group),
                 "total_cost": calculate_recurring_events_cost(event_group, members),
+                "organizer": organizer_profile,
             }
         )
 
