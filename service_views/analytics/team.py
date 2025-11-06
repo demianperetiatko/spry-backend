@@ -655,7 +655,7 @@ def get_team_meetings_table(
         events = flatten_team_events(team_events)
         members_with_events_ids = {event["member_id"] for event in team_events}
         org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
-        result = process_recurring_events(events, org_team_members)
+        result = process_recurring_events(events, org_team_members, db)
         columns = [
             ("id", "id"),
             (
@@ -663,8 +663,8 @@ def get_team_meetings_table(
                 "meeting",
                 lambda i: {
                     "name": i.get("meeting_name"),
-                    "duration": "",
-                    "recurring_type": "",
+                    "duration": i.get("duration", ""),
+                    "recurring_type": i.get("recurring_type", ""),
                 },
             ),
             ("attendees", "attendees"),
