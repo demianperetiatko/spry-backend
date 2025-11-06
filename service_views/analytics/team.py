@@ -14,8 +14,10 @@ from models.repositories.organization_member_repository import OrganizationMembe
 from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
 from models.repositories.organization_team_repository import OrganizationTeamRepository
 from utils.analytics import group_events_by_date
+from utils.analytics.calendar_stats import calculate_avg_attendees
 from utils.analytics.calendar_stats import calculate_buffer_time
 from utils.analytics.calendar_stats import calculate_event_ratio
+from utils.analytics.calendar_stats import calculate_events_without_description_duration
 from utils.analytics.calendar_stats import calculate_percent_and_hours
 from utils.analytics.calendar_stats import calculate_person_deep_work_time
 from utils.analytics.calendar_stats import calculate_recurring_events_cost
@@ -25,9 +27,9 @@ from utils.analytics.calendar_stats import calculate_single_events_duration
 from utils.analytics.calendar_stats import calculate_total_events_cost
 from utils.analytics.calendar_stats import calculate_total_events_duration
 from utils.analytics.calendar_stats import calculate_transition_time
-from utils.analytics.calendar_stats import count_user_organized_events
 from utils.analytics.calendar_stats import get_attendee_emails
 from utils.analytics.calendar_stats import get_unique_events
+from utils.analytics.calendar_stats import get_user_organized_events
 from utils.analytics.filters import filter_active
 from utils.analytics.filters import filter_events_by_attendee_count
 from utils.analytics.filters import filter_meetings
@@ -600,15 +602,32 @@ def get_team_meetings_table(
         for member in org_team_members:
             try:
                 member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                organized_events = get_user_organized_events(member_events, member.email)
+
+                meetings_time = calculate_total_events_duration(organized_events)
+                recurring_time = calculate_recurring_events_duration(organized_events)
+                recurring_percent = round((recurring_time / meetings_time * 100), 2) if meetings_time > 0 else 0.0
+
+                avg_attendees = calculate_avg_attendees(organized_events)
+
+                meetings_wo_agenda_time = calculate_events_without_description_duration(organized_events)
+                meetings_wo_agenda_percent = (
+                    round((meetings_wo_agenda_time / meetings_time * 100), 2) if meetings_time > 0 else 0.0
+                )
+
                 info = {
                     "id": member.id,
                     "name": member.name,
-                    "emai": member.email,
+                    "email": member.email,
                     "photo_url": member.photo_url,
-                    "count": count_user_organized_events(member_events, member.email),
+                    "count": len(organized_events),
+                    "meetings_time": round(meetings_time, 2),
+                    "recurring_meetings_percent": recurring_percent,
+                    "avg_attendees": avg_attendees,
+                    "meetings_wo_agenda_percent": meetings_wo_agenda_percent,
                 }
                 result.append(info)
-            except Exception:
+            except (Exception,):
                 continue
 
         columns = [
@@ -618,11 +637,15 @@ def get_team_meetings_table(
                 "member_profile",
                 lambda i: {
                     "name": i.get("name", ""),
-                    "email": i.get("emai"),
+                    "email": i.get("email"),
                     "photo_url": i.get("photo_url"),
                 },
             ),
             ("count", "count"),
+            ("meetings_time", "meetings_time"),
+            ("recurring_meetings_percent", "recurring_meetings_percent"),
+            ("avg_attendees", "avg_attendees"),
+            ("meetings_wo_agenda_percent", "meetings_wo_agenda_percent"),
         ]
     elif type == TableType.teams_collab:
         events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
@@ -668,6 +691,11 @@ def get_team_meetings_table(
                 },
             ),
             ("attendees", "attendees"),
+            (
+                "organizer",
+                "organizer",
+                lambda i: i.get("organizer"),
+            ),
             ("cancellation_rate", "cancellation_rate"),
             ("total_time", "total_time"),
         ]

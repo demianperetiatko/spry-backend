@@ -102,13 +102,12 @@ def calculate_total_events_cost(events: List[Dict], members) -> float:
     return float(sum(event_cost(event, members) for event in events))
 
 
-def count_user_organized_events(events: List[Dict], email: str) -> int:
-    organized_events = [
+def get_user_organized_events(events: List[Dict], email: str) -> List[Dict]:
+    return [
         event
         for event in events
         if event.get("organizer", {}).get("email") == email or event.get("creator", {}).get("self") == True
     ]
-    return len(organized_events)
 
 
 def count_cancelled_events(events: list, email: str) -> int:
@@ -130,6 +129,17 @@ def count_cancelled_events(events: list, email: str) -> int:
 
 def count_events_without_description(events: List[Dict]) -> int:
     return sum(1 for event in events if not event.get("description"))
+
+
+def calculate_events_without_description_duration(events: List[Dict]) -> float:
+    return float(sum(event_duration(event) for event in events if not event.get("description")))
+
+
+def calculate_avg_attendees(events: List[Dict]) -> float:
+    if not events:
+        return 0.0
+    total_attendees = sum(len(event.get("attendees", [])) for event in events)
+    return round(total_attendees / len(events), 2)
 
 
 def calculate_buffer_time(events: List[Dict]) -> float:

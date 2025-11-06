@@ -5,8 +5,11 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from sqlalchemy.orm import Session
+
 from models.repositories.organization_team_repository import OrganizationTeamMemberRepository
 from models.repositories.organization_team_repository import OrganizationTeamRepository
+from utils import get_user_profile
 from utils.analytics.calendar_stats import calculate_recurring_events_cost
 from utils.analytics.calendar_stats import calculate_recurring_events_duration
 from utils.analytics.calendar_stats import calculate_total_events_cost
@@ -126,7 +129,7 @@ def get_recurrence_info_for_event(event: Dict, db, member_id: str | None = None)
     return None, None
 
 
-def process_recurring_events(events: List[Dict], members, db) -> List[Dict]:
+def process_recurring_events(events: List[Dict], members, db: Session) -> List[Dict]:
     recurring_events_summary = []
 
     grouped_events = defaultdict(list)
@@ -136,6 +139,9 @@ def process_recurring_events(events: List[Dict], members, db) -> List[Dict]:
             grouped_events[recurring_id].append(event)
 
     for recurring_id, event_group in grouped_events.items():
+        organizer_email = event_group[0].get("organizer", {}).get("email", "")
+        organizer_profile = get_user_profile(organizer_email, db) if organizer_email else None
+
         first_event = event_group[0]
 
         member_id = first_event.get("member_id") or (members[0].member_id if hasattr(members[0], "member_id") else members[0].id)
@@ -154,6 +160,7 @@ def process_recurring_events(events: List[Dict], members, db) -> List[Dict]:
                 "total_cost": calculate_recurring_events_cost(event_group, members),
                 "recurring_type": format_recurring_type(frequency, day_of_week),
                 "duration": get_event_duration(first_event),
+                "organizer": organizer_profile,
             }
         )
 
