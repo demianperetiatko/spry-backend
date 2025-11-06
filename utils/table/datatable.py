@@ -8,7 +8,10 @@ class DataTable:
         if sort_by:
             reverse = sort_order == "desc"
             try:
-                self.items.sort(key=lambda x: x.get(sort_by), reverse=reverse)
+                self.items.sort(
+                    key=lambda x: (x.get(sort_by) is None, x.get(sort_by)),
+                    reverse=reverse,
+                )
             except Exception as e:
                 raise ValueError(f"Sorting error: {e}")
 

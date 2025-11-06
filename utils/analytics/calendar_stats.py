@@ -52,32 +52,23 @@ def count_events(events: List[Dict]) -> int:
     return len(events)
 
 
-def percent_events_with_2_attendees(events: List[Dict]) -> float:
+def calculate_percent_and_hours(events, filter_func):
     if not events:
-        return 0.0
-    filtered = filter_events_by_attendee_count(events, lambda count: count == 2)
-    return round(len(filtered) / len(events) * 100)
+        return {"percent": 0.0, "hours": 0.0}
+
+    filtered = filter_func(events)
+    percent = round(len(filtered) / len(events) * 100, 2)
+    hours = round(sum(event_duration(event) for event in filtered), 1)
+
+    return {"percent": percent, "hours": hours}
 
 
-def percent_events_with_3_to_5_attendees(events: List[Dict]) -> float:
-    if not events:
-        return 0.0
-    filtered = filter_events_by_attendee_count(events, lambda count: 3 <= count <= 5)
-    return round(len(filtered) / len(events) * 100)
-
-
-def percent_events_with_more_than_5_attendees(events: List[Dict]) -> float:
-    if not events:
-        return 0.0
-    filtered = filter_events_by_attendee_count(events, lambda count: count > 5)
-    return round(len(filtered) / len(events) * 100, 2)
-
-
+# todo: fix total_work_days (actually it's count_work_day * count_people)
 def calculate_event_ratio(events: List[Dict], total_work_days: int = 1) -> float:
     total_duration = calculate_total_events_duration(events)
     if total_work_days == 0:
         return 0
-    return round(total_duration * 100 / (8 * total_work_days))
+    return round((total_duration * 100) / (WORKDAY_HOURS * total_work_days), 1)
 
 
 def calculate_avg_daily_meetings_hour(events: list, total_work_days: int) -> float:
@@ -134,35 +125,6 @@ def count_cancelled_events(events: list, email: str) -> int:
                 break
 
     return total_cancelled_meetings
-
-
-def percent_inside_team_events(events: List[Dict], team_emails: List[str]) -> float:
-    if not events:
-        return 0.0
-    team_set = set(team_emails)
-    count = sum(1 for event in events if (emails := get_attendee_emails(event)) and emails.issubset(team_set))
-    return round(count / len(events) * 100)
-
-
-def percent_with_other_teams_events(events: List[Dict], team_emails: List[str], org_emails: List[str]) -> float:
-    if not events:
-        return 0.0
-    team_set = set(team_emails)
-    org_set = set(org_emails)
-    count = sum(
-        1
-        for event in events
-        if (emails := get_attendee_emails(event)) and emails.issubset(org_set) and not emails.issubset(team_set)
-    )
-    return round(count / len(events) * 100)
-
-
-def percent_outside_organization_events(events: List[Dict], org_emails: List[str]) -> float:
-    if not events:
-        return 0.0
-    org_set = set(org_emails)
-    count = sum(1 for event in events if (emails := get_attendee_emails(event)) and not emails.issubset(org_set))
-    return round(count / len(events) * 100)
 
 
 def count_events_without_description(events: List[Dict]) -> int:
