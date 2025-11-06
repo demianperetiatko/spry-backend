@@ -77,6 +77,14 @@ def kpi_meetings_ratio(events: list, prev_events: list, count_work_day: int, cou
 
 def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> dict:
     if currency:
+        if len(members) == 0:
+            return {
+                "value": None,
+                "change": None,
+                "positive": None,
+                "type_value": "currency",
+            }
+
         total_cost = calculate_total_events_cost(events, members)
         prev_total_cost = calculate_total_events_cost(prev_events, members)
 
@@ -99,6 +107,14 @@ def kpi_total_cost(events: list, prev_events: list, members: list, currency) -> 
 
 def kpi_avg_daily_meetings_cost(events: list, prev_events: list, members: list, count_work_day, currency) -> dict:
     if currency:
+        if len(members) == 0 or count_work_day == 0:
+            return {
+                "value": None,
+                "change": None,
+                "positive": None,
+                "type_value": "currency",
+            }
+
         total_cost = calculate_total_events_cost(events, members) / (len(members) * count_work_day)
         prev_total_cost = calculate_total_events_cost(prev_events, members) / (len(members) * count_work_day)
 
@@ -174,16 +190,19 @@ def _calculate_percentage_kpi(
     total_work_hours: float,
     is_positive_change: bool = False,
 ) -> dict:
-    current_percent = round((current_value / total_work_hours) * 100)
-    previous_percent = round((previous_value / total_work_hours) * 100)
+    current_percent = round((current_value / total_work_hours) * 100) if total_work_hours > 0 else 0
+    previous_percent = round((previous_value / total_work_hours) * 100) if total_work_hours > 0 else 0
 
     change = calculate_chance(current_percent, previous_percent)
 
     return {
-        "value": current_percent,
+        "value": {
+            "percent": current_percent,
+            "hours": round(current_value, 1),
+        },
         "change": f"{'+' if change >= 0 else ''}{change}%",
         "positive": is_positive_change if change > 0 else not is_positive_change,
-        "type_value": "percent",
+        "type_value": "productivity",
     }
 
 

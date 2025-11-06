@@ -10,6 +10,7 @@ from models import OrganizationTeam
 from models import OrganizationTeamMember
 from models import OrganizationTeamMemberTypeEnum
 from models.organization_member import CalendarTypeEnum
+from models.organization_member import OrganizationMemberStatusEnum
 from models.repositories import BaseRepo
 
 
@@ -54,7 +55,10 @@ class OrganizationMemberRepository(BaseRepo[OrganizationMember]):
                 OrganizationMember.status,
                 OrganizationMember.role,
             )
-            .filter(OrganizationMember.organization_id == organization_id)
+            .filter(
+                OrganizationMember.organization_id == organization_id,
+                OrganizationMember.status == OrganizationMemberStatusEnum.active,
+            )
             .order_by(OrganizationMember.email)
         )
 
