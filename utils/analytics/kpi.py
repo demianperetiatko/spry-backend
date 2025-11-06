@@ -190,8 +190,8 @@ def _calculate_percentage_kpi(
     total_work_hours: float,
     is_positive_change: bool = False,
 ) -> dict:
-    current_percent = round((current_value / total_work_hours) * 100) if total_work_hours > 0 else 0
-    previous_percent = round((previous_value / total_work_hours) * 100) if total_work_hours > 0 else 0
+    current_percent = round((current_value / total_work_hours) * 100, 1) if total_work_hours > 0 else 0
+    previous_percent = round((previous_value / total_work_hours) * 100, 1) if total_work_hours > 0 else 0
 
     change = calculate_chance(current_percent, previous_percent)
 

@@ -127,8 +127,6 @@ def get_team_kpi(
 
     count_work_day = count_weekdays(start_date_dt, end_date_dt)
 
-    members_with_events_ids = {event["member_id"] for event in team_events}
-    org_team_members = [m for m in org_team_members if m.member_id in members_with_events_ids]
     kpis = [
         {
             "key": "time_on_meetings",
@@ -447,13 +445,13 @@ def get_team_productivity(
         ],
     )
 
-    def calculate_metric_with_hours_and_percent(data, key):
+    def calculate_metric_with_hours_and_percent(data, key, team_members_count=1):
         from utils.analytics.constants import WORKDAY_HOURS
 
         kpi = data[key]
         if count_work_day == 0:
             return {"percent": 0, "hours": round(kpi, 1)}
-        percent = round((kpi / (count_work_day * WORKDAY_HOURS)) * 100)
+        percent = round((kpi / (count_work_day * WORKDAY_HOURS * team_members_count)) * 100, 1)
         return {"percent": percent, "hours": round(kpi, 1)}
 
     if list_type == ListType.teams:
@@ -469,6 +467,7 @@ def get_team_productivity(
             members = org_team_member_repository.find_by_team_id(team.id)
             team_member_ids = {member.member_id for member in members}
             team_members_data = [m for m in data if m["id"] in team_member_ids]
+            team_members_count = len(team_members_data)
             help_data.append(
                 {
                     "id": team.id,
@@ -477,6 +476,7 @@ def get_team_productivity(
                     "deep_work": sum(m["deep_work"] for m in team_members_data),
                     "transition_time": sum(m["transition_time"] for m in team_members_data),
                     "buffers": sum(m["buffers"] for m in team_members_data),
+                    "team_members_count": team_members_count,
                 }
             )
 
@@ -486,15 +486,23 @@ def get_team_productivity(
             (
                 "meetings_time",
                 "meetings_time",
-                lambda i: calculate_metric_with_hours_and_percent(i, "meetings_time"),
+                lambda i: calculate_metric_with_hours_and_percent(i, "meetings_time", i.get("team_members_count", 1)),
             ),
-            ("deep_work", "deep_work", lambda i: calculate_metric_with_hours_and_percent(i, "deep_work")),
+            (
+                "deep_work",
+                "deep_work",
+                lambda i: calculate_metric_with_hours_and_percent(i, "deep_work", i.get("team_members_count", 1)),
+            ),
             (
                 "transition_time",
                 "transition_time",
-                lambda i: calculate_metric_with_hours_and_percent(i, "transition_time"),
+                lambda i: calculate_metric_with_hours_and_percent(i, "transition_time", i.get("team_members_count", 1)),
             ),
-            ("buffers", "buffers", lambda i: calculate_metric_with_hours_and_percent(i, "buffers")),
+            (
+                "buffers",
+                "buffers",
+                lambda i: calculate_metric_with_hours_and_percent(i, "buffers", i.get("team_members_count", 1)),
+            ),
         ]
         res_data = DataTable(help_data, columns).fetch_dicts(sort_by, sort_order).get("data", [])
     else:
