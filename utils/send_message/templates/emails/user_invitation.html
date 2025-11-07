@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"/>
   <title>Spry Invite</title>
   <style>
     @media only screen and (max-width: 600px) {
@@ -36,10 +37,10 @@
             <td align="left" style="padding-bottom: 32px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="vertical-align: middle; padding-right: 10px;">
-                    <img src="https://spryplan.com/logo%20128px.png" alt="Spry Plan" width="27" style="display:inline-block;">
+                  <td style="vertical-align: middle; padding-right: 9.92px; height: 27px;">
+                    <img src="https://spryplan.com/logo%20128px.png" alt="Spry Plan" width="27" height="27" style="display: inline-block; vertical-align: middle;">
                   </td>
-                  <td style="font-size:14px; font-weight:500; line-height:16px; color:#1a1a1a;">Spry Plan</td>
+                    <td style="font-family:Roboto, Arial, sans-serif; font-size:14px; font-weight:500; line-height:27px; letter-spacing:0.0085em; vertical-align:middle; color:#1A1A1A; white-space:nowrap; height: 27px;">Spry Plan</td>
                 </tr>
               </table>
             </td>
@@ -49,22 +50,22 @@
           <tr>
             <td style="font-size:16px; font-weight:500; line-height:24px; color:#1a1a1a; padding-bottom: 24px;">
               {% if organisation_name %}
-                <strong>{{administrator_name}}</strong> invited you to join <strong>{{organisation_name}}</strong> on Spry
+                {{administrator_name}} invited you to join {{organisation_name}} on Spry
               {% else %}
-                <strong>{{administrator_name}}</strong> invited you to join Spry
+                {{administrator_name}} invited you to join Spry
               {% endif %}
             </td>
           </tr>
 
           <tr>
             <td style="font-size:14px; font-weight:400; line-height:20px; color:#474747; padding-bottom: 24px;">
-              Spry is the [short description of the app]
+              Spry is how teams track meeting habits, set better agendas, and make time for deep work.
             </td>
           </tr>
 
           <tr>
             <td style="font-size:14px; font-weight:400; line-height:20px; color:#474747; padding-bottom: 24px;">
-              No more boring, aimless meetings – with Spry, every conversation counts. Let’s turn meetings into something to look forward to 🚀
+              Leave boring, unproductive meetings behind. Spry ensures every conversation counts. Get ready to look forward to your meetings! 🚀
             </td>
           </tr>
 
