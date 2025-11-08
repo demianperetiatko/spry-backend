@@ -354,16 +354,19 @@ def get_team_meeting_distribution(
 
 
 def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt, db):
-    if hasattr(
-        member, "member_id"
-    ):  # quick fix: member.id contains OrganizationTeamMember.id if team_id is not None (func get_team_members)
-        member_id = member.member_id
-    else:
-        member_id = member.id
-    calendar_events = get_member_calendar_events(member_id, start_date_dt, end_date_dt, db)
-    meetings = filter_meetings(calendar_events)
-    meetings = filter_active(meetings, member.email)
-    return meetings
+    try:
+        if hasattr(
+            member, "member_id"
+        ):  # quick fix: member.id contains OrganizationTeamMember.id if team_id is not None (func get_team_members)
+            member_id = member.member_id
+        else:
+            member_id = member.id
+        calendar_events = get_member_calendar_events(member_id, start_date_dt, end_date_dt, db)
+        meetings = filter_meetings(calendar_events)
+        meetings = filter_active(meetings, member.email)
+        return meetings
+    except (Exception,):  # quick fix
+        return []
 
 
 class ListType(str, Enum):
@@ -469,7 +472,7 @@ def get_team_productivity(
             members = org_team_member_repository.find_by_team_id(team.id)
             team_member_ids = {member.member_id for member in members}
             team_members_data = [m for m in data if m["id"] in team_member_ids]
-            team_members_count = len(team_members_data)
+            team_members_count = len(team_member_ids)
             help_data.append(
                 {
                     "id": team.id,
