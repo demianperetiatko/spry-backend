@@ -22,11 +22,10 @@ def get_organization_members(
     auth_member: OrganizationMember = Depends(get_auth_member),
     auth_organization: Organization = Depends(get_auth_organization),
     db: Session = Depends(get_db),
-    name: Optional[str] = Query(None, description="Filter by member name"),
-    email: Optional[str] = Query(None, description="Filter by member email"),
+    search_query: Optional[str] = Query(None, description="Search by member name or email"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     _: None = require_permission("members:view"),
 ) -> PaginatedMembersResponse:
     member_service = MemberService(db)
-    return member_service.get_organization_members(auth_member, auth_organization, name, email, limit, offset)
+    return member_service.get_organization_members(auth_member, auth_organization, search_query, limit, offset)
