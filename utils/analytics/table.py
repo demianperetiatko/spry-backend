@@ -202,6 +202,7 @@ def process_teams_collab(events: List[Dict], organization_id, main_team_id, db):
         info = {
             "id": team.id,
             "team_name": team.name,
+            "manager_id": team.manager_id,
             "manager_name": team.manager_name,
             "manager_email": team.manager_email,
             "manager_photo_url": team.manager_photo,
