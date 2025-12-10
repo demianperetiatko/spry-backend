@@ -109,20 +109,48 @@ def get_recurrence_info_for_event(event: Dict, db, member_id: str | None = None)
         return None, None
 
     from models.repositories.organization_member_repository import OrganizationMemberCalendarRepository
-    from utils.calendar.factory import CalendarHandlerFactory
+    from models.repositories.organization_member_repository import OrganizationMemberRepository
+    from utils.google_api import get_google_calendar_event_info
 
-    member_calendar_repository = OrganizationMemberCalendarRepository(db)
-    calendars = member_calendar_repository.find_by_member_id(member_id or event.get("member_id", ""))
+    emails = set()
 
-    if not calendars:
+    organizer = event.get("organizer", {})
+    organizer_email = organizer.get("email")
+    if organizer_email:
+        emails.add(organizer_email.lower())
+
+    attendees = event.get("attendees", [])
+    for attendee in attendees:
+        attendee_email = attendee.get("email")
+        if attendee_email:
+            emails.add(attendee_email.lower())
+
+    if not emails:
         return None, None
 
-    for calendar in calendars:
+    member_repository = OrganizationMemberRepository(db)
+    member_calendar_repository = OrganizationMemberCalendarRepository(db)
+
+    for email in emails:
         try:
-            handler = CalendarHandlerFactory.get_handler(calendar, db)
-            master_event = handler.get_event_info(recurring_id)
-            if master_event and "recurrence" in master_event:
-                return parse_recurrence_rule(master_event.get("recurrence", []))
+            member = member_repository.find_by_email(email)
+            if not member:
+                continue
+
+            calendars = member_calendar_repository.find_by_member_id(member.id)
+            if not calendars:
+                continue
+
+            for calendar in calendars:
+                try:
+                    master_event = get_google_calendar_event_info(
+                        access_token=calendar.access_token, event_id=recurring_id, calendar_id="primary"
+                    )
+
+                    if master_event and "recurrence" in master_event:
+                        return parse_recurrence_rule(master_event.get("recurrence", []))
+                except (Exception,):
+                    continue
         except (Exception,):
             continue
 
