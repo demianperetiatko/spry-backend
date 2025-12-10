@@ -407,7 +407,7 @@ def get_team_productivity(
             prev_all_events.extend(prev_events)
 
             info = {
-                "id": member.id,
+                "id": member.member_id if team_id else member.id,
                 "name": member.name,
                 "email": member.email,
                 "photo_url": member.photo_url,
@@ -517,6 +517,7 @@ def get_team_productivity(
                 "member_profile",
                 "member_profile",
                 lambda i: {
+                    "id": i.get("id", " "),
                     "name": i.get("name", " "),
                     "email": i.get("email"),
                     "photo_url": i.get("member_photo_url"),
@@ -572,7 +573,7 @@ def get_team_meetings_table(
             try:
                 member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
                 info = {
-                    "id": member.id,
+                    "id":  member.member_id if team_id else member.id,
                     "name": member.name,
                     "email": member.email,
                     "member_photo_url": member.photo_url,
@@ -589,6 +590,7 @@ def get_team_meetings_table(
                 "member_profile",
                 "member_profile",
                 lambda i: {
+                    "id": i.get("id", " "),
                     "name": i.get("name", " "),
                     "email": i.get("email"),
                     "photo_url": i.get("member_photo_url"),
@@ -619,7 +621,7 @@ def get_team_meetings_table(
                 )
 
                 info = {
-                    "id": member.id,
+                    "id": member.member_id if team_id else member.id,
                     "name": member.name,
                     "email": member.email,
                     "photo_url": member.photo_url,
@@ -639,6 +641,7 @@ def get_team_meetings_table(
                 "member_profile",
                 "member_profile",
                 lambda i: {
+                    "id": i.get("id", ""),
                     "name": i.get("name", ""),
                     "email": i.get("email"),
                     "photo_url": i.get("photo_url"),
@@ -661,6 +664,7 @@ def get_team_meetings_table(
                 "team_manager_profile",
                 "team_manager_profile",
                 lambda i: {
+                    "id": i.get("manager_id", ""),
                     "name": i.get("manager_name", ""),
                     "email": i.get("manager_email"),
                     "photo_url": i.get("manager_photo_url"),
