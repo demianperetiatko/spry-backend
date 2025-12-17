@@ -15,6 +15,7 @@ from models import get_db
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
 from utils import get_user_profile
+from utils.analytics.filters import filter_active
 from utils.analytics.filters import filter_by_title
 from utils.analytics.filters import filter_meetings
 from utils.analytics.kpi import kpi_count_meetings
@@ -51,7 +52,9 @@ def get_user_kpi(
     prev_end_date = prev_end_of_week.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
+    events = filter_active(events, auth_member.email)
     prev_events = filter_meetings(get_member_calendar_events(auth_member.id, prev_start_date, prev_end_date, db))
+    prev_events = filter_active(prev_events, auth_member.email)
     return {
         "data": [
             {
@@ -162,7 +165,9 @@ def get_deep_work_slot(
 
     events = get_member_calendar_events(auth_member.id, start_date, end_date, db)
     busy_times = []
-    for event in filter_meetings(events) + filter_by_title(events, "Deep Work Time"):
+    meetings = filter_meetings(events)
+    meetings = filter_active(meetings, auth_member.email)
+    for event in meetings + filter_by_title(events, "Deep Work Time"):
         start_str = event.get("start", {}).get("dateTime", "").split("+")[0]
         end_str = event.get("end", {}).get("dateTime", "").split("+")[0]
         if start_str and end_str:
@@ -234,6 +239,7 @@ def get_agenda_beta(
     end_date = (today + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
 
     events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
+    events = filter_active(events, auth_member.email)
     meetings = []
     for event in events:
         if "description" in event:
