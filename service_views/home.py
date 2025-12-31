@@ -15,6 +15,7 @@ from models import get_db
 from models.agenda import AgendaBeta
 from models.repositories.agenda_repository import AgendaBetaRepository
 from utils import get_user_profile
+from utils.analytics.calendar_stats import get_unique_events
 from utils.analytics.filters import filter_active
 from utils.analytics.filters import filter_by_title
 from utils.analytics.filters import filter_meetings
@@ -53,8 +54,10 @@ def get_user_kpi(
 
     events = filter_meetings(get_member_calendar_events(auth_member.id, start_date, end_date, db))
     events = filter_active(events, auth_member.email)
+    events = get_unique_events(events)
     prev_events = filter_meetings(get_member_calendar_events(auth_member.id, prev_start_date, prev_end_date, db))
     prev_events = filter_active(prev_events, auth_member.email)
+    prev_events = get_unique_events(prev_events)
     return {
         "data": [
             {
