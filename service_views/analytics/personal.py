@@ -65,6 +65,7 @@ def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt
         calendar_events = get_member_calendar_events(member.id, start_date_dt, end_date_dt, db)
         meetings = filter_meetings(calendar_events)
         meetings = filter_active(meetings, member.email)
+        meetings = get_unique_events(meetings)
         return meetings
     except Exception:
         return []

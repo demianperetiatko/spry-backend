@@ -133,17 +133,17 @@ def get_team_kpi(
         {
             "key": "time_on_meetings",
             "title": "Time on meetings",
-            **kpi_total_time(events, prev_events),
+            **kpi_total_time(set_events, set_prev_events),
         },
         {
             "key": "meetings_time_ratio",
             "title": "Meetings time ratio",
-            **kpi_meetings_ratio(events, prev_events, count_work_day, len(org_team_members)),
+            **kpi_meetings_ratio(set_events, set_prev_events, count_work_day, len(org_team_members)),
         },
         {
             "key": "avg_hours_per_person",
             "title": "Avg. hours per member",
-            **kpi_avg_daily_meetings_time(events, prev_events, 1, len(org_team_members)),
+            **kpi_avg_daily_meetings_time(set_events, set_prev_events, 1, len(org_team_members)),
         },  # quick fix
     ]
     if member_has_permissions(auth_member, "finance:view", db):
@@ -214,7 +214,7 @@ async def get_team_meetings(
     if type == AnalyticsType.time:
         response = Chart(
             x_axis="date",
-            items=group_events_by_date(events, start_date_dt, end_date_dt),
+            items=group_events_by_date(set_events, start_date_dt, end_date_dt),
             metrics=[
                 ("recurring", calculate_recurring_events_duration),
                 ("one_time", calculate_single_events_duration),
@@ -257,6 +257,7 @@ def get_team_meeting_participants(
 
     org_team_members = get_team_members(org.id, team_id, db)
     events = flatten_team_events(get_team_events(org_team_members, start_date_dt, end_date_dt, db))
+    events = get_unique_events(events)
 
     response = Diagram(
         items=events,
@@ -364,6 +365,7 @@ def get_personal_meetings(member: OrganizationMember, start_date_dt, end_date_dt
         calendar_events = get_member_calendar_events(member_id, start_date_dt, end_date_dt, db)
         meetings = filter_meetings(calendar_events)
         meetings = filter_active(meetings, member.email)
+        meetings = get_unique_events(meetings)
         return meetings
     except (Exception,):  # quick fix
         return []
@@ -401,9 +403,11 @@ def get_team_productivity(
     for member in org_team_members:
         try:
             events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+            events = get_unique_events(events)
             all_events.extend(events)
 
             prev_events = get_personal_meetings(member, prev_start_date_dt, prev_end_date_dt, db)
+            prev_events = get_unique_events(prev_events)
             prev_all_events.extend(prev_events)
 
             info = {
@@ -572,6 +576,7 @@ def get_team_meetings_table(
         for member in org_team_members:
             try:
                 member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                member_events = get_unique_events(member_events)
                 info = {
                     "id":  member.member_id if team_id else member.id,
                     "name": member.name,
@@ -607,6 +612,7 @@ def get_team_meetings_table(
         for member in org_team_members:
             try:
                 member_events = get_personal_meetings(member, start_date_dt, end_date_dt, db)
+                member_events = get_unique_events(member_events)
                 organized_events = get_user_organized_events(member_events, member.email)
 
                 meetings_time = calculate_total_events_duration(organized_events)
