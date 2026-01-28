@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"/>
+  <title>Spry Invite</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .mobile-container {
+        width: 343px !important;
+        max-width: 343px !important;
+        margin: 16px !important;
+        padding: 24px !important;
+      }
+      .mobile-button {
+        width: 100% !important;
+        max-width: 295px !important;
+        box-sizing: border-box !important;
+      }
+      .mobile-footer {
+        width: 343px !important;
+        max-width: 343px !important;
+        margin: 24px 16px 0 16px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f9f9fb; font-family:Roboto, Arial, sans-serif; color:#1a1a1a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+        <!-- Card Container -->
+        <table role="presentation" width="528" cellpadding="0" cellspacing="0" border="0" class="mobile-container" style="background-color:#ffffff; border:1px solid #ebebed; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.03); padding:32px;">
+          <!-- Header -->
+          <tr>
+            <td align="left" style="padding-bottom: 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 9.92px; height: 27px;">
+                    <img src="https://spryplan.com/logo%20128px.png" alt="Spry Plan" width="27" height="27" style="display: inline-block; vertical-align: middle;">
+                  </td>
+                    <td style="font-family:Roboto, Arial, sans-serif; font-size:14px; font-weight:500; line-height:27px; letter-spacing:0.0085em; vertical-align:middle; color:#1A1A1A; white-space:nowrap; height: 27px;">Spry Plan</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="font-size:16px; font-weight:500; line-height:24px; color:#1a1a1a; padding-bottom: 24px;">
+              {% if organisation_name %}
+                {{administrator_name}} invited you to join {{organisation_name}} on Spry
+              {% else %}
+                {{administrator_name}} invited you to join Spry
+              {% endif %}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; font-weight:400; line-height:20px; color:#474747; padding-bottom: 24px;">
+              Spry is how teams track meeting habits, set better agendas, and make time for deep work.
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; font-weight:400; line-height:20px; color:#474747; padding-bottom: 24px;">
+              Leave boring, unproductive meetings behind. Spry ensures every conversation counts. Get ready to look forward to your meetings! 🚀
+            </td>
+          </tr>
+
+          <!-- Button -->
+          <tr>
+            <td align="center" style="padding-bottom: 0;">
+              <a href="{{ invitation_link }}" target="_blank" class="mobile-button" style="display:inline-block; background-color:#ffcf40; border-radius:8px; text-align:center; padding:12px 24px; font-size:14px; font-weight:500; line-height:16px; color:#000000; text-decoration:none; width: 464px">
+                Join Spry
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="528" class="mobile-footer" style="margin-top:24px;">
+          <tr>
+            <td align="center" style="font-size:14px; font-weight:400; line-height:20px; color:#919191;">
+              Learn more at <a href="https://spryplan.com" target="_blank" style="color:#096DD9; text-decoration:none;">spryplan.com</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
