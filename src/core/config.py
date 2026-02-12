@@ -76,11 +76,7 @@ class Settings(BaseSettings):
         default="https://openidconnect.googleapis.com/v1/userinfo",
         description="Google OAuth userinfo endpoint",
     )
-    GOOGLE_REDIRECT_URI_PROD: str = Field(
-        default="https://api.spryplan.com/auth/callback/google/",
-        description="Google OAuth redirect URI for production",
-    )
-    GOOGLE_REDIRECT_URI_DEV: str = Field(
+    GOOGLE_REDIRECT_URI: str = Field(
         default="http://localhost:8000/auth/callback/google/",
         description="Google OAuth redirect URI for development",
     )
@@ -94,28 +90,18 @@ class Settings(BaseSettings):
         description="Google OAuth scopes",
     )
 
-    FRONTEND_DOMAIN_PROD: str = Field(
-        default="https://app.spryplan.com",
-        description="Frontend domain for production",
-    )
-    FRONTEND_DOMAIN_DEV: str = Field(
+    FRONTEND_DOMAIN: str = Field(
         default="http://localhost:3000",
         description="Frontend domain for development",
     )
-    BACKEND_DOMAIN_PROD: str = Field(
-        default="https://api.spryplan.com/",
-        description="Backend domain for production",
-    )
-    BACKEND_DOMAIN_DEV: str = Field(
+    BACKEND_DOMAIN: str = Field(
         default="http://localhost:8000",
         description="Backend domain for development",
     )
-
     ADMIN_API_KEY: str = Field(
         default="",
         description="Admin API key for organization creation",
     )
-
     INVITATION_API_PREFIX: str = Field(
         default="/invitations",
         description="Backend API prefix for invitation endpoints",
@@ -138,15 +124,15 @@ class Settings(BaseSettings):
 
     @property
     def google_redirect_uri(self) -> str:
-        return self.GOOGLE_REDIRECT_URI_PROD if self.APP_ENV == "prod" else self.GOOGLE_REDIRECT_URI_DEV
+        return self.GOOGLE_REDIRECT_URI
 
     @property
     def frontend_domain(self) -> str:
-        return self.FRONTEND_DOMAIN_PROD if self.APP_ENV == "prod" else self.FRONTEND_DOMAIN_DEV
+        return self.FRONTEND_DOMAIN
 
     @property
     def backend_domain(self) -> str:
-        return self.BACKEND_DOMAIN_PROD if self.APP_ENV == "prod" else self.BACKEND_DOMAIN_DEV
+        return self.BACKEND_DOMAIN
 
     def get_invitation_link(self, token: str) -> str:
         return f"{self.backend_domain}{self.INVITATION_API_PREFIX}/{token}"
