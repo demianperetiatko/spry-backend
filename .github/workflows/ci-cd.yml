@@ -132,6 +132,6 @@ jobs:
       - name: Deploy to App Engine (dev)
         run: |
           gcloud app deploy --quiet \
-            --project "${{ secrets.GCP_PROJECT_ID_DEV }}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
             --version "dev-${{ github.run_number }}" \
             --no-promote
