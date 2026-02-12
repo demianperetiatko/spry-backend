@@ -117,14 +117,15 @@ jobs:
 
       - name: Prepare app.yaml (dev)
         run: |
+          sed -i "s|\${SERVICE}|${{ secrets.SERVICE_DEV }}|g" app.yaml
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV_DEV }}|g" app.yaml
           sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI_DEV }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY_DEV }}|g" app.yaml
-          sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID_DEV }}|g" app.yaml
-          sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET_DEV }}|g" app.yaml
-          sed -i "s|\${MAILJET_API_KEY}|${{ secrets.MAILJET_API_KEY_DEV }}|g" app.yaml
-          sed -i "s|\${MAILJET_SECRET_KEY}|${{ secrets.MAILJET_SECRET_KEY_DEV }}|g" app.yaml
-          sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}|g" app.yaml
+          sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
+          sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
+          sed -i "s|\${MAILJET_API_KEY}|${{ secrets.MAILJET_API_KEY }}|g" app.yaml
+          sed -i "s|\${MAILJET_SECRET_KEY}|${{ secrets.MAILJET_SECRET_KEY }}|g" app.yaml
+          sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}|g" app.yaml
           sed -i "s|\${GCP_SERVICE_KEY_PATH}|${{ secrets.GCP_SERVICE_KEY_PATH_DEV }}|g" app.yaml
           sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME_DEV }}|g" app.yaml
 
