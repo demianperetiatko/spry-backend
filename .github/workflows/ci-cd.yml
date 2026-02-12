@@ -134,6 +134,7 @@ jobs:
           sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME_DEV }}|g" app.yaml
           sed -i "s|\${GOOGLE_REDIRECT_URI}|${{ vars.GOOGLE_REDIRECT_URI }}|g" app.yaml
           sed -i "s|\${CORS_ORIGINS}|${{ vars.CORS_ORIGINS }}|g" app.yaml
+          sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
 
       - name: Deploy to App Engine (dev)
         run: |
