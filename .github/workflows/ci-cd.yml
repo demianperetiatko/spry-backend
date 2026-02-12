@@ -99,17 +99,17 @@ jobs:
 
       - name: Write service demo account files (dev)
         run: |
-          mkdir -p "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}"
-          echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo1_576.json"
-          echo '${{ secrets.GCP_SPRY_DEMO2_619_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo2_619.json"
-          echo '${{ secrets.GCP_SPRY_DEMO3_675_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo3_675.json"
-          echo '${{ secrets.GCP_SPRY_DEMO4_832_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo4_832.json"
-          echo '${{ secrets.GCP_SPRY_DEMO5_483_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo5_483.json"
-          echo '${{ secrets.GCP_SPRY_DEMO6_150_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo6_150.json"
-          echo '${{ secrets.GCP_SPRY_DEMO7_895_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo7_895.json"
-          echo '${{ secrets.GCP_SPRY_DEMO8_455_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo8_455.json"
-          echo '${{ secrets.GCP_SPRY_DEMO9_606_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo9_606.json"
-          echo '${{ secrets.GCP_SPRY_DEMO10_JSON_DEV }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER_DEV }}/spry_demo10.json"
+          mkdir -p "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}"
+          echo '${{ secrets.GCP_SPRY_DEMO1_576_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo1_576.json"
+          echo '${{ secrets.GCP_SPRY_DEMO2_619_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo2_619.json"
+          echo '${{ secrets.GCP_SPRY_DEMO3_675_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo3_675.json"
+          echo '${{ secrets.GCP_SPRY_DEMO4_832_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo4_832.json"
+          echo '${{ secrets.GCP_SPRY_DEMO5_483_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo5_483.json"
+          echo '${{ secrets.GCP_SPRY_DEMO6_150_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo6_150.json"
+          echo '${{ secrets.GCP_SPRY_DEMO7_895_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo7_895.json"
+          echo '${{ secrets.GCP_SPRY_DEMO8_455_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo8_455.json"
+          echo '${{ secrets.GCP_SPRY_DEMO9_606_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo9_606.json"
+          echo '${{ secrets.GCP_SPRY_DEMO10_JSON }}' > "${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}/spry_demo10.json"
 
       - name: Write GCP account files (dev)
         run: |
