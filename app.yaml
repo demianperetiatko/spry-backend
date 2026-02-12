@@ -1,4 +1,4 @@
-service: spry-backend
+service: ${SERVICE}
 runtime: python310
 env: standard
 

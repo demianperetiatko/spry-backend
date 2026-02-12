@@ -5,11 +5,18 @@ from authlib.integrations.requests_client import OAuth2Session
 AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
-GOOGLE_REDIRECT_URI = (
-    "https://api.spryplan.com/auth/callback/google/"
-    if os.getenv("APP_ENV") == "prod"
-    else "http://localhost:8000/auth/callback/google/"
-)
+
+ENV = os.getenv("APP_ENV", "local")
+
+GOOGLE_REDIRECT_URI_MAP = {
+    "prod": "https://api.spryplan.com/auth/callback/google/",
+    "dev": "https://dev-api.spryplan.com/auth/callback/google/",
+    "local": "http://localhost:8000/auth/callback/google/",
+}
+
+GOOGLE_REDIRECT_URI = GOOGLE_REDIRECT_URI_MAP.get(ENV, GOOGLE_REDIRECT_URI_MAP["local"])
+
+
 SCOPE = [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/userinfo.profile",
