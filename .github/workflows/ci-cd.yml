@@ -73,6 +73,9 @@ jobs:
 
   deploy-dev:
     if: github.ref == 'refs/heads/dev'
+    environment:
+      name: dev
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -128,6 +131,7 @@ jobs:
           sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}|g" app.yaml
           sed -i "s|\${GCP_SERVICE_KEY_PATH}|${{ secrets.GCP_SERVICE_KEY_PATH_DEV }}|g" app.yaml
           sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME_DEV }}|g" app.yaml
+          sed -i "s|\${GOOGLE_REDIRECT_URI}|${{ vars.GOOGLE_REDIRECT_URI }}|g" app.yaml
 
       - name: Deploy to App Engine (dev)
         run: |
