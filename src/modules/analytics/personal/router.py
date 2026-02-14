@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated, TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from src.modules.calendar.service import CalendarService
 
 from src.core.database.session import get_session
+from src.modules.analytics.personal.dependency import AnalyticsContext, get_personal_analytics_context
 from src.modules.analytics.personal.repository import (
     PersonalAnalyticsRepository,
     get_personal_analytics_repository,
@@ -28,7 +29,6 @@ from src.modules.analytics.personal.schemas import (
 from src.modules.analytics.personal.services.data_loader import AnalyticsDataLoaderService
 from src.modules.analytics.personal.services.metrics import PersonalMetricsService
 from src.modules.analytics.personal.services.recurring import RecurringMeetingService
-from src.modules.analytics.personal.dependency import AnalyticsContext, get_personal_analytics_context
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
     get_organization_member_repository,

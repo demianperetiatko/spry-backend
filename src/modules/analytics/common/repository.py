@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.modules.calendar.models import CalendarEvent, CalendarEventAttendee, OrganizationMemberCalendar
+from src.modules.calendar.models import CalendarEvent, CalendarEventAttendee
 from src.modules.enums import CalendarAttendeeResponseStatusEnum, CalendarEventStatusEnum
 from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_team.model import OrganizationTeamMember

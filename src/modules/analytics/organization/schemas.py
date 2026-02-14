@@ -22,7 +22,6 @@ from src.modules.analytics.common.schemas import (  # noqa: F401  re-export shar
 )
 from src.shared.rounded_decimal import RoundedDecimal
 
-
 T = TypeVar("T")
 
 

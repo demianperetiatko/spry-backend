@@ -9,9 +9,9 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from src.modules.analytics.common.schemas import (  # re-export shared DTOs  # noqa: F401
     AnalyticsDateRangeParams,
     DistributionMetric,
-    KPIResultDTO,
     KPIMetric,
     KPIMetricProductivityValue,
+    KPIResultDTO,
     MeetingChartItem,
     MeetingChartResponse,
     MeetingInfoDTO,
