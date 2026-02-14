@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -9,12 +10,14 @@ from src.modules.analytics.common.schemas import (  # re-export shared DTOs  # n
     AnalyticsDateRangeParams,
     DistributionMetric,
     KPIMetric,
+    KPIMetricProductivityValue,
     KPIResultDTO,
     MeetingChartItem,
     MeetingChartResponse,
     MeetingInfoDTO,
     MetricValue,
     ParticipantMetric,
+    ProductivityMetric,
     RecurringMeetingTableRow,
     SortOrderType,
     TableResponse,
@@ -36,10 +39,11 @@ class SortByType(str, Enum):
     TOTAL_TIME = "total_time"
     TOTAL_COST = "total_cost"
     CANCELLATION_RATE = "cancellation_rate"
-    MEETING_NAME = "meeting_profile.name"
+    MEETING_NAME = "meeting.name"
 
 
 class PersonalAnalyticsParams(BaseModel):
+    member_id: UUID
     start_date: str
     end_date: str
 

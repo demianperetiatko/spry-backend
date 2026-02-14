@@ -8,14 +8,12 @@ from fastapi import Depends
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
-from sqlalchemy.sql.elements import UnaryExpression
 
 from src.core.database.repository import CRUDRepository, CRUDRepositorySQLAlchemy
 from src.core.database.session import get_session
-from src.modules.analytics.common.schemas import SortOrderType
-from src.modules.enums import OrganizationMemberRoleEnum, OrganizationMemberStatusEnum, OrganizationTeamMemberTypeEnum
+from src.modules.enums import OrganizationMemberRoleEnum, OrganizationTeamMemberTypeEnum
 from src.modules.organization_member.model import OrganizationMember
-from src.modules.organization_team.model import OrganizationTeam, OrganizationTeamMember
+from src.modules.organization_team.model import OrganizationTeamMember
 from src.modules.user.model import User
 
 
@@ -62,8 +60,6 @@ class OrganizationMemberRepository(CRUDRepository[OrganizationMember, uuid.UUID]
         search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        sort_by: str | None = None,
-        sort_order: str | None = None,
     ) -> tuple[list[OrganizationMember], int]:
         raise NotImplementedError()
 
@@ -161,6 +157,8 @@ class OrganizationMemberRepositorySQLAlchemy(
         return await self._scalar(stmt)
 
     async def get_active_members_by_user_id(self, user_id: uuid.UUID) -> list[OrganizationMember]:
+        from src.modules.enums import OrganizationMemberStatusEnum
+
         statement = (
             select(OrganizationMember)
             .options(joinedload(OrganizationMember.organization))
@@ -173,44 +171,12 @@ class OrganizationMemberRepositorySQLAlchemy(
         result = await self._execute(statement)
         return list(result.unique().scalars().all())
 
-    def _build_order_clause(self, sort_by: str | None, sort_order: str | None) -> UnaryExpression:
-        order_dir = SortOrderType(sort_order) if sort_order else SortOrderType.ASC
-
-        if sort_by == "status":
-            col = OrganizationMember.status
-        elif sort_by == "role":
-            col = OrganizationMember.role
-        elif sort_by == "cost":
-            col = OrganizationMember.hourly_cost
-        elif sort_by == "teams":
-            col = (
-                select(func.lower(func.min(OrganizationTeam.name)))
-                .join(
-                    OrganizationTeamMember,
-                    OrganizationTeamMember.team_id == OrganizationTeam.id,
-                )
-                .where(OrganizationTeamMember.organization_member_id == OrganizationMember.id)
-                .correlate(OrganizationMember)
-                .scalar_subquery()
-            )
-        else:
-            col = func.lower(User.email)
-
-        clause = col.asc() if order_dir == SortOrderType.ASC else col.desc()
-
-        if sort_by in ("cost", "teams"):
-            clause = clause.nulls_last()
-
-        return clause
-
     async def get_members_by_organization_id(
         self,
         organization_id: uuid.UUID,
         search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        sort_by: str | None = None,
-        sort_order: str | None = None,
     ) -> tuple[list[OrganizationMember], int]:
         base = (
             select(OrganizationMember.id)
@@ -229,8 +195,6 @@ class OrganizationMemberRepositorySQLAlchemy(
 
         total = await self._scalar(select(func.count()).select_from(base.subquery())) or 0
 
-        order_clause = self._build_order_clause(sort_by, sort_order)
-
         stmt = (
             select(OrganizationMember)
             .join(OrganizationMember.user)
@@ -239,7 +203,7 @@ class OrganizationMemberRepositorySQLAlchemy(
                 selectinload(OrganizationMember.team_members).selectinload(OrganizationTeamMember.team),
             )
             .where(OrganizationMember.organization_id == organization_id)
-            .order_by(order_clause)
+            .order_by(User.email)
         )
 
         if search_query:
