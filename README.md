@@ -1,168 +1,112 @@
-# Spry Backend v2 - Migration Status
+# Spry Backend
 
-## Main Change
+Meeting analytics and productivity platform backend. Multi-organization model with Google Calendar integration.
 
-**v1 → v2: Transition from single organization to multi-organization model**
+## Tech Stack
 
-- **v1**: `OrganizationMember` belonged to one organization, contained `email`, `name`, `photo_url`
-- **v2**: `User` can belong to multiple organizations via `OrganizationMember`
-- **Consequence**: `type` and `permissions` depend on organization context
+- **Python 3.13+**, FastAPI, Uvicorn
+- **PostgreSQL**, SQLAlchemy 2.0 (async), Alembic
+- **Google OAuth2** (auth), **Google Calendar API** (sync, webhooks)
+- **Google Cloud Storage** (file uploads), **Mailjet** (emails)
+- **Docker Compose** for local development
 
----
+## Project Structure
 
-## Migrated Endpoints (41/41)
+```
+src/
+├── core/                   # Database, config, exceptions, middleware
+├── modules/
+│   ├── auth/               # Google OAuth2 login, session management
+│   ├── user/               # User profile, organizations list
+│   ├── organization/       # Organization onboarding, cost settings
+│   ├── organization_member/# Member CRUD, invitations, permissions
+│   ├── organization_team/  # Team CRUD, membership
+│   ├── invitation/         # Invitation tokens, email flow
+│   ├── calendar/           # Google Calendar sync, webhooks, resync
+│   ├── analytics/
+│   │   ├── personal/       # Personal meeting & productivity metrics
+│   │   └── organization/   # Organization-wide analytics
+│   ├── home/               # Dashboard KPIs, deep work slots, agenda
+│   └── agenda/             # Agenda data model
+├── shared/                 # Email service, notifications, templates
+└── templates/              # Jinja2 email templates
+```
 
-### Auth (4)
-- `GET /auth/` - with optional `?organization_id={uuid}` for context
-- `GET /auth/google/`, `GET /auth/callback/google/`, `GET /auth/logout/`
+Each module follows: `router.py` → `service.py` → `repository.py` → `schemas.py` → `model.py`
 
-### User (4)
-- `GET /users/profile`, `PUT /users/profile`, `DELETE /users/delete`
-- **NEW** `GET /users/organizations` - list of organizations with roles and permissions
+## API Endpoints
 
-### Organization (3)
-- `POST /organizations/onboard` (admin API)
-- `GET /organizations/{organization_id}/cost`, `PUT /organizations/{organization_id}/cost`
+### Auth (`/auth`)
+- `GET /` — current user info (optional `?organization_id=`)
+- `GET /google/` — initiate Google OAuth
+- `GET /callback/google/` — OAuth callback
+- `GET /logout/` — logout
 
-### Invitation (1)
-- `GET /invitations/{token}` - accept invitation with activation
+### Users (`/users`)
+- `GET /profile`, `PUT /profile`, `DELETE /delete`
+- `GET /organizations` — user's organizations with roles
 
-### Analytics Personal (6)
-- `GET /organizations/{organization_id}/members/{user_id}/analytics/personal/meeting`
-- `GET /.../meeting/kpi`, `/meeting/participants`, `/meeting/distribution`, `/meeting/table`, `/productivity`
+### Organizations (`/organizations`)
+- `POST /onboard` — create organization (admin API key)
+- `GET /{org_id}/cost`, `PUT /{org_id}/cost`
 
-### Analytics Organization (6)
-- `GET /organizations/{organization_id}/analytics/organization/meeting`
-- `GET /.../meeting/kpi`, `/meeting/participants`, `/meeting/distribution`, `/meeting/table`, `/productivity`
+### Members (`/organizations/{org_id}/members`)
+- `GET /` — list (search, pagination)
+- `POST /` — add members (sends invitations)
+- `PUT /{user_id}`, `DELETE /{user_id}`
+- `POST /{user_id}/resend-invitation`
 
-### Calendar (1)
-- **NEW** `POST /integrations/google/webhook` - automatic synchronization
+### Teams (`/organizations/{org_id}/teams`)
+- `GET /`, `GET /{team_id}`, `POST /`, `PUT /{team_id}`, `DELETE /{team_id}`
 
-### Organization Member (5)
-- `GET /organizations/{organization_id}/members` - list of organization members (with pagination)
-- `POST /organizations/{organization_id}/members` - add organization members
-- `PUT /organizations/{organization_id}/members/{user_id}` - update member
-- `DELETE /organizations/{organization_id}/members/{user_id}` - delete member
-- `POST /organizations/{organization_id}/members/{user_id}/resend-invitation` - resend invitation
+### Invitations (`/invitations`)
+- `GET /{token}` — accept invitation
 
-### Organization Team (5)
-- `GET /organizations/{organization_id}/teams` - list teams
-- `GET /organizations/{organization_id}/teams/{team_id}` - get team
-- `POST /organizations/{organization_id}/teams` - create team
-- `PUT /organizations/{organization_id}/teams/{team_id}` - update team
-- `DELETE /organizations/{organization_id}/teams/{team_id}` - delete team
-### Home (6)
-- `GET /organizations/{organization_id}/home/kpi`
-- `GET /organizations/{organization_id}/home/deep-work/time-slot`
-- `POST /organizations/{organization_id}/home/deep-work/time-slot`
-- `GET /organizations/{organization_id}/home/agenda-beta`
-- `POST /organizations/{organization_id}/home/agenda-beta/{event_id}/notify`
-- `POST /organizations/{organization_id}/home/agenda-beta/{event_id}/add`
+### Calendar (`/integrations/google`)
+- `POST /webhook` — Google Calendar push notifications
+- `POST /resync` — manual user resync
+- `POST /organizations/{org_id}/integrations/google/resync-all` — org-wide resync
 
----
+### Personal Analytics (`/organizations/{org_id}/members/{user_id}/analytics/personal`)
+- `GET /meeting` — meeting chart
+- `GET /meeting/kpi` — KPIs
+- `GET /meeting/participants`, `/distribution`, `/table`
+- `GET /productivity`
 
-## Key Changes
+### Organization Analytics (`/organizations/{org_id}/analytics/organization`)
+- `GET /meeting/kpi`, `/meeting`, `/meeting/participants`, `/meeting/distribution`
+- `GET /meeting/table`, `/productivity`
 
-### Data Model
-- **v1**: `OrganizationMember` (email, name, photo_url) → one organization
-- **v2**: `User` (unique data) + `OrganizationMember` (relationship) → many organizations
-- **v2**: `UserAccessInfo` instead of `OrganizationMemberCalendar` for tokens
+### Home (`/home`)
+- `GET /kpi` — dashboard KPIs
+- `GET /deep-work/time-slot` — available deep work slots
+- `POST /deep-work/time-slot` — create deep work calendar blocks
+- `GET /agenda-beta` — upcoming meetings agenda
+- `POST /agenda-beta/{event_id}/notify`, `/add`
 
-### Organization Context
-- `GET /auth/?organization_id={uuid}` → returns `UserWithOrganizationsInfo` with full list
-- `GET /users/organizations` → list of organizations with `type` and `permissions` for each
-- Endpoints use `organization_id` as path parameter + `OrganizationContext` dependency
+## Setup
 
-### Architecture
-- **v1**: Monolithic `service_views/`, synchronous code
-- **v2**: Vertical Slice Architecture (modules: `router.py`, `service.py`, `repository.py`, `schemas.py`, `model.py`)
-- **v2**: Repository Pattern, Dependency Injection, async/await, SQLAlchemy 2.0, Pydantic schemas
+```bash
+cp .env.example .env    # configure environment
+make build              # build Docker images
+make run                # start containers
+make migrate-upgrade    # apply migrations
+```
 
-### New Modules
-- **Invitation System**: tokens, email templates, transactions
-- **Calendar Module**: Google Calendar API, webhooks, automatic synchronization
-- **Email Service**: abstraction (Mailjet/Mock)
+## Development
 
-### Security
-- `OrganizationContext` - automatic access verification
-- `require_permission()` - dependency for permissions
-- Transactions for critical operations (onboarding, invitation acceptance)
+```bash
+make help               # show all commands
+make run-detached       # run in background
+make logs               # follow container logs
+make lint               # run linter
+make format             # run formatter
+make shell              # open container shell
+```
 
-### Organization Member & Team - Logic Changes
-- **v1 → v2 URL structure**:
-  - v1: `/members/`, `/member/{member_id}/`, `/team/{team_id}`
-  - v2: `/organizations/{organization_id}/members`, `/organizations/{organization_id}/members/{user_id}`, `/organizations/{organization_id}/teams/{team_id}`
-- **v1 → v2 identification**: v1 used `member_id` (string), v2 uses `user_id` (UUID) - now it's the user ID, not the organization member ID
-- **Adding members**: v2 checks user existence via `User` model, creates `Invitation` for new users, uses transactions
-- **Updating member**: v2 checks permissions via `OrganizationContext`, uses `User` to get data, supports team membership updates
-- **Teams**: v2 verifies all team members belong to the organization, uses `OrganizationTeamMember` with `organization_member_id` instead of direct `member_id`
-- **Resend Invitation**: v2 checks member status (cannot send to active), uses new invitation system with tokens
+## Architecture
 
----
-
-## Statistics
-
-| Category | Migrated | Not Migrated | Status |
-|----------|----------|--------------|--------|
-| Auth | 4 | 0 | 100% |
-| User | 4 | 0 | 100% |
-| Organization | 3 | 0 | 100% |
-| Invitation | 1 | 0 | 100% |
-| Calendar | 1 | 0 | 100% |
-| Analytics Personal | 6 | 0 | 100% |
-| Organization Member | 5 | 0 | 100% |
-| Organization Team | 5 | 0 | 100% |
-| Analytics Organization | 6 | 0 | 100% |
-| Home | 6 | 0 | 100% |
-| **Total** | **41** | **0** | **100%** |
-
----
-
-## Important Notes
-
-1. **`GET /auth/` without `organization_id`** returns only basic data (without `type`/`permissions`)
-2. **Calendars**: v2 uses `UserAccessInfo` (one set of tokens) instead of `OrganizationMemberCalendar` (tokens at organization level)
-3. **All migrated endpoints**: async/await, Pydantic schemas, Dependency Injection, transactions where needed
-4. **Temporary**: `SINGLE_ORG_POLICY_ENABLED=True` enforces 1 user = 1 organization for frontend v1 compatibility; disable flag when redesign is ready.
-
----
-
-## What Changed vs v1 (logic)
-
-- **Multi-org**: user can бути у декількох організаціях; усі ендпоінти вимагають `organization_id` контекст.
-- **Perms/roles**: права залежать від організації (через `OrganizationContext` + `require_permission`).
-- **Calendars**: токени на користувача (`UserAccessInfo`), а не на організаційного учасника.
-- **Teams/ Members**: валідація належності до організації, операції через репозиторії та транзакції.
-- **Vertical Slice**: кожен модуль має `router/service/repository/schemas`; async + SQLAlchemy 2.0.
-
----
-
-## Recent fixes (2026-01)
-
-- **Analytics Organization**: прибрано дубль KPI `avg_daily_meetings_cost`, залишено один ключ.
-- **Analytics Organization**: виправлено `NameError` у побудові графіка зустрічей (імпорт `AnalyticsCalculator`).
-
----
-
-## Migration Status Snapshot (actual)
-
-- Загалом мігровано: **35 / 41** (85%) — див. таблицю вище.
-- Залишилось: **6** ендпоінтів (усі в Home).
-- Нове в v2: webhook Google Calendar, список організацій користувача, багаторганізаційні перміси та оновлена архітектура.
-
----
-
-## Calendar: ключові нюанси (v2)
-
-- **Токени**: зберігаються у `UserAccessInfo` (на користувача). При кожному зверненні до Google календаря токен перевіряється та оновлюється (timeout refresh 30s). Якщо refresh/403 провалюється — sync помічається як `FAILED`, користувачу відправляється email про закінчення токена (`shared/notifications.py`, шаблон `templates/emails/token_expiry.html`). SMS немає.
-- **Sync вікно**: якщо є `sync_token` — інкрементальний; якщо ні або `force_full` — повний sync за вікном: від найпершої події (або `now-180d`) до кінця поточного року.
-- **Локи та ретраї**: перед sync береться lock, фонова синхронізація/конект/ресинк мають до 3 спроб з експоненційним backoff.
-- **Webhooks**: канал вважається валідним, якщо не спливає менше ніж за 24h; якщо ні — перевидається. Перед watch старий канал зупиняється; webhook URL має бути HTTPS, інакше помилка конфігурації.
-- **Пуш-нотифікації → інкрементальний sync**: webhook запускає `background_incremental_sync_task` для конкретного `user_calendar_id`.
-- **Manual resync**: є фоновий ресинк для організації та користувача; використовує ті ж блокування й перевірки токенів.
-
----
-
-## Next Steps
-
-1. **Optional**: `POST /users/organizations/{id}/select` - save current organization in session
+- **Multi-organization**: user can belong to multiple organizations; endpoints require `organization_id` context
+- **RBAC**: role-based permissions via `OrganizationContext` + `require_permission()`
+- **Calendar sync**: incremental sync via `sync_token`, full sync fallback, webhook-driven updates, automatic token refresh with retry/backoff
+- **Async**: all I/O is async (SQLAlchemy async sessions, httpx, background tasks)
