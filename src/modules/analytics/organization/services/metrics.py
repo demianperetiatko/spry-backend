@@ -7,9 +7,6 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.analytics.common.calculator import (
-    ONE_ON_ONE_ATTENDEES,
-    SMALL_GROUP_MAX,
-    SMALL_GROUP_MIN,
     WORKDAY_DEFAULT_HOURS,
     calculate_change,
     count_weekdays,
@@ -41,7 +38,6 @@ from src.modules.analytics.organization.services.data_loader import Organization
 from src.modules.analytics.personal.calculator import AnalyticsCalculator
 from src.modules.organization.repository import OrganizationCurrencyRepositorySQLAlchemy
 from src.modules.organization_member.repository import OrganizationMemberRepository
-from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions
 from src.shared.rounded_decimal import RoundedDecimal
@@ -232,6 +228,7 @@ class TeamAnalyticsCalculator:
             (previous_value / total_capacity * Decimal("100")).quantize(Decimal("0.1")) if total_capacity > 0 else Decimal("0")
         )
         change = calculate_change(current_percent, previous_percent)
+        change = calculate_change(current_percent, previous_percent)
         is_positive = change > Decimal("0") if is_positive_growth else change <= Decimal("0")
 
         return ProductivityMetric(
@@ -245,10 +242,10 @@ class TeamAnalyticsCalculator:
 
     def get_productivity_metrics(self) -> list[ProductivityMetric]:
         def calc_buffer(events):
-            return AnalyticsCalculator._calc_buffer_time(events)
+            return AnalyticsCalculator.calc_buffer_time(events)
 
         def calc_transition(events):
-            return AnalyticsCalculator._calc_transition_time(events)
+            return AnalyticsCalculator.calc_transition_time(events)
 
         def calc_deep_work(events):
             capacity = Decimal(str(self.work_days * self.team_members_count)) * self.workday_hours
@@ -466,9 +463,9 @@ class OrganizationMetricsService:
         events = await self.data_loader.get_analyzable_events(ctx)
 
         definitions = [
-            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == ONE_ON_ONE_ATTENDEES),
-            ("three_to_five", "3-5", lambda e: SMALL_GROUP_MIN <= len(e.attendees) <= SMALL_GROUP_MAX),
-            ("more_than_five", "6+", lambda e: len(e.attendees) > SMALL_GROUP_MAX),
+            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == 2),
+            ("three_to_five", "3-5", lambda e: 3 <= len(e.attendees) <= 5),
+            ("more_than_five", "6+", lambda e: len(e.attendees) > 5),
         ]
 
         data: list[ParticipantMetric] = []
@@ -552,16 +549,16 @@ class OrganizationMetricsService:
         prev_all_events = []
         data: list[dict[str, Any]] = []
         hourly_cost_map = await self._hourly_cost_map(ctx) or {}
-        member_map = {m.user_id: m for m in ctx.members}
+        member_map = {m.id: m for m in ctx.members}
 
         def _duration(events):
             return sum((duration_hours(e) for e in events), start=Decimal("0"))
 
         def _buffer(events):
-            return AnalyticsCalculator._calc_buffer_time(events)
+            return AnalyticsCalculator.calc_buffer_time(events)
 
         def _transition(events):
-            return AnalyticsCalculator._calc_transition_time(events)
+            return AnalyticsCalculator.calc_transition_time(events)
 
         def _deep_work(events, team_members_count: int = 1):
             capacity = Decimal(str(count_work_day * team_members_count)) * ctx.workday_hours
@@ -582,13 +579,13 @@ class OrganizationMetricsService:
                 all_events.extend(events)
                 prev_all_events.extend(prev_events)
 
-                source_member = member_map.get(mc.user_id)
+                source_member = member_map.get(mc.member_id)
                 name = getattr(source_member.user, "name", None) if source_member and source_member.user else None
                 photo_url = getattr(source_member.user, "photo_url", None) if source_member and source_member.user else None
 
                 data.append(
                     {
-                        "id": str(mc.user_id),
+                        "id": str(mc.member_id),
                         "name": name,
                         "email": mc.email,
                         "member_photo_url": photo_url,
@@ -620,6 +617,8 @@ class OrganizationMetricsService:
             return {"percent": percent, "hours": round(value, 1)}
 
         if list_type == ListType.TEAMS:
+            from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
+
             team_repo = OrganizationTeamRepositorySQLAlchemy(self.session)
             teams = [ctx.team] if ctx.team else await team_repo.get_teams_by_organization_id(ctx.org.id)
             rows = []
@@ -719,7 +718,7 @@ class OrganizationMetricsService:
         finance_access = hourly_cost_map is not None
         hourly_cost_map = hourly_cost_map or {}
         rows: list[AttendeeTableRow] = []
-        member_map = {m.user_id: m for m in ctx.members}
+        member_map = {m.id: m for m in ctx.members}
         for mc in member_ctx:
             events = await self.analytics_repo.get_meeting_events_for_period(mc.calendar_ids, start_dt, end_dt, mc.email)
             events = self.data_loader.get_unique_events(events)
@@ -733,18 +732,18 @@ class OrganizationMetricsService:
             # cost for this member only
             cost = total_duration * hourly_cost_map.get(mc.email, Decimal("0")) if finance_access else None
 
-            source_member = member_map.get(mc.user_id)
+            source_member = member_map.get(mc.member_id)
             member_profile = None
             if source_member and source_member.user:
                 member_profile = MemberProfileDTO(
-                    id=mc.user_id,
+                    id=mc.member_id,
                     name=source_member.user.name,
                     email=mc.email,
                     photo_url=source_member.user.photo_url,
                 )
             rows.append(
                 AttendeeTableRow(
-                    id=str(mc.user_id),
+                    id=str(mc.member_id),
                     member_profile=member_profile,
                     time=RoundedDecimal(total_duration),
                     ratio=RoundedDecimal(ratio.quantize(Decimal("0.1"))),
@@ -765,7 +764,7 @@ class OrganizationMetricsService:
     ) -> TableResponse:
         member_ctx = await self.data_loader.get_member_contexts(ctx)
         rows: list[OrganizerTableRow] = []
-        member_map = {m.user_id: m for m in ctx.members}
+        member_map = {m.id: m for m in ctx.members}
 
         for mc in member_ctx:
             events = await self.analytics_repo.get_meeting_events_for_period(mc.calendar_ids, start_dt, end_dt, mc.email)
@@ -794,18 +793,18 @@ class OrganizationMetricsService:
                 else Decimal("0")
             )
 
-            source_member = member_map.get(mc.user_id)
+            source_member = member_map.get(mc.member_id)
             member_profile = None
             if source_member and source_member.user:
                 member_profile = MemberProfileDTO(
-                    id=mc.user_id,
+                    id=mc.member_id,
                     name=source_member.user.name,
                     email=mc.email,
                     photo_url=source_member.user.photo_url,
                 )
             rows.append(
                 OrganizerTableRow(
-                    id=str(mc.user_id),
+                    id=str(mc.member_id),
                     member_profile=member_profile,
                     count=len(organized),
                     meetings_time=RoundedDecimal(meetings_time),
@@ -828,6 +827,8 @@ class OrganizationMetricsService:
     ) -> TableResponse:
         events = await self.data_loader.get_analyzable_events(ctx)
         events = self.data_loader.get_unique_events(events)
+
+        from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
 
         team_repository = OrganizationTeamRepositorySQLAlchemy(self.session)
         teams = await team_repository.get_teams_by_organization_id(ctx.org.id)

@@ -7,7 +7,6 @@ from typing import Callable, TYPE_CHECKING
 from src.modules.analytics.common.calculator import (
     BUFFER_PER_SIDE_HOURS,
     MAX_TRANSITION_TIME_HOURS,
-    SATURDAY_WEEKDAY,
     WORKDAY_DEFAULT_HOURS,
     calculate_change,
     duration_hours,
@@ -27,14 +26,14 @@ def count_weekdays(start: datetime, end: datetime) -> int:
     end_date = end.date()
 
     while current <= end_date:
-        if current.weekday() < SATURDAY_WEEKDAY:
+        if current.weekday() < 5:
             count += 1
         current += timedelta(days=1)
     return count
 
 
-def format_duration(duration_hours: Decimal) -> str:
-    duration_minutes = int(Decimal(duration_hours) * 60)
+def format_duration(_duration_hours: Decimal) -> str:
+    duration_minutes = int(Decimal(_duration_hours) * 60)
     hours = duration_minutes // 60
     minutes = duration_minutes % 60
     if hours == 0 and minutes == 0:
@@ -45,9 +44,6 @@ def format_duration(duration_hours: Decimal) -> str:
         return f"{hours}h"
     else:
         return f"{hours}h {minutes}m"
-
-
-MIN_EVENTS_FOR_TRANSITION = 2
 
 
 class AnalyticsCalculator:
@@ -191,7 +187,7 @@ class AnalyticsCalculator:
         )
 
     @staticmethod
-    def _calc_buffer_time(events: Sequence[CalendarEvent]) -> Decimal:
+    def calc_buffer_time(events: Sequence[CalendarEvent]) -> Decimal:
         if not events:
             return Decimal("0")
 
@@ -220,8 +216,8 @@ class AnalyticsCalculator:
         return (BUFFER_PER_SIDE_HOURS * Decimal("2") * Decimal(str(len(blocks)))) + extra_gap
 
     @staticmethod
-    def _calc_transition_time(events: Sequence[CalendarEvent]) -> Decimal:
-        if len(events) < MIN_EVENTS_FOR_TRANSITION:
+    def calc_transition_time(events: Sequence[CalendarEvent]) -> Decimal:
+        if len(events) < 2:
             return Decimal("0")
 
         times = sorted(
@@ -266,16 +262,16 @@ class AnalyticsCalculator:
     def get_productivity_metrics(self) -> list[ProductivityItemDTO]:
         def calc_deep_work(events: Sequence[CalendarEvent]) -> Decimal:
             duration = self._sum_duration(events)
-            buffer = self._calc_buffer_time(events)
-            transition = self._calc_transition_time(events)
+            buffer = self.calc_buffer_time(events)
+            transition = self.calc_transition_time(events)
             result = (Decimal(str(self.work_days)) * self.workday_hours) - duration - buffer - transition
             return max(Decimal("0"), result)
 
         definitions = [
             ("meetings_time", "Time on meetings", self._sum_duration, False),
             ("deep_work", "Deep work", calc_deep_work, True),
-            ("transition_time", "Transition time", self._calc_transition_time, False),
-            ("buffers", "Buffers", self._calc_buffer_time, False),
+            ("transition_time", "Transition time", self.calc_transition_time, False),
+            ("buffers", "Buffers", self.calc_buffer_time, False),
         ]
 
         return [

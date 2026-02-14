@@ -8,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.modules.analytics.common.calculator import MIN_MEETING_ATTENDEES
 from src.modules.calendar.models import CalendarEvent, CalendarEventAttendee
 from src.modules.enums import CalendarAttendeeResponseStatusEnum, CalendarEventStatusEnum
 from src.modules.organization_member.model import OrganizationMember
@@ -88,7 +87,7 @@ class AnalyticsRepositoryBase:
                 CalendarEvent.end_datetime >= start_date,
                 CalendarEvent.status != CalendarEventStatusEnum.CANCELLED,
                 CalendarEvent.hangout_link.isnot(None),
-                attendee_count_subq.c.attendee_count >= MIN_MEETING_ATTENDEES,
+                attendee_count_subq.c.attendee_count >= 2,
                 CalendarEvent.id.not_in(select(declined_subq.c.calendar_event_id).select_from(declined_subq)),
             )
             .order_by(CalendarEvent.start_datetime)
