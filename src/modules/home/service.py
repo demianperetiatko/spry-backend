@@ -9,17 +9,14 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 
 from src.modules.analytics.common.calculator import (
-    BUFFER_PER_SIDE_HOURS,
-    MAX_TRANSITION_TIME_HOURS,
     WORKDAY_DEFAULT_HOURS,
     calculate_change,
     sum_duration,
 )
 from src.modules.analytics.common.data_loader import AnalyticsDataLoaderBase
-from src.modules.analytics.common.schemas import KPIResultDTO, KPIMetric
+from src.modules.analytics.common.schemas import KPIMetric, KPIResultDTO
 from src.modules.analytics.personal.calculator import AnalyticsCalculator, count_weekdays
-from src.modules.auth.dependency import OrganizationContext
-from src.modules.calendar.models import CalendarEvent, OrganizationMemberCalendar, UserCalendar
+from src.modules.calendar.models import CalendarEvent, UserCalendar
 from src.modules.calendar.service import CalendarService
 from src.modules.home.repository import HomeRepository
 from src.modules.home.schemas import (
@@ -32,6 +29,7 @@ from src.modules.home.schemas import (
     TimeSlotDTO,
     UserProfile,
 )
+from src.modules.user.model import User
 
 
 class HomeService:
@@ -39,9 +37,9 @@ class HomeService:
         self.repo = repository
         self.calendar_service = calendar_service
 
-    async def get_kpis(self, ctx: OrganizationContext) -> KPIResponse:
-        calendar_ids = await self._require_calendar_ids(ctx.member.id)
-        tz = await self._get_timezone(ctx.member.id)
+    async def get_kpis(self, user: User) -> KPIResponse:
+        calendar_ids = await self._require_calendar_ids(user.id)
+        tz = await self._get_timezone(user.id)
 
         now = datetime.now(tz)
         start_of_week = now - timedelta(days=now.weekday())
@@ -53,8 +51,8 @@ class HomeService:
         prev_start_date = start_date - timedelta(days=7)
         prev_end_date = end_date - timedelta(days=7)
 
-        events = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, ctx.user.email)
-        prev_events = await self.repo.get_meeting_events_for_period(calendar_ids, prev_start_date, prev_end_date, ctx.user.email)
+        events = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, user.email)
+        prev_events = await self.repo.get_meeting_events_for_period(calendar_ids, prev_start_date, prev_end_date, user.email)
 
         unique_events = AnalyticsDataLoaderBase.get_unique_events(events)
         unique_prev_events = AnalyticsDataLoaderBase.get_unique_events(prev_events)
@@ -75,15 +73,15 @@ class HomeService:
 
         return KPIResponse(data=kpis)
 
-    async def get_deep_work_slots(self, ctx: OrganizationContext) -> DeepWorkSlotsResponse:
-        calendar_ids = await self._require_calendar_ids(ctx.member.id)
-        tz = await self._get_timezone(ctx.member.id)
+    async def get_deep_work_slots(self, user: User) -> DeepWorkSlotsResponse:
+        calendar_ids = await self._require_calendar_ids(user.id)
+        tz = await self._get_timezone(user.id)
 
         now = datetime.now(tz)
         start_date = now
         end_date = (now + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        meetings = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, ctx.user.email)
+        meetings = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, user.email)
         all_events = await self.repo.get_events_for_period(calendar_ids, start_date, end_date, include_attendees=False)
 
         busy_slots: list[tuple[datetime, datetime]] = []
@@ -107,16 +105,15 @@ class HomeService:
             ]
         )
 
-    async def create_deep_work_slots(self, ctx: OrganizationContext, slots: list[TimeSlot]) -> list[dict]:
-        calendar = await self._get_primary_calendar(ctx.member.id)
+    async def create_deep_work_slots(self, user: User, slots: list[TimeSlot]) -> list[dict]:
+        calendar = await self._get_primary_calendar(user.id)
         if not calendar:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No calendar connected for member")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No calendar connected for user")
 
-        user_calendar = calendar.user_calendar
-        if not user_calendar or not user_calendar.user_access_info:
+        if not calendar.user_access_info:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Calendar access info is missing")
 
-        tz = await self._get_timezone(ctx.member.id)
+        tz = await self._get_timezone(user.id)
         created_events = []
         for slot in slots:
             start_dt = self._ensure_timezone(slot.start_time, tz)
@@ -126,24 +123,24 @@ class HomeService:
                 "start": {"dateTime": start_dt.isoformat(), "timeZone": tz.key},
                 "end": {"dateTime": end_dt.isoformat(), "timeZone": tz.key},
             }
-            event = await self.calendar_service.create_event(user_calendar, body)
+            event = await self.calendar_service.create_event(calendar, body)
             created_events.append(event)
 
         return created_events
 
-    async def get_agenda(self, ctx: OrganizationContext) -> AgendaResponse:
-        calendar_ids = await self._require_calendar_ids(ctx.member.id)
-        tz = await self._get_timezone(ctx.member.id)
+    async def get_agenda(self, user: User) -> AgendaResponse:
+        calendar_ids = await self._require_calendar_ids(user.id)
+        tz = await self._get_timezone(user.id)
 
         now = datetime.now(tz)
         start_date = now
         end_date = (now + timedelta(days=14)).replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        events = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, ctx.user.email)
+        events = await self.repo.get_meeting_events_for_period(calendar_ids, start_date, end_date, user.email)
         unique_events = AnalyticsDataLoaderBase.get_unique_events(events)
 
         event_ids = [event.google_event_id for event in unique_events if event.google_event_id]
-        agenda_sent_ids = await self.repo.get_agenda_event_ids(ctx.member.id, event_ids)
+        agenda_sent_ids = await self.repo.get_agenda_event_ids(user.id, event_ids)
 
         attendee_emails = {att.email for event in unique_events for att in (event.attendees or []) if att.email}
         organizer_emails = {event.organizer_email for event in unique_events if event.organizer_email}
@@ -167,7 +164,7 @@ class HomeService:
                 date=start_dt.date().isoformat(),
                 members=[self._build_profile(att.email, user_map) for att in event.attendees or [] if att.email],
                 organizer=self._build_profile(event.organizer_email, user_map) if event.organizer_email else None,
-                is_organizer=bool(event.organizer_email and event.organizer_email == ctx.user.email),
+                is_organizer=bool(event.organizer_email and event.organizer_email == user.email),
                 invitation_sent=event.google_event_id in agenda_sent_ids if event.google_event_id else False,
             )
             meetings.append(meeting)
@@ -177,9 +174,9 @@ class HomeService:
             count_all_events=len(unique_events),
         )
 
-    async def notify_agenda(self, ctx: OrganizationContext, event_id: str) -> dict:
-        calendar_ids = await self._require_calendar_ids(ctx.member.id)
-        tz = await self._get_timezone(ctx.member.id)
+    async def notify_agenda(self, user: User, event_id: str) -> dict:
+        calendar_ids = await self._require_calendar_ids(user.id)
+        tz = await self._get_timezone(user.id)
 
         event = await self.repo.get_event_by_google_id(event_id, calendar_ids)
         if not event:
@@ -189,9 +186,9 @@ class HomeService:
         if not organizer_email:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Organizer email not found")
 
-        existing = await self.repo.get_agenda_entry(ctx.member.id, event_id)
+        existing = await self.repo.get_agenda_entry(user.id, event_id)
         if not existing:
-            await self.repo.create_agenda_entry(ctx.member.id, event_id)
+            await self.repo.create_agenda_entry(user.id, event_id)
             start_dt = self._to_timezone(event.start_datetime, tz)
             end_dt = self._to_timezone(event.end_datetime, tz)
             date_str = start_dt.strftime("%a, %b %d")
@@ -211,20 +208,18 @@ class HomeService:
 
         return {"status": "ok"}
 
-    async def add_agenda_description(self, ctx: OrganizationContext, event_id: str, payload: AgendaDescriptionRequest) -> dict:
-        calendar_ids = await self._require_calendar_ids(ctx.member.id)
+    async def add_agenda_description(self, user: User, event_id: str, payload: AgendaDescriptionRequest) -> dict:
+        calendar_ids = await self._require_calendar_ids(user.id)
         event: CalendarEvent | None = await self.repo.get_event_by_google_id(event_id, calendar_ids)
         if not event:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
-        calendar: OrganizationMemberCalendar | None = await self.calendar_service.calendar_repo.get_calendar_by_user_calendar_id(
-            event.user_calendar_id
-        )
-        if not calendar or not calendar.user_calendar:
+        user_calendar: UserCalendar | None = await self.repo.get_user_calendar_by_id(event.user_calendar_id)
+        if not user_calendar:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar not found for event")
 
         updated = await self.calendar_service.update_event(
-            calendar.user_calendar,
+            user_calendar,
             event.google_event_id or event.id,
             {"description": payload.description},
         )
@@ -237,18 +232,18 @@ class HomeService:
 
         return updated
 
-    async def _require_calendar_ids(self, member_id: uuid.UUID) -> Sequence[uuid.UUID]:
-        calendar_ids = await self.repo.get_calendar_ids_for_member(member_id)
+    async def _require_calendar_ids(self, user_id: uuid.UUID) -> Sequence[uuid.UUID]:
+        calendar_ids = await self.repo.get_calendar_ids_for_user(user_id)
         if not calendar_ids:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No calendars found for this member")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No calendars found for this user")
         return calendar_ids
 
-    async def _get_timezone(self, member_id: uuid.UUID) -> ZoneInfo:
-        tz = await self.repo.get_member_timezone(member_id)
+    async def _get_timezone(self, user_id: uuid.UUID) -> ZoneInfo:
+        tz = await self.repo.get_user_timezone(user_id)
         return ZoneInfo(tz or "UTC")
 
-    async def _get_primary_calendar(self, member_id: uuid.UUID) -> OrganizationMemberCalendar | None:
-        return await self.repo.get_primary_calendar_for_member(member_id)
+    async def _get_primary_calendar(self, user_id: uuid.UUID) -> UserCalendar | None:
+        return await self.repo.get_primary_calendar_for_user(user_id)
 
     @staticmethod
     def _build_kpi(key: str, title: str, result: KPIResultDTO) -> KPIMetric:
@@ -264,14 +259,15 @@ class HomeService:
     @staticmethod
     def _calculate_deep_work_hours(events: Sequence[CalendarEvent], work_days: int) -> Decimal:
         duration = sum_duration(events)
-        buffer = AnalyticsCalculator._calc_buffer_time(events)
-        transition = AnalyticsCalculator._calc_transition_time(events)
+        buffer = AnalyticsCalculator.calc_buffer_time(events)
+        transition = AnalyticsCalculator.calc_transition_time(events)
         capacity = Decimal(str(work_days)) * WORKDAY_DEFAULT_HOURS
         deep_work = capacity - duration - buffer - transition
         deep_work = deep_work if deep_work > Decimal("0") else Decimal("0")
         return deep_work.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
 
-    def _build_deep_work_kpi(self, current: Decimal, previous: Decimal) -> KPIResultDTO:
+    @staticmethod
+    def _build_deep_work_kpi(current: Decimal, previous: Decimal) -> KPIResultDTO:
         change = calculate_change(current, previous)
         change_str = f"{'+' if change >= Decimal('0') else ''}{change}%"
         return KPIResultDTO(
@@ -295,8 +291,8 @@ class HomeService:
             return dt.astimezone(tz)
         return dt.replace(tzinfo=tz)
 
+    @staticmethod
     def _find_week_free_slots(
-        self,
         start_date: datetime,
         end_date: datetime,
         busy_slots: list[tuple[datetime, datetime]],
