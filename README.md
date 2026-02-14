@@ -104,15 +104,6 @@ make format             # run formatter
 make shell              # open container shell
 ```
 
-### Pre-commit hooks
-
-```bash
-pip install pre-commit
-pre-commit install
-```
-
-Runs Ruff formatter and linter on every commit.
-
 ## Architecture
 
 - **Multi-organization**: user can belong to multiple organizations; endpoints require `organization_id` context
