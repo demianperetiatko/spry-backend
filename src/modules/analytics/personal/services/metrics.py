@@ -3,11 +3,10 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.analytics.common.calculator import ONE_ON_ONE_ATTENDEES, SMALL_GROUP_MAX, SMALL_GROUP_MIN
 from src.modules.analytics.personal.calculator import AnalyticsCalculator, count_weekdays
 from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.analytics.personal.schemas import (
@@ -28,6 +27,9 @@ from src.modules.organization.repository import OrganizationCurrencyRepositorySQ
 from src.modules.organization_member.repository import OrganizationMemberRepository
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions
+
+if TYPE_CHECKING:
+    pass
 
 
 class PersonalMetricsService:
@@ -139,9 +141,9 @@ class PersonalMetricsService:
         unique_events = await self.data_loader.get_analyzable_events(ctx)
 
         definitions = [
-            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == ONE_ON_ONE_ATTENDEES),
-            ("three_to_five", "3-5", lambda e: SMALL_GROUP_MIN <= len(e.attendees) <= SMALL_GROUP_MAX),
-            ("more_than_five", "6+", lambda e: len(e.attendees) > SMALL_GROUP_MAX),
+            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == 2),
+            ("three_to_five", "3-5", lambda e: 3 <= len(e.attendees) <= 5),
+            ("more_than_five", "6+", lambda e: len(e.attendees) > 5),
         ]
 
         return [
