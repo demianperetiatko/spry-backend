@@ -7,23 +7,23 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Path, Query, status
 
-from src.modules.analytics.common.schemas import AnalyticsDateRangeParams
 from src.modules.analytics.organization.repository import (
     OrganizationAnalyticsRepository,
     get_organization_analytics_repository,
 )
 from src.modules.analytics.organization.schemas import OrganizationAnalyticsParams
+from src.modules.analytics.common.schemas import AnalyticsDateRangeParams
 from src.modules.auth.dependency import OrganizationContext, PermissionChecker
 from src.modules.organization.model import Organization
-from src.modules.organization_member.model import OrganizationMember
-from src.modules.organization_member.repository import (
-    OrganizationMemberRepository,
-    get_organization_member_repository,
-)
 from src.modules.organization_team.model import OrganizationTeam
 from src.modules.organization_team.repository import (
     OrganizationTeamRepository,
     get_organization_team_repository,
+)
+from src.modules.organization_member.model import OrganizationMember
+from src.modules.organization_member.repository import (
+    OrganizationMemberRepository,
+    get_organization_member_repository,
 )
 from src.modules.permissions.enums import OrganizationPermission
 

@@ -6,13 +6,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.analytics.common.calculator import (
-    WORKDAY_DEFAULT_HOURS,
-    calculate_change,
-    count_weekdays,
-    duration_hours,
-)
-from src.modules.analytics.common.schemas import KPIMetricProductivityValue, MetricValue, UserProfileDTO
 from src.modules.analytics.organization.dependency import OrganizationAnalyticsContext
 from src.modules.analytics.organization.repository import OrganizationAnalyticsRepository
 from src.modules.analytics.organization.schemas import (
@@ -24,7 +17,6 @@ from src.modules.analytics.organization.schemas import (
     ListType,
     MeetingChartItem,
     MeetingChartResponse,
-    MemberProfileDTO,
     OrganizerTableRow,
     ParticipantMetric,
     ProductivityMetric,
@@ -32,10 +24,21 @@ from src.modules.analytics.organization.schemas import (
     SortByType,
     SortOrderType,
     TableResponse,
+    TableType,
     TeamCollaborationRow,
+    MemberProfileDTO,
 )
 from src.modules.analytics.organization.services.data_loader import OrganizationAnalyticsDataLoader
+from src.modules.analytics.common.calculator import (
+    WORKDAY_DEFAULT_HOURS,
+    calculate_change,
+    duration_hours,
+    format_duration,
+    sum_duration,
+    count_weekdays,
+)
 from src.modules.analytics.personal.calculator import AnalyticsCalculator
+from src.modules.analytics.common.schemas import KPIMetricProductivityValue, UserProfileDTO, MetricValue
 from src.modules.organization.repository import OrganizationCurrencyRepositorySQLAlchemy
 from src.modules.organization_member.repository import OrganizationMemberRepository
 from src.modules.permissions.enums import OrganizationPermission
@@ -242,10 +245,10 @@ class TeamAnalyticsCalculator:
 
     def get_productivity_metrics(self) -> list[ProductivityMetric]:
         def calc_buffer(events):
-            return AnalyticsCalculator.calc_buffer_time(events)
+            return AnalyticsCalculator._calc_buffer_time(events)
 
         def calc_transition(events):
-            return AnalyticsCalculator.calc_transition_time(events)
+            return AnalyticsCalculator._calc_transition_time(events)
 
         def calc_deep_work(events):
             capacity = Decimal(str(self.work_days * self.team_members_count)) * self.workday_hours
@@ -555,10 +558,10 @@ class OrganizationMetricsService:
             return sum((duration_hours(e) for e in events), start=Decimal("0"))
 
         def _buffer(events):
-            return AnalyticsCalculator.calc_buffer_time(events)
+            return AnalyticsCalculator._calc_buffer_time(events)
 
         def _transition(events):
-            return AnalyticsCalculator.calc_transition_time(events)
+            return AnalyticsCalculator._calc_transition_time(events)
 
         def _deep_work(events, team_members_count: int = 1):
             capacity = Decimal(str(count_work_day * team_members_count)) * ctx.workday_hours

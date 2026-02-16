@@ -8,8 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.database.session import get_session
 from src.modules.analytics.common.repository import AnalyticsRepositoryBase
+from src.core.database.session import get_session
 from src.modules.calendar.models import OrganizationMemberCalendar
 from src.modules.organization_member.model import OrganizationMember
 

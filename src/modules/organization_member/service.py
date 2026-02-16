@@ -26,10 +26,11 @@ from src.modules.organization_member.exceptions import (
     CannotEditMemberError,
     MemberAlreadyActiveError,
     MemberAlreadyExistsError,
-    MemberNotActiveError,
     MemberNotFoundError,
     OrganizationCurrencyNotConfiguredError,
+    MemberNotActiveError,
 )
+from src.modules.user.exceptions import UserNotFoundError
 from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
@@ -51,7 +52,6 @@ from src.modules.organization_team.repository import (
 )
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions, get_permissions
-from src.modules.user.exceptions import UserNotFoundError
 from src.modules.user.model import User
 from src.modules.user.repository import UserRepository, get_user_repository
 from src.shared.cost import calculate_hourly_cost, calculate_total_cost
