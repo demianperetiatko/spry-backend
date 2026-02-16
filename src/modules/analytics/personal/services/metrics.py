@@ -3,12 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.analytics.personal.calculator import AnalyticsCalculator, count_weekdays
-from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.analytics.personal.schemas import (
     CollaborationTableRow,
     DistributionMetric,
@@ -21,8 +20,9 @@ from src.modules.analytics.personal.schemas import (
     TableResponse,
     UserProfileDTO,
 )
-from src.modules.analytics.personal.services.data_loader import AnalyticsDataLoaderService
+from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.calendar.models import CalendarEvent
+from src.modules.analytics.personal.services.data_loader import AnalyticsDataLoaderService
 from src.modules.organization.repository import OrganizationCurrencyRepositorySQLAlchemy
 from src.modules.organization_member.repository import OrganizationMemberRepository
 from src.modules.permissions.enums import OrganizationPermission

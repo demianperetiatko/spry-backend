@@ -31,6 +31,7 @@ from src.modules.user.schemas import OrganizationMemberInfo
 from src.shared.gcp_bucket import GCPBucket, get_gcp_bucket
 from src.shared.google_api import GoogleUserInfo
 
+
 logger = logging.getLogger(__name__)
 
 
