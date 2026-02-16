@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from src.modules.enums import OrganizationCostPeriodEnum
 
+
 COST_DECIMAL_PLACES = Decimal("0.01")
 COST_ROUNDING = ROUND_HALF_UP
 HOURLY_PRECISION = Decimal("0.000001")  # keep enough precision for reverse conversions

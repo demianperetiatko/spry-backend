@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import datetime
 from types import SimpleNamespace
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -19,11 +19,11 @@ from src.modules.analytics.common.services.recurring_utils import (
     resolve_recurrence_fallback,
 )
 from src.modules.analytics.personal.calculator import AnalyticsCalculator, format_duration
-from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.analytics.personal.repository import PersonalAnalyticsRepository
 from src.modules.analytics.personal.schemas import MeetingInfoDTO, RecurringMeetingTableRow, TableResponse, UserProfileDTO
-from src.modules.analytics.personal.services.data_loader import AnalyticsDataLoaderService
+from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.calendar.models import CalendarEvent, UserCalendar
+from src.modules.analytics.personal.services.data_loader import AnalyticsDataLoaderService
 from src.modules.organization.repository import OrganizationCurrencyRepositorySQLAlchemy
 from src.modules.organization_member.repository import OrganizationMemberRepository
 from src.modules.permissions.enums import OrganizationPermission

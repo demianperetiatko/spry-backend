@@ -3,12 +3,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import and_, delete, func, or_, select, text
+from sqlalchemy import and_, delete, or_, select, text, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-
 from src.modules.calendar.models import (
     CalendarCacheMetadata,
     CalendarEvent,

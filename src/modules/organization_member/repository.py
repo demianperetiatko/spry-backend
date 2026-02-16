@@ -7,7 +7,7 @@ from decimal import Decimal
 from fastapi import Depends
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, joinedload, selectinload
+from sqlalchemy.orm import joinedload, contains_eager, selectinload
 
 from src.core.database.repository import CRUDRepository, CRUDRepositorySQLAlchemy
 from src.core.database.session import get_session

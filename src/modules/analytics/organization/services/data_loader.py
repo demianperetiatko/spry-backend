@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence, TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Sequence
 from uuid import UUID
 
 from src.modules.analytics.common.data_loader import AnalyticsDataLoaderBase

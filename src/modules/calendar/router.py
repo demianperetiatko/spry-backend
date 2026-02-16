@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
 
-from src.modules.auth.dependency import OrganizationContext, get_auth_user, get_organization_context
+from src.modules.auth.dependency import OrganizationContext, get_organization_context, get_auth_user
 from src.modules.auth.dependency import User as AuthUser
 from src.modules.calendar.dependency import CalendarServiceDep
 from src.modules.calendar.services.webhook_service import WebhookValidationError
