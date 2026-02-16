@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Path, Request, status
-
 from src.core.exceptions import NotFoundException
 from src.modules.organization.model import Organization
 from src.modules.organization.repository import (

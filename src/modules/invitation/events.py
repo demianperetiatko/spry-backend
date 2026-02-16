@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass
+import uuid
 
 from src.core.events import Event
 
