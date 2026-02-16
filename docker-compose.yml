@@ -19,7 +19,7 @@ services:
 
   web:
     build:
-      context: .
+      context: spry_v2
       dockerfile: Dockerfile
     container_name: spry_v2_web
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
