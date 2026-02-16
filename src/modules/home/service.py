@@ -259,8 +259,8 @@ class HomeService:
     @staticmethod
     def _calculate_deep_work_hours(events: Sequence[CalendarEvent], work_days: int) -> Decimal:
         duration = sum_duration(events)
-        buffer = AnalyticsCalculator.calc_buffer_time(events)
-        transition = AnalyticsCalculator.calc_transition_time(events)
+        buffer = AnalyticsCalculator._calc_buffer_time(events)
+        transition = AnalyticsCalculator._calc_transition_time(events)
         capacity = Decimal(str(work_days)) * WORKDAY_DEFAULT_HOURS
         deep_work = capacity - duration - buffer - transition
         deep_work = deep_work if deep_work > Decimal("0") else Decimal("0")
