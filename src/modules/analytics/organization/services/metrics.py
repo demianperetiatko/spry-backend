@@ -6,6 +6,16 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.modules.analytics.common.calculator import (
+    ONE_ON_ONE_ATTENDEES,
+    SMALL_GROUP_MAX,
+    SMALL_GROUP_MIN,
+    WORKDAY_DEFAULT_HOURS,
+    calculate_change,
+    count_weekdays,
+    duration_hours,
+)
+from src.modules.analytics.common.schemas import KPIMetricProductivityValue, MetricValue, UserProfileDTO
 from src.modules.analytics.organization.dependency import OrganizationAnalyticsContext
 from src.modules.analytics.organization.repository import OrganizationAnalyticsRepository
 from src.modules.analytics.organization.schemas import (
@@ -17,6 +27,7 @@ from src.modules.analytics.organization.schemas import (
     ListType,
     MeetingChartItem,
     MeetingChartResponse,
+    MemberProfileDTO,
     OrganizerTableRow,
     ParticipantMetric,
     ProductivityMetric,
@@ -24,23 +35,13 @@ from src.modules.analytics.organization.schemas import (
     SortByType,
     SortOrderType,
     TableResponse,
-    TableType,
     TeamCollaborationRow,
-    MemberProfileDTO,
 )
 from src.modules.analytics.organization.services.data_loader import OrganizationAnalyticsDataLoader
-from src.modules.analytics.common.calculator import (
-    WORKDAY_DEFAULT_HOURS,
-    calculate_change,
-    duration_hours,
-    format_duration,
-    sum_duration,
-    count_weekdays,
-)
 from src.modules.analytics.personal.calculator import AnalyticsCalculator
-from src.modules.analytics.common.schemas import KPIMetricProductivityValue, UserProfileDTO, MetricValue
 from src.modules.organization.repository import OrganizationCurrencyRepositorySQLAlchemy
 from src.modules.organization_member.repository import OrganizationMemberRepository
+from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions
 from src.shared.rounded_decimal import RoundedDecimal
@@ -466,9 +467,9 @@ class OrganizationMetricsService:
         events = await self.data_loader.get_analyzable_events(ctx)
 
         definitions = [
-            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == 2),
-            ("three_to_five", "3-5", lambda e: 3 <= len(e.attendees) <= 5),
-            ("more_than_five", "6+", lambda e: len(e.attendees) > 5),
+            ("one_to_one", "One-on-one", lambda e: len(e.attendees) == ONE_ON_ONE_ATTENDEES),
+            ("three_to_five", "3-5", lambda e: SMALL_GROUP_MIN <= len(e.attendees) <= SMALL_GROUP_MAX),
+            ("more_than_five", "6+", lambda e: len(e.attendees) > SMALL_GROUP_MAX),
         ]
 
         data: list[ParticipantMetric] = []
@@ -620,8 +621,6 @@ class OrganizationMetricsService:
             return {"percent": percent, "hours": round(value, 1)}
 
         if list_type == ListType.TEAMS:
-            from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
-
             team_repo = OrganizationTeamRepositorySQLAlchemy(self.session)
             teams = [ctx.team] if ctx.team else await team_repo.get_teams_by_organization_id(ctx.org.id)
             rows = []
@@ -830,8 +829,6 @@ class OrganizationMetricsService:
     ) -> TableResponse:
         events = await self.data_loader.get_analyzable_events(ctx)
         events = self.data_loader.get_unique_events(events)
-
-        from src.modules.organization_team.repository import OrganizationTeamRepositorySQLAlchemy
 
         team_repository = OrganizationTeamRepositorySQLAlchemy(self.session)
         teams = await team_repository.get_teams_by_organization_id(ctx.org.id)

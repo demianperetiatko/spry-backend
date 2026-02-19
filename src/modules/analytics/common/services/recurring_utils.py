@@ -57,7 +57,7 @@ def parse_recurring_type(event: CalendarEvent | Any | None) -> str:
                     return "Yearly"
                 if freq:
                     return freq.capitalize()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.debug("Failed to parse recurrence rule %s: %s", rule, exc)
                 continue
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from src.modules.analytics.common.data_loader import AnalyticsDataLoaderBase
@@ -8,7 +7,6 @@ from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.calendar.models import CalendarEvent
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from src.modules.analytics.personal.repository import PersonalAnalyticsRepository
 
 

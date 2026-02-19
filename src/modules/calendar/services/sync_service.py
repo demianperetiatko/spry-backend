@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.transaction import atomic
+from src.core.exceptions import ServiceException
 from src.modules.calendar.client import StaleSyncTokenError
 from src.modules.calendar.clients.google_gateway import GoogleCalendarGateway
 from src.modules.calendar.domain.event_mapper import GoogleEventMapper
@@ -23,10 +24,11 @@ logger = logging.getLogger(__name__)
 
 MIN_EXPECTED_PARSED_EVENTS = 5
 SUSPICIOUS_RAW_EVENT_COUNT = 20
-DATA_LOSS_GUARD_THRESHOLD = 0.1
 
 
 class CalendarSyncEngine:
+    """Engine for synchronizing calendars with Google Calendar API."""
+
     MASTER_EVENT_CONCURRENCY = 3
 
     def __init__(
@@ -42,131 +44,92 @@ class CalendarSyncEngine:
         self.session = session
 
     async def synchronize_calendar(self, calendar_id: uuid.UUID, check_type: str = "incremental") -> None:
+        """Synchronize a calendar by its organization calendar ID."""
         org_calendar = await self.calendar_repo.get_calendar(calendar_id)
         if not org_calendar:
-            logger.warning(f"Calendar {calendar_id} not found")
-            return
+            raise ServiceException("Calendar not found", status_code=404)
 
-        if check_type == "full":
-            await self._run_full_sync(org_calendar)
-        else:
-            await self._run_incremental_sync(org_calendar)
+        try:
+            await self._execute_sync(org_calendar, check_type=check_type)
+        except StaleSyncTokenError:
+            logger.warning(f"Stale token for {calendar_id}, forcing full sync")
+            await self._execute_sync(org_calendar, check_type="full", force_full=True)
+        except Exception as exc:
+            logger.error(f"Sync failed for {calendar_id}: {exc}")
+            await self.token_service.mark_sync_status(
+                org_calendar.user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error=str(exc)
+            )
+            raise
 
     async def synchronize_calendar_by_user_calendar_id(
         self, user_calendar_id: uuid.UUID, check_type: str = "incremental"
     ) -> None:
+        """Synchronize calendar by user_calendar_id. Used for webhooks."""
         org_calendar = await self.calendar_repo.get_calendar_by_user_calendar_id(user_calendar_id)
         if not org_calendar:
             logger.warning(f"No OrganizationMemberCalendar found for user_calendar_id {user_calendar_id}")
             return
 
-        if check_type == "full":
-            await self._run_full_sync(org_calendar)
-        else:
-            await self._run_incremental_sync(org_calendar)
-
-    async def _run_incremental_sync(self, org_calendar: OrganizationMemberCalendar) -> None:
-        user_calendar = org_calendar.user_calendar
-        metadata = await self.calendar_repo.get_sync_state(user_calendar.id)
-
-        if not metadata or not metadata.sync_token:
-            logger.info(f"No sync token for {user_calendar.id}, falling back to full sync")
-            await self._run_full_sync(org_calendar)
-            return
-
-        # Phase 1: Fetch from Google (no lock, no transaction)
-        credentials = await self.token_service.get_valid_credentials(user_calendar)
-
         try:
-            events, next_sync_token, credentials = await self.gateway.list_events_with_retry(
-                credentials,
-                user_calendar,
-                sync_token=metadata.sync_token,
-                full_sync=False,
-                time_min=None,
-                time_max=None,
-            )
+            await self._execute_sync(org_calendar, check_type=check_type)
         except StaleSyncTokenError:
-            logger.warning(f"Stale token for {user_calendar.id}, falling back to full sync")
-            await self._run_full_sync(org_calendar)
-            return
-        except TokenInvalidError:
-            logger.warning(f"Token invalid for {user_calendar.id} during incremental sync")
-            await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error="token_invalid")
-            return
+            logger.warning(f"Stale token for user_calendar {user_calendar_id}, forcing full sync")
+            await self._execute_sync(org_calendar, check_type="full", force_full=True)
+        except Exception as exc:
+            logger.error(f"Sync failed for user_calendar {user_calendar_id}: {exc}")
+            await self.token_service.mark_sync_status(user_calendar_id, CalendarSyncStatusEnum.FAILED, sync_error=str(exc))
+            raise
 
-        to_delete, to_upsert, attendees = GoogleEventMapper.process_events_payload(events, user_calendar.id, metadata.timezone)
-
-        if not to_upsert and not to_delete:
-            async with atomic(self.session):
-                await CalendarRepository.acquire_sync_lock(self.session, user_calendar.id)
-                await self.calendar_repo.update_sync_state(
-                    user_calendar_id=user_calendar.id,
-                    sync_token=next_sync_token,
-                    sync_status=CalendarSyncStatusEnum.SUCCESS,
-                    last_sync_at=datetime.now(timezone.utc),
-                    sync_error=None,
-                )
+    async def _execute_sync(
+        self,
+        org_calendar: OrganizationMemberCalendar,
+        *,
+        check_type: str,
+        force_full: bool = False,
+    ) -> None:
+        """Execute the sync operation for a calendar."""
+        user_calendar = org_calendar.user_calendar
+        lock_acquired = await self.calendar_repo.acquire_sync_lock(user_calendar.id)
+        if not lock_acquired:
+            logger.warning(f"Sync already in progress for user calendar {user_calendar.id}, skipping")
             return
-
-        google_event_ids_in_upsert = {e.get("google_event_id") for e in to_upsert if e.get("google_event_id")}
-        master_events = await self.get_master_events_to_upsert(
-            events, credentials, user_calendar, metadata.timezone, google_event_ids_in_upsert
-        )
-        await self.propagate_recurrence_to_instances(to_upsert, master_events, user_calendar.id)
 
         async with atomic(self.session):
-            await CalendarRepository.acquire_sync_lock(self.session, user_calendar.id)
+            metadata = await self.calendar_repo.ensure_sync_state(user_calendar.id, with_lock=True)
+            await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.IN_PROGRESS)
 
-            if to_delete:
-                await self.calendar_repo.delete_events_by_google_ids(to_delete, user_calendar_id=user_calendar.id)
+        credentials = await self.token_service.get_valid_credentials(user_calendar)
 
-            await self.calendar_repo.upsert_events(to_upsert, attendees)
-
-            if master_events:
-                await self.calendar_repo.upsert_events(master_events, None)
-
-            await self.calendar_repo.update_sync_state(
-                user_calendar_id=user_calendar.id,
-                sync_token=next_sync_token,
-                sync_status=CalendarSyncStatusEnum.SUCCESS,
-                last_sync_at=datetime.now(timezone.utc),
-                sync_error=None,
-            )
-
-    async def _run_full_sync(self, org_calendar: OrganizationMemberCalendar) -> None:
-        user_calendar = org_calendar.user_calendar
-
-        try:
-            credentials = await self.token_service.get_valid_credentials(user_calendar)
-        except TokenInvalidError:
-            logger.warning(f"Token invalid for {user_calendar.id} during full sync credential fetch")
-            await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error="token_invalid")
-            return
-
-        metadata = await self.calendar_repo.ensure_sync_state(user_calendar.id)
-
-        earliest = await self.calendar_repo.get_earliest_event_start(user_calendar.id)
-        time_min, time_max = compute_sync_window(earliest)
+        use_sync_token = metadata.sync_token if check_type != "full" and not force_full else None
+        if use_sync_token is None:
+            earliest = await self.calendar_repo.get_earliest_event_start(user_calendar.id)
+            time_min, time_max = compute_sync_window(earliest)
+        else:
+            time_min, time_max = None, None
 
         try:
             events, next_sync_token, credentials = await self.gateway.list_events_with_retry(
                 credentials,
                 user_calendar,
-                sync_token=None,
-                full_sync=True,
+                sync_token=use_sync_token,
+                full_sync=use_sync_token is None,
                 time_min=time_min,
                 time_max=time_max,
             )
         except TokenInvalidError:
-            logger.warning(f"Token invalid for {user_calendar.id} during full sync")
+            logger.warning("Token invalid for user_calendar %s during _execute_sync", user_calendar.id)
             await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error="token_invalid")
             return
 
         to_delete, to_upsert, attendees = GoogleEventMapper.process_events_payload(events, user_calendar.id, metadata.timezone)
 
+        # Guard: Don't delete if we got no events to upsert (possible API/parsing error)
         if not to_upsert and events:
-            logger.error(f"All {len(events)} events failed to parse for {user_calendar.id}, skipping sync to prevent data loss")
+            logger.error(
+                f"All {len(events)} events failed to parse for user_calendar {user_calendar.id}, "
+                "skipping sync to prevent data loss"
+            )
+            # Mark as failed and clear sync_token to force full sync next time
             async with atomic(self.session):
                 await self.calendar_repo.update_sync_state(
                     user_calendar_id=user_calendar.id,
@@ -176,103 +139,54 @@ class CalendarSyncEngine:
                 )
             return
 
-        if len(to_upsert) < MIN_EXPECTED_PARSED_EVENTS and len(events) > SUSPICIOUS_RAW_EVENT_COUNT:
+        # Warn if suspiciously few events parsed during full sync
+        if use_sync_token is None and len(to_upsert) < MIN_EXPECTED_PARSED_EVENTS and len(events) > SUSPICIOUS_RAW_EVENT_COUNT:
             logger.warning(
-                f"Full sync for {user_calendar.id}: only {len(to_upsert)}/{len(events)} "
+                f"Full sync for user_calendar {user_calendar.id}: only {len(to_upsert)}/{len(events)} "
                 "events parsed successfully, possible parsing issue"
             )
 
-        google_event_ids_in_upsert = {e.get("google_event_id") for e in to_upsert if e.get("google_event_id")}
-        master_events = await self.get_master_events_to_upsert(
-            events, credentials, user_calendar, metadata.timezone, google_event_ids_in_upsert
+        google_event_ids_in_upsert = {event.get("google_event_id") for event in to_upsert if event.get("google_event_id")}
+        master_events_to_upsert = await self.get_master_events_to_upsert(
+            events,
+            credentials,
+            user_calendar,
+            metadata.timezone,
+            google_event_ids_in_upsert,
         )
-        await self.propagate_recurrence_to_instances(to_upsert, master_events, user_calendar.id)
 
-        all_api_google_ids: list[str] = [
-            e.get("google_event_id") for e in to_upsert + master_events if e.get("google_event_id")
-        ] + to_delete  # Cancelled IDs existed in the API response too
+        google_ids_seen: set[str] = {
+            event.get("google_event_id") for event in to_upsert + master_events_to_upsert if event.get("google_event_id")
+        }
+        missing_google_ids: set[str] = set()
+        if use_sync_token is None:
+            existing_google_ids = await self.calendar_repo.get_google_event_ids(
+                user_calendar.id, start_dt=time_min, end_dt=time_max
+            )
+            missing_google_ids = existing_google_ids - google_ids_seen - set(to_delete)
 
         async with atomic(self.session):
-            await CalendarRepository.acquire_sync_lock(self.session, user_calendar.id)
-
-            locked_count = await self.calendar_repo.count_events_since(user_calendar.id)
-            if locked_count > SUSPICIOUS_RAW_EVENT_COUNT and len(to_upsert) < locked_count * DATA_LOSS_GUARD_THRESHOLD:
-                logger.error(
-                    f"Full sync for {user_calendar.id}: API returned {len(to_upsert)} events "
-                    f"but DB has {locked_count}. Aborting to prevent data loss."
-                )
-                await self.calendar_repo.update_sync_state(
-                    user_calendar_id=user_calendar.id,
-                    sync_token=None,
-                    sync_status=CalendarSyncStatusEnum.FAILED,
-                    sync_error="full_sync_data_loss_guard",
-                )
-                return
-
-            deleted_count = await self.calendar_repo.delete_orphaned_events(
-                user_calendar.id,
-                all_api_google_ids,
-                time_min=time_min,
-                time_max=time_max,
-            )
-            if deleted_count:
-                logger.info(f"Full sync for {user_calendar.id}: deleted {deleted_count} orphaned events")
-
-            if time_min:
-                await self.calendar_repo.delete_events_before(user_calendar.id, time_min)
-            if time_max:
-                await self.calendar_repo.delete_events_after(user_calendar.id, time_max)
-
             if to_delete:
                 await self.calendar_repo.delete_events_by_google_ids(to_delete, user_calendar_id=user_calendar.id)
-
-            # Upsert with RETURNING → real DB IDs for attendees
+            if missing_google_ids:
+                await self.calendar_repo.delete_events_by_google_ids(list(missing_google_ids), user_calendar_id=user_calendar.id)
+            if use_sync_token is None and time_min is not None:
+                await self.calendar_repo.delete_events_before(user_calendar.id, time_min)
+            if use_sync_token is None and time_max is not None:
+                await self.calendar_repo.delete_events_after(user_calendar.id, time_max)
             await self.calendar_repo.upsert_events(to_upsert, attendees)
 
-            if master_events:
-                await self.calendar_repo.upsert_events(master_events, None)
+            if master_events_to_upsert:
+                await self.calendar_repo.upsert_events(master_events_to_upsert, None)
 
+            sync_token_update = next_sync_token if next_sync_token is not None else metadata.sync_token
             await self.calendar_repo.update_sync_state(
                 user_calendar_id=user_calendar.id,
-                sync_token=next_sync_token,
+                sync_token=sync_token_update,
                 sync_status=CalendarSyncStatusEnum.SUCCESS,
                 last_sync_at=datetime.now(timezone.utc),
                 sync_error=None,
             )
-
-    async def propagate_recurrence_to_instances(
-        self,
-        to_upsert: list[dict],
-        master_events_to_upsert: list[dict],
-        user_calendar_id: uuid.UUID,
-    ) -> None:
-        recurrence_map: dict[str, list[str]] = {}
-        for master in master_events_to_upsert:
-            gid = master.get("google_event_id")
-            rec = master.get("recurrence")
-            if gid and rec:
-                recurrence_map[gid] = rec
-
-        needed_ids = {
-            evt["recurring_event_id"]
-            for evt in to_upsert
-            if evt.get("recurring_event_id") and evt["recurring_event_id"] not in recurrence_map
-        }
-
-        if needed_ids:
-            stmt = select(CalendarEvent.google_event_id, CalendarEvent.recurrence).where(
-                CalendarEvent.google_event_id.in_(list(needed_ids)),
-                CalendarEvent.user_calendar_id == user_calendar_id,
-                CalendarEvent.recurrence.isnot(None),
-            )
-            result = await self.session.execute(stmt)
-            for gid, rec in result.all():
-                recurrence_map[gid] = rec
-
-        for evt in to_upsert:
-            rid = evt.get("recurring_event_id")
-            if rid and not evt.get("recurrence") and rid in recurrence_map:
-                evt["recurrence"] = recurrence_map[rid]
 
     async def get_master_events_to_upsert(
         self,
@@ -282,6 +196,7 @@ class CalendarSyncEngine:
         default_tz: str,
         exclude_google_event_ids: set[str],
     ) -> list[dict]:
+        """Get master events that need to be upserted."""
         master_event_ids = {event.get("recurringEventId") for event in events if event.get("recurringEventId")}
         if not master_event_ids:
             return []
@@ -302,6 +217,7 @@ class CalendarSyncEngine:
         default_tz: str,
         exclude_google_event_ids: set[str] | None = None,
     ) -> list[dict]:
+        """Fetch master events from Google Calendar API."""
         synced_at = datetime.now(timezone.utc)
 
         statement = select(CalendarEvent.google_event_id).where(
