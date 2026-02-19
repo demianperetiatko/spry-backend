@@ -12,14 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.4.0
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: >
+            projects/786136769301/locations/global/workloadIdentityPools/dev-spryplan/providers/GitHub
+          service_account: dev-spryplan@spry-398908.iam.gserviceaccount.com
 
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify auth
+        run: gcloud auth list
+        
       - name: Set environment variables
         run: |
           echo "APP_ENV=${{ secrets.APP_ENV }}" >> $GITHUB_ENV
