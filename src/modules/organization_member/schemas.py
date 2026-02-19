@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from src.shared.rounded_decimal import RoundedDecimal
+
 
 class MemberTeamDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -23,7 +25,7 @@ class MemberResponse(BaseModel):
     photo_url: str | None = Field(default=None, description="User photo URL")
     email: str = Field(description="User email")
     status: str = Field(description="Member status")
-    cost: Decimal | None = Field(default=None, description="Total cost (if permission granted)")
+    cost: RoundedDecimal | None = Field(default=None, description="Total cost (if permission granted)")
     teams: list[MemberTeamDetailResponse] = Field(default_factory=list, description="Teams the member belongs to")
 
 

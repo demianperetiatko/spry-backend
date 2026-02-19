@@ -11,6 +11,7 @@ from src.modules.enums import (
     OrganizationCostVisibilityEnum,
 )
 from src.shared.currency import Currency
+from src.shared.rounded_decimal import RoundedDecimal
 
 
 class OrganizationOnboardRequest(BaseModel):
@@ -38,7 +39,7 @@ class CostSettingsResponse(BaseModel):
     cost_period: OrganizationCostPeriodEnum | None = None
     cost_visibility: OrganizationCostVisibilityEnum | None = None
     cost_type: OrganizationCostTypeEnum | None = None
-    cost_avg: Decimal | None = None
+    cost_avg: RoundedDecimal | None = None
 
 
 class UpdateCostSettingsRequest(BaseModel):
