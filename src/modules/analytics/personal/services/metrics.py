@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,9 +28,6 @@ from src.modules.organization.repository import OrganizationCurrencyRepositorySQ
 from src.modules.organization_member.repository import OrganizationMemberRepository
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions
-
-if TYPE_CHECKING:
-    pass
 
 
 class PersonalMetricsService:
