@@ -187,15 +187,7 @@ class RecurringMeetingServiceTeam:
                 finance_access=finance_access,
             )
             row_dict = row.model_dump()
-            row_dict.update(
-                {
-                    "meeting_name": row.meeting.name,
-                    "recurring_type": row.meeting.recurring_type,
-                    "duration": row.meeting.duration,
-                    "attendees": len(group[0].attendees) if group and group[0].attendees else 0,
-                    "total_cost": row.total_cost if finance_access else None,
-                }
-            )
+            row_dict["total_cost"] = row.total_cost if finance_access else None
             results.append(row_dict)
 
         results.sort(key=lambda x: get_sort_value(x, sort_by), reverse=reverse)
@@ -265,7 +257,8 @@ class RecurringMeetingServiceTeam:
 
         return RecurringMeetingTableRow(
             id=recurring_id,
-            meeting=meeting_info,
+            meeting_profile=meeting_info,
+            attendees=len(first_event.attendees) if first_event.attendees else 0,
             cancellation_rate=cancellation_rate,
             total_time=total_duration,
             organizer=organizer_dto,

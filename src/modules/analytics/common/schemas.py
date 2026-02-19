@@ -155,7 +155,8 @@ class MeetingInfoDTO(BaseModel):
 
 class RecurringMeetingTableRow(BaseModel):
     id: str
-    meeting: MeetingInfoDTO
+    meeting_profile: MeetingInfoDTO
+    attendees: int = 0
     cancellation_rate: RoundedDecimal
     total_time: RoundedDecimal
     total_cost: RoundedDecimal | None = None

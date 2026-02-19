@@ -58,7 +58,7 @@ class SortByType(str, Enum):
     TEAM_NAME = "team_name"
     TOTAL_TIME = "total_time"
     CANCELLATION_RATE = "cancellation_rate"
-    MEETING_NAME = "meeting.name"
+    MEETING_NAME = "meeting_profile.name"
 
 
 class OrganizationAnalyticsParams(BaseModel):

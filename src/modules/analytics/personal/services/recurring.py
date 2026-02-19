@@ -256,11 +256,12 @@ class RecurringMeetingService:
 
         return RecurringMeetingTableRow(
             id=recurring_id,
-            meeting=MeetingInfoDTO(
+            meeting_profile=MeetingInfoDTO(
                 name=first_event.summary or "",
                 duration=format_duration(AnalyticsCalculator.duration_hours(first_event)),
                 recurring_type=parsed_recurring_type,
             ),
+            attendees=len(first_event.attendees) if first_event.attendees else 0,
             cancellation_rate=cancellation_rate,
             total_time=total_duration,
             organizer=organizer_dto,
