@@ -12,12 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.modules.analytics.common.schemas import MeetingInfoDTO
-from src.modules.analytics.common.services.recurring_utils import (
-    extract_master_event_id,
-    get_sort_value,
-    parse_recurring_type,
-    resolve_recurrence_fallback,
-)
+from src.modules.analytics.common.services.recurring_utils import extract_master_event_id, get_sort_value, parse_recurring_type
 from src.modules.analytics.organization.dependency import OrganizationAnalyticsContext
 from src.modules.analytics.organization.repository import OrganizationAnalyticsRepository
 from src.modules.analytics.organization.schemas import RecurringMeetingTableRow, TableResponse, UserProfileDTO
@@ -176,8 +171,6 @@ class RecurringMeetingServiceTeam:
         grouped, master_event_ids, organizer_emails = self._group_recurring_events(unique_events)
         master_event_map = await self.resolve_master_events(master_event_ids, calendar_ids)
 
-        recurrence_fallback = await resolve_recurrence_fallback(self.session, grouped, master_event_map, calendar_ids)
-
         users = await self.repo.get_users_by_emails(list(organizer_emails))
         user_map = {u.email: u for u in users}
         finance_access = hourly_cost_map is not None
@@ -185,20 +178,16 @@ class RecurringMeetingServiceTeam:
 
         results = []
         for recurring_id, group in grouped.items():
-            master = master_event_map.get(recurring_id)
-            recurring_type = parse_recurring_type(master)
-            if not recurring_type and recurring_id in recurrence_fallback:
-                recurring_type = parse_recurring_type(SimpleNamespace(recurrence=recurrence_fallback[recurring_id]))
-
             row = self._create_recurring_row(
                 recurring_id=recurring_id,
                 group=group,
+                master_event=master_event_map.get(recurring_id),
                 user_map=user_map,
                 hourly_cost_map=hourly_cost_map,
                 finance_access=finance_access,
-                recurring_type=recurring_type,
             )
             row_dict = row.model_dump()
+            row_dict["total_cost"] = row.total_cost if finance_access else None
             results.append(row_dict)
 
         results.sort(key=lambda x: get_sort_value(x, sort_by), reverse=reverse)
@@ -225,10 +214,10 @@ class RecurringMeetingServiceTeam:
     def _create_recurring_row(
         recurring_id: str,
         group: list[CalendarEvent],
+        master_event: CalendarEvent | Any | None,
         user_map: dict[str, Any],
         hourly_cost_map: dict[str, Decimal],
         finance_access: bool,
-        recurring_type: str = "",
     ) -> RecurringMeetingTableRow:
         first_event = group[0]
         total_duration = Decimal("0")
@@ -237,6 +226,7 @@ class RecurringMeetingServiceTeam:
             if status_val == "cancelled":
                 continue
             total_duration += AnalyticsCalculator.duration_hours(event)
+        parsed_recurring_type = parse_recurring_type(master_event)
 
         cancelled_count = sum(1 for event in group if getattr(event.status, "value", "") == "cancelled")
         cancellation_rate = (
@@ -262,7 +252,7 @@ class RecurringMeetingServiceTeam:
         meeting_info = MeetingInfoDTO(
             name=first_event.summary or "",
             duration=format_duration(AnalyticsCalculator.duration_hours(first_event)),
-            recurring_type=recurring_type,
+            recurring_type=parsed_recurring_type,
         )
 
         return RecurringMeetingTableRow(
