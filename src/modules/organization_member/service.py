@@ -13,6 +13,7 @@ from src.modules.enums import (
     OrganizationMemberRoleEnum,
     OrganizationMemberStatusEnum,
     OrganizationTeamMemberTypeEnum,
+    UserStatusEnum,
 )
 from src.modules.invitation.model import Invitation
 from src.modules.invitation.repository import InvitationRepository, get_invitation_repository
@@ -26,11 +27,10 @@ from src.modules.organization_member.exceptions import (
     CannotEditMemberError,
     MemberAlreadyActiveError,
     MemberAlreadyExistsError,
+    MemberNotActiveError,
     MemberNotFoundError,
     OrganizationCurrencyNotConfiguredError,
-    MemberNotActiveError,
 )
-from src.modules.user.exceptions import UserNotFoundError
 from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
@@ -52,6 +52,7 @@ from src.modules.organization_team.repository import (
 )
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions, get_permissions
+from src.modules.user.exceptions import UserNotFoundError
 from src.modules.user.model import User
 from src.modules.user.repository import UserRepository, get_user_repository
 from src.shared.cost import calculate_hourly_cost, calculate_total_cost
@@ -186,8 +187,6 @@ class OrganizationMemberService:
 
                 user = existing_users_map.get(email_lower)
                 if not user:
-                    from src.modules.enums import UserStatusEnum
-
                     user = User(email=email, status=UserStatusEnum.PENDING)
                     await self.user_repo.create(user)
                     existing_users_map[email_lower] = user

@@ -42,7 +42,7 @@ def send_token_expiry_notification(user_id: uuid.UUID) -> None:
     logger.info(f"Scheduling token expiry notification for user {user_id}")
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(_send_token_expiry_email(user_id))
+        _task = loop.create_task(_send_token_expiry_email(user_id))  # noqa: RUF006
     except RuntimeError:
         # No running event loop - run synchronously
         asyncio.run(_send_token_expiry_email(user_id))

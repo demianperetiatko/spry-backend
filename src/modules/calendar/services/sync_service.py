@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from google.oauth2.credentials import Credentials
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.transaction import atomic
@@ -14,12 +15,15 @@ from src.modules.calendar.client import StaleSyncTokenError
 from src.modules.calendar.clients.google_gateway import GoogleCalendarGateway
 from src.modules.calendar.domain.event_mapper import GoogleEventMapper
 from src.modules.calendar.domain.sync_window import compute_sync_window
-from src.modules.calendar.models import OrganizationMemberCalendar, UserCalendar
+from src.modules.calendar.models import CalendarEvent, OrganizationMemberCalendar, UserCalendar
 from src.modules.calendar.repository import CalendarRepository
 from src.modules.calendar.services.token_service import GoogleTokenService, TokenInvalidError
 from src.modules.enums import CalendarSyncStatusEnum
 
 logger = logging.getLogger(__name__)
+
+MIN_EXPECTED_PARSED_EVENTS = 5
+SUSPICIOUS_RAW_EVENT_COUNT = 20
 
 
 class CalendarSyncEngine:
@@ -136,7 +140,7 @@ class CalendarSyncEngine:
             return
 
         # Warn if suspiciously few events parsed during full sync
-        if use_sync_token is None and len(to_upsert) < 5 and len(events) > 20:
+        if use_sync_token is None and len(to_upsert) < MIN_EXPECTED_PARSED_EVENTS and len(events) > SUSPICIOUS_RAW_EVENT_COUNT:
             logger.warning(
                 f"Full sync for user_calendar {user_calendar.id}: only {len(to_upsert)}/{len(events)} "
                 "events parsed successfully, possible parsing issue"
@@ -215,10 +219,6 @@ class CalendarSyncEngine:
     ) -> list[dict]:
         """Fetch master events from Google Calendar API."""
         synced_at = datetime.now(timezone.utc)
-
-        from sqlalchemy import select
-
-        from src.modules.calendar.models import CalendarEvent
 
         statement = select(CalendarEvent.google_event_id).where(
             CalendarEvent.google_event_id.in_(master_event_ids),

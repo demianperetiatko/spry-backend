@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, TYPE_CHECKING
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-
-if TYPE_CHECKING:
-    from src.modules.calendar.service import CalendarService
 
 from src.core.database.session import get_session
 from src.modules.analytics.organization.dependency import OrganizationAnalyticsContext, get_organization_analytics_context
@@ -31,6 +28,9 @@ from src.modules.analytics.organization.schemas import (
 from src.modules.analytics.organization.services.data_loader import OrganizationAnalyticsDataLoader
 from src.modules.analytics.organization.services.metrics import OrganizationMetricsService
 from src.modules.analytics.organization.services.recurring import RecurringMeetingServiceTeam
+from src.modules.calendar.client import GoogleCalendarClient
+from src.modules.calendar.repository import CalendarRepository
+from src.modules.calendar.service import CalendarService
 from src.modules.organization_member.repository import OrganizationMemberRepository, get_organization_member_repository
 from src.modules.permissions.service import Permissions, get_permissions
 
@@ -43,10 +43,6 @@ AnalyticsCtxDep = Annotated[OrganizationAnalyticsContext, Depends(get_organizati
 
 async def get_optional_calendar_service(session: AsyncSession = Depends(get_session)) -> CalendarService | None:
     try:
-        from src.modules.calendar.client import GoogleCalendarClient
-        from src.modules.calendar.repository import CalendarRepository
-        from src.modules.calendar.service import CalendarService
-
         calendar_repo = CalendarRepository(session=session)
         google_client = GoogleCalendarClient()
         return CalendarService(calendar_repo=calendar_repo, session=session, google_client=google_client)

@@ -19,6 +19,7 @@ from src.modules.calendar.services.sync_service import CalendarSyncEngine
 from src.modules.calendar.services.token_service import GoogleTokenService
 from src.modules.calendar.services.webhook_service import CalendarWebhookService
 from src.modules.enums import CalendarSyncStatusEnum, OrganizationMemberStatusEnum
+from src.modules.organization_member.repository import OrganizationMemberRepositorySQLAlchemy
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,6 @@ class CalendarHealthService:
 
     async def ensure_calendar_health(self, user_id: uuid.UUID) -> None:
         """Ensure calendar health for a user across all their organizations."""
-        from src.modules.organization_member.repository import OrganizationMemberRepositorySQLAlchemy
-
         org_member_repo = OrganizationMemberRepositorySQLAlchemy(self.session)
         active_members = await org_member_repo.get_active_members_by_user_id(user_id)
 
@@ -104,8 +103,6 @@ class CalendarHealthService:
 
     async def manual_resync_for_organization(self, organization_id: uuid.UUID) -> dict[str, object]:
         """Manually resync all calendars for an organization."""
-        from src.modules.organization_member.repository import OrganizationMemberRepositorySQLAlchemy
-
         org_member_repo = OrganizationMemberRepositorySQLAlchemy(self.session)
         members, _ = await org_member_repo.get_members_by_organization_id(organization_id)
 
@@ -121,8 +118,6 @@ class CalendarHealthService:
 
     async def manual_resync_for_user(self, user_id: uuid.UUID) -> dict[str, object]:
         """Manually resync all calendars for a user."""
-        from src.modules.organization_member.repository import OrganizationMemberRepositorySQLAlchemy
-
         org_member_repo = OrganizationMemberRepositorySQLAlchemy(self.session)
         members = await org_member_repo.get_active_members_by_user_id(user_id)
         if not members:

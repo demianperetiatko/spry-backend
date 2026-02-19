@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
+from http import HTTPStatus
 
 import httpx
 from google.oauth2.credentials import Credentials
@@ -69,7 +70,7 @@ class GoogleCalendarGateway:
                     raise
 
                 # Handle 403 with token refresh
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")
@@ -112,7 +113,7 @@ class GoogleCalendarGateway:
                     raise
 
                 # Handle 403 with token refresh
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")
@@ -152,7 +153,7 @@ class GoogleCalendarGateway:
                         continue
                     raise
 
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")
@@ -194,7 +195,7 @@ class GoogleCalendarGateway:
                         continue
                     raise
 
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")
@@ -258,7 +259,7 @@ class GoogleCalendarGateway:
                     raise
 
                 # Handle 403 with token refresh
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")
@@ -301,7 +302,7 @@ class GoogleCalendarGateway:
                     raise
 
                 # Handle 403 with token refresh
-                if status_code == 403:
+                if status_code == HTTPStatus.FORBIDDEN:
                     new_creds = await self.token_service.refresh_access_token(user_calendar)
                     if not new_creds:
                         await self.token_service.invalidate_access(user_calendar, "token_invalid:403")

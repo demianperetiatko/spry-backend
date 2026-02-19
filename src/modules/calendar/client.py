@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from http import HTTPStatus
 
 import httpx
 
@@ -63,7 +64,7 @@ class GoogleCalendarClient:
                     headers=headers,
                     params=paged_params,
                 )
-                if response.status_code == 410:
+                if response.status_code == HTTPStatus.GONE:
                     raise StaleSyncTokenError("Stale sync token")
                 response.raise_for_status()
 
@@ -106,7 +107,7 @@ class GoogleCalendarClient:
                 headers=headers,
                 json=body,
             )
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 logger.error(f"Google Watch Error: {response.text}")
                 raise ServiceException(
                     "Failed to create watch subscription",
@@ -130,7 +131,7 @@ class GoogleCalendarClient:
                 f"{self.BASE_URL}/calendars/{calendar_email}/events/{event_id}",
                 headers=headers,
             )
-            if response.status_code == 404:
+            if response.status_code == HTTPStatus.NOT_FOUND:
                 return None
             response.raise_for_status()
             return response.json()
@@ -175,7 +176,7 @@ class GoogleCalendarClient:
                 json=body,
                 params=params,
             )
-            if response.status_code == 404:
+            if response.status_code == HTTPStatus.NOT_FOUND:
                 return None
             response.raise_for_status()
             return response.json()

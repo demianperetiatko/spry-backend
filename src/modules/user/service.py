@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.session import get_session, sessionmanager
 from src.core.database.transaction import atomic
+from src.modules.calendar.client import GoogleCalendarClient
+from src.modules.calendar.repository import CalendarRepository
+from src.modules.calendar.service import CalendarService
 from src.modules.enums import CalendarTypeEnum, UserStatusEnum
 from src.modules.organization.repository import (
     OrganizationCurrencyRepository,
@@ -31,7 +34,6 @@ from src.modules.user.repository import (
 from src.modules.user.schemas import OrganizationMemberInfo
 from src.shared.gcp_bucket import GCPBucket, get_gcp_bucket
 from src.shared.google_api import GoogleUserInfo
-
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +130,7 @@ class UserService:
                     await self.user_repo.update(user)
 
         try:
-            asyncio.create_task(self._trigger_full_resync(user.id))
+            _task = asyncio.create_task(self._trigger_full_resync(user.id))  # noqa: RUF006
         except RuntimeError:
             # If no current event loop (e.g., in tests) - execute synchronously
             await self._trigger_full_resync(user.id)
@@ -179,10 +181,6 @@ class UserService:
         After successful login, trigger full resync of user's calendar in background.
         """
         try:
-            from src.modules.calendar.client import GoogleCalendarClient
-            from src.modules.calendar.repository import CalendarRepository
-            from src.modules.calendar.service import CalendarService
-
             async with sessionmanager.session() as session:
                 calendar_repo = CalendarRepository(session)
                 google_client = GoogleCalendarClient()

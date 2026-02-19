@@ -13,11 +13,13 @@ from src.modules.calendar.repository import CalendarRepository
 from src.modules.calendar.services.connect_service import CalendarConnectService
 from src.modules.calendar.services.health_service import CalendarHealthService
 from src.modules.calendar.services.sync_service import CalendarSyncEngine
-from src.modules.calendar.services.token_service import GoogleTokenService
-from src.modules.calendar.services.webhook_service import CalendarWebhookService
 
 # Re-export for backwards compatibility
-from src.modules.calendar.services.token_service import TokenInvalidError  # noqa: F401
+from src.modules.calendar.services.token_service import (
+    GoogleTokenService,
+    TokenInvalidError,  # noqa: F401
+)
+from src.modules.calendar.services.webhook_service import CalendarWebhookService
 
 
 class CalendarService:
@@ -103,7 +105,7 @@ class CalendarService:
         event, _ = await self._gateway.create_event_with_retry(credentials, user_calendar, body)
         try:
             await self._sync_engine.synchronize_calendar_by_user_calendar_id(user_calendar.id)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning("Event created but sync failed for calendar %s: %s", user_calendar.id, exc)
         return event
 
@@ -114,6 +116,6 @@ class CalendarService:
         if event is not None:
             try:
                 await self._sync_engine.synchronize_calendar_by_user_calendar_id(user_calendar.id)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.warning("Event updated but sync failed for calendar %s: %s", user_calendar.id, exc)
         return event
