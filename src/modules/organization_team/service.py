@@ -9,8 +9,8 @@ from src.core.database.session import get_session
 from src.core.database.transaction import atomic
 from src.modules.analytics.common.schemas import SortOrderType
 from src.modules.enums import OrganizationMemberRoleEnum, OrganizationMemberStatusEnum
-from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_member.exceptions import MemberNotActiveError
+from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
     get_organization_member_repository,

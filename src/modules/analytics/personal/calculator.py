@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
-from typing import TYPE_CHECKING, Callable
+from typing import Callable, TYPE_CHECKING
 
 from src.modules.analytics.common.calculator import (
     BUFFER_PER_SIDE_HOURS,
     MAX_TRANSITION_TIME_HOURS,
+    SATURDAY_WEEKDAY,
     WORKDAY_DEFAULT_HOURS,
     calculate_change,
     duration_hours,
-    format_duration,
     sum_duration,
 )
 from src.modules.analytics.common.schemas import KPIResultDTO, MetricValue
@@ -27,7 +27,7 @@ def count_weekdays(start: datetime, end: datetime) -> int:
     end_date = end.date()
 
     while current <= end_date:
-        if current.weekday() < 5:
+        if current.weekday() < SATURDAY_WEEKDAY:
             count += 1
         current += timedelta(days=1)
     return count
@@ -45,6 +45,9 @@ def format_duration(duration_hours: Decimal) -> str:
         return f"{hours}h"
     else:
         return f"{hours}h {minutes}m"
+
+
+MIN_EVENTS_FOR_TRANSITION = 2
 
 
 class AnalyticsCalculator:
@@ -218,7 +221,7 @@ class AnalyticsCalculator:
 
     @staticmethod
     def _calc_transition_time(events: Sequence[CalendarEvent]) -> Decimal:
-        if len(events) < 2:
+        if len(events) < MIN_EVENTS_FOR_TRANSITION:
             return Decimal("0")
 
         times = sorted(

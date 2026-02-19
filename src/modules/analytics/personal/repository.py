@@ -7,8 +7,8 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.analytics.common.repository import AnalyticsRepositoryBase
 from src.core.database.session import get_session
+from src.modules.analytics.common.repository import AnalyticsRepositoryBase
 from src.modules.calendar.models import OrganizationMemberCalendar
 
 if TYPE_CHECKING:

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 
 from src.modules.analytics.common.calculator import (
+    SATURDAY_WEEKDAY,
     WORKDAY_DEFAULT_HOURS,
     calculate_change,
     sum_duration,
@@ -30,6 +31,7 @@ from src.modules.home.schemas import (
     UserProfile,
 )
 from src.modules.user.model import User
+from src.shared.email import get_email_service
 
 
 class HomeService:
@@ -194,8 +196,6 @@ class HomeService:
             date_str = start_dt.strftime("%a, %b %d")
             time_str = f"{self._format_hour(start_dt)} - {self._format_hour(end_dt, with_meridiem=True)}"
 
-            from src.shared.email import get_email_service
-
             email_service = get_email_service()
             await email_service.send_agenda_request(
                 email=organizer_email,
@@ -312,7 +312,7 @@ class HomeService:
         current_date = start_date
 
         while current_date.date() <= end_date.date():
-            if current_date.weekday() >= 5:
+            if current_date.weekday() >= SATURDAY_WEEKDAY:
                 current_date += timedelta(days=1)
                 continue
 
