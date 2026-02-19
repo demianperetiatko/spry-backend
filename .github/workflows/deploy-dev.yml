@@ -1,21 +1,15 @@
-name: Deploy to Google App Engine (dev)
+name: Deploy to Google App Engine
 
 on:
   push:
     branches:
+      - main
       - dev
 
 jobs:
-  deploy-dev:
-    environment:
-      name: dev
-
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,25 +17,28 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/786136769301/locations/global/workloadIdentityPools/github-spryplan/providers/github"
-          service_account: "github-spryplan@spry-398908.iam.gserviceaccount.com"
+          workload_identity_provider: >
+            projects/786136769301/locations/global/workloadIdentityPools/dev-spryplan/providers/GitHub
+          service_account: dev-spryplan@spry-398908.iam.gserviceaccount.com
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify auth
+        run: gcloud auth list
+        
       - name: Set environment variables
         run: |
-          echo "APP_ENV=${{ secrets.APP_ENV_DEV }}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY_DEV }}" >> $GITHUB_ENV
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}" >> $GITHUB_ENV
-          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DEV }}" >> $GITHUB_ENV
-          echo "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY_DEV }}" >> $GITHUB_ENV
-          echo "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY_DEV }}" >> $GITHUB_ENV
+          echo "APP_ENV=${{ secrets.APP_ENV }}" >> $GITHUB_ENV
+          echo "SQLALCHEMY_DATABASE_URI=${{ secrets.SQLALCHEMY_DATABASE_URI }}" >> $GITHUB_ENV
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_ENV
+          echo "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY }}" >> $GITHUB_ENV
+          echo "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY }}" >> $GITHUB_ENV
           echo "DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER=${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}" >> $GITHUB_ENV
-          echo "GCP_SERVICE_KEY_PATH=${{ secrets.GCP_SERVICE_KEY_PATH_DEV }}" >> $GITHUB_ENV
-          echo "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME_DEV }}" >> $GITHUB_ENV
-          echo "GOOGLE_REDIRECT_URI=${{ vars.GOOGLE_REDIRECT_URI }}" >> $GITHUB_ENV
+          echo "GCP_SERVICE_KEY_PATH=${{ secrets.GCP_SERVICE_KEY_PATH }}" >> $GITHUB_ENV
+          echo "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME }}" >> $GITHUB_ENV
 
       - name: Write service demo account files
         run: |
@@ -59,12 +56,10 @@ jobs:
 
       - name: Write GCP account files
         run: |
-          echo '${{ secrets.GCP_SERVICE_KEY_JSON_DEV }}' > "${{ secrets.GCP_SERVICE_KEY_PATH_DEV }}"
+          echo '${{ secrets.GCP_SERVICE_KEY_JSON }}' > "${{ secrets.GCP_SERVICE_KEY_PATH }}"
 
       - name: Prepare app.yaml
         run: |
-<<<<<<<< HEAD:.github/workflows/ci-cd.yml
-          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml          
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV }}|g" app.yaml
           sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY }}|g" app.yaml
@@ -75,12 +70,6 @@ jobs:
           sed -i "s|\${DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER}|${{ secrets.DEMO_GOOGLE_ACCOUNT_SERVICE_FOLDER }}|g" app.yaml
           sed -i "s|\${GCP_SERVICE_KEY_PATH}|${{ secrets.GCP_SERVICE_KEY_PATH }}|g" app.yaml
           sed -i "s|\${GCP_BUCKET_NAME}|${{ secrets.GCP_BUCKET_NAME }}|g" app.yaml
-          sed -i "s|\${GOOGLE_REDIRECT_URI}|${{ vars.GOOGLE_REDIRECT_URI }}|g" app.yaml
-          sed -i "s|\${CORS_ORIGINS}|${{ vars.CORS_ORIGINS }}|g" app.yaml
-          sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
-          sed -i "s|\${BACKEND_DOMAIN}|${{ vars.BACKEND_DOMAIN }}|g" app.yaml
-          sed -i "s|\${ADMIN_API_KEY}|${{ secrets.ADMIN_API_KEY }}|g" app.yaml
-
 
       - name: Deploy to App Engine (prod)
         run: |
@@ -91,28 +80,19 @@ jobs:
 
   deploy-dev:
     if: github.ref == 'refs/heads/dev'
-    
     environment:
       name: dev
 
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Set up Google Cloud SDK (dev)
+        uses: google-github-actions/setup-gcloud@v0.4.0
         with:
-          workload_identity_provider: "projects/786136769301/locations/global/workloadIdentityPools/github-spryplan/providers/github"
-          service_account: "github-spryplan@spry-398908.iam.gserviceaccount.com"
-          
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Set environment variables (dev)
         run: |
@@ -148,10 +128,7 @@ jobs:
 
       - name: Prepare app.yaml (dev)
         run: |
-          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml          
-========
-          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml
->>>>>>>> ff1a3f3 (Add Cloud run):.github/workflows/deploy-dev.yml
+          sed -i "s|\${SERVICE}|${{ secrets.SERVICE_DEV }}|g" app.yaml
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV_DEV }}|g" app.yaml
           sed -i "s|\${DATABASE_URL}|${{ secrets.DATABASE_URL }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY_DEV }}|g" app.yaml
@@ -165,32 +142,9 @@ jobs:
           sed -i "s|\${GOOGLE_REDIRECT_URI}|${{ vars.GOOGLE_REDIRECT_URI }}|g" app.yaml
           sed -i "s|\${CORS_ORIGINS}|${{ vars.CORS_ORIGINS }}|g" app.yaml
           sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
-          sed -i "s|\${BACKEND_DOMAIN}|${{ vars.BACKEND_DOMAIN }}|g" app.yaml
-          sed -i "s|\${ADMIN_API_KEY}|${{ secrets.ADMIN_API_KEY }}|g" app.yaml
-          sed -i "s|\${GCP_PROJECT_ID}|${{ secrets.GCP_PROJECT_ID }}|g" app.yaml
-          sed -i "s|\${PUBSUB_RESYNC_TOPIC}|${{ vars.PUBSUB_RESYNC_TOPIC }}|g" app.yaml
 
       - name: Deploy to App Engine (dev)
         run: |
           gcloud app deploy --quiet \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --version "dev-${{ github.run_number }}"
-
-      - name: Deploy webapp to Cloud Run (from source)
-        run: |
-          gcloud run deploy dev-spry-worker \
-            --region europe-central2 \
-            --project "${{ secrets.GCP_PROJECT_ID }}" \
-            --source . \
-            --no-allow-unauthenticated \
-            --set-env-vars "APP_ENV=${{ secrets.APP_ENV_DEV }}" \
-            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
-            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY_DEV }}" \
-            --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}" \
-            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DEV }}" \
-            --set-env-vars "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY_DEV }}" \
-            --set-env-vars "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY_DEV }}" \
-            --set-env-vars "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME_DEV }}" \
-            --set-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" \
-            --set-env-vars "PUBSUB_RESYNC_TOPIC=${{ vars.PUBSUB_RESYNC_TOPIC }}" \
-            --quiet
