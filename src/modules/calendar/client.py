@@ -187,5 +187,5 @@ class GoogleCalendarClient:
 
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(f"{self.BASE_URL}/channels/stop", headers=headers, json=body)
-            if response.status_code not in (200, 204, 404):
+            if response.status_code not in (HTTPStatus.OK, HTTPStatus.NO_CONTENT, HTTPStatus.NOT_FOUND):
                 response.raise_for_status()

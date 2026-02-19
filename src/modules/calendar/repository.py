@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 from sqlalchemy import and_, delete, func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -299,7 +298,7 @@ class CalendarRepository:
                 "is_primary": is_primary,
             }
 
-            stmt_uc = pg_insert(UserCalendar).values(user_calendar_values)
+            stmt_uc = insert(UserCalendar).values(user_calendar_values)
             stmt_uc = stmt_uc.on_conflict_do_update(
                 constraint="uq_user_calendar_email",
                 set_={"is_primary": stmt_uc.excluded.is_primary},

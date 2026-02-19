@@ -232,7 +232,6 @@ class TeamAnalyticsCalculator:
             (previous_value / total_capacity * Decimal("100")).quantize(Decimal("0.1")) if total_capacity > 0 else Decimal("0")
         )
         change = calculate_change(current_percent, previous_percent)
-        change = calculate_change(current_percent, previous_percent)
         is_positive = change > Decimal("0") if is_positive_growth else change <= Decimal("0")
 
         return ProductivityMetric(
