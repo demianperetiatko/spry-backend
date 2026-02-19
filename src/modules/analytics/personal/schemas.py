@@ -37,7 +37,7 @@ class SortByType(str, Enum):
     TOTAL_TIME = "total_time"
     TOTAL_COST = "total_cost"
     CANCELLATION_RATE = "cancellation_rate"
-    MEETING_NAME = "meeting.name"
+    MEETING_NAME = "meeting_profile.name"
 
 
 class PersonalAnalyticsParams(BaseModel):
