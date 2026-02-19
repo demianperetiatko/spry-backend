@@ -187,7 +187,6 @@ class RecurringMeetingServiceTeam:
                 finance_access=finance_access,
             )
             row_dict = row.model_dump()
-            row_dict["total_cost"] = row.total_cost if finance_access else None
             results.append(row_dict)
 
         results.sort(key=lambda x: get_sort_value(x, sort_by), reverse=reverse)
