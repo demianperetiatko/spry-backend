@@ -17,15 +17,11 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: >
-            projects/786136769301/locations/global/workloadIdentityPools/dev-spryplan/providers/GitHub
-          service_account: dev-spryplan@spry-398908.iam.gserviceaccount.com
-
+          workload_identity_provider: "projects/786136769301/locations/global/workloadIdentityPools/github-spryplan/providers/github"
+          service_account: "github-spryplan@spry-398908.iam.gserviceaccount.com"
+          
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Verify auth
-        run: gcloud auth list
         
       - name: Set environment variables
         run: |
@@ -98,9 +94,6 @@ jobs:
           
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Verify auth
-        run: gcloud auth list
 
       - name: Set environment variables (dev)
         run: |
