@@ -7,11 +7,11 @@ from decimal import Decimal
 from fastapi import Depends
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, contains_eager, selectinload
+from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
 from src.core.database.repository import CRUDRepository, CRUDRepositorySQLAlchemy
 from src.core.database.session import get_session
-from src.modules.enums import OrganizationMemberRoleEnum, OrganizationTeamMemberTypeEnum
+from src.modules.enums import OrganizationMemberRoleEnum, OrganizationMemberStatusEnum, OrganizationTeamMemberTypeEnum
 from src.modules.organization_member.model import OrganizationMember
 from src.modules.organization_team.model import OrganizationTeamMember
 from src.modules.user.model import User
@@ -157,8 +157,6 @@ class OrganizationMemberRepositorySQLAlchemy(
         return await self._scalar(stmt)
 
     async def get_active_members_by_user_id(self, user_id: uuid.UUID) -> list[OrganizationMember]:
-        from src.modules.enums import OrganizationMemberStatusEnum
-
         statement = (
             select(OrganizationMember)
             .options(joinedload(OrganizationMember.organization))

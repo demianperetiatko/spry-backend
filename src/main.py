@@ -1,12 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    force=True,
-)
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -16,17 +10,24 @@ from src.core.bootstrap import compile_orm
 from src.core.config import settings
 from src.core.database.session import sessionmanager
 from src.core.exceptions import NotFoundException, ServiceException
-from src.modules.analytics.personal.router import router as analytics_personal_router
 from src.modules.analytics.organization.router import router as analytics_organization_router
+from src.modules.analytics.personal.router import router as analytics_personal_router
 from src.modules.auth.router import router as auth_router
-from src.modules.calendar.router import router as calendar_router, webhook_router as calendar_webhook_router
+from src.modules.calendar.router import router as calendar_router
+from src.modules.calendar.router import webhook_router as calendar_webhook_router
 from src.modules.calendar.subscriber import setup_calendar_subscriber
+from src.modules.home.router import router as home_router
 from src.modules.invitation.router import router as invitation_router
 from src.modules.organization.router import router as organization_router
 from src.modules.organization_member.router import router as organization_member_router
 from src.modules.organization_team.router import router as organization_team_router
-from src.modules.home.router import router as home_router
 from src.modules.user.router import router as user_router
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,
+)
 
 
 @asynccontextmanager
