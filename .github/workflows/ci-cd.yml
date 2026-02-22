@@ -153,6 +153,8 @@ jobs:
           sed -i "s|\${GOOGLE_REDIRECT_URI}|${{ vars.GOOGLE_REDIRECT_URI }}|g" app.yaml
           sed -i "s|\${CORS_ORIGINS}|${{ vars.CORS_ORIGINS }}|g" app.yaml
           sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
+          sed -i "s|\${BACKEND_DOMAIN}|${{ vars.BACKEND_DOMAIN }}|g" app.yaml
+          sed -i "s|\${ADMIN_API_KEY}|${{ secrets.ADMIN_API_KEY }}|g" app.yaml
 
       - name: Deploy to App Engine (dev)
         run: |
