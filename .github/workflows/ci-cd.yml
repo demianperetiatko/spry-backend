@@ -65,8 +65,9 @@ jobs:
 
       - name: Prepare app.yaml
         run: |
+          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml         
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV }}|g" app.yaml
-          sed -i "s|\${SQLALCHEMY_DATABASE_URI}|${{ secrets.SQLALCHEMY_DATABASE_URI }}|g" app.yaml
+          sed -i "s|\${DATABASE_URL}|${{ secrets.DATABASE_URL }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_ID}|${{ secrets.GOOGLE_CLIENT_ID }}|g" app.yaml
           sed -i "s|\${GOOGLE_CLIENT_SECRET}|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" app.yaml
@@ -148,7 +149,7 @@ jobs:
 
       - name: Prepare app.yaml (dev)
         run: |
-          sed -i "s|\${SERVICE}|${{ secrets.SERVICE_DEV }}|g" app.yaml
+          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml          
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV_DEV }}|g" app.yaml
           sed -i "s|\${DATABASE_URL}|${{ secrets.DATABASE_URL }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY_DEV }}|g" app.yaml
