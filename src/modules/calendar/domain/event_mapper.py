@@ -11,8 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleEventMapper:
+    """Maps Google Calendar events to internal event format."""
+
     @staticmethod
     def extract_dt(source: dict, default_tz: str) -> tuple[datetime | None, str | None, bool]:
+        """Extract datetime from Google Calendar event start/end object."""
         if not source:
             return None, None, False
 
@@ -25,6 +28,8 @@ class GoogleEventMapper:
 
         try:
             if is_all_day:
+                # All-day events: store as UTC midnight to prevent incorrect display across timezones.
+                # The is_all_day flag is used by frontend to display correctly.
                 dt = datetime.fromisoformat(f"{val}T00:00:00").replace(tzinfo=timezone.utc)
             else:
                 dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
@@ -38,6 +43,7 @@ class GoogleEventMapper:
     def map_event(
         event: dict, user_calendar_id: uuid.UUID, default_tz: str, synced_at: datetime
     ) -> tuple[dict | None, list[dict]]:
+        """Map a Google Calendar event to internal format."""
         start_dt, start_tz, is_all_day = GoogleEventMapper.extract_dt(event.get("start", {}), default_tz)
         end_dt, end_tz, _ = GoogleEventMapper.extract_dt(event.get("end", {}), default_tz)
 
@@ -66,7 +72,7 @@ class GoogleEventMapper:
                 raw_event["_spry_all_day_date"] = all_day_date
 
         mapped = {
-            "id": uuid.uuid4(),
+            "id": event_id,
             "google_event_id": event_id,
             "etag": event.get("etag"),
             "summary": event.get("summary"),
@@ -111,6 +117,7 @@ class GoogleEventMapper:
     def process_events_payload(
         events: list[dict], user_calendar_id: uuid.UUID, default_tz: str
     ) -> tuple[list[str], list[dict], dict[str, list[dict]]]:
+        """Process a list of Google Calendar events into delete/upsert operations."""
         to_delete = []
         to_upsert = []
         attendees_map = {}

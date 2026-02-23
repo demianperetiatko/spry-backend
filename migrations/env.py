@@ -21,7 +21,6 @@ from src.modules.calendar.models import (  # noqa: F401
     OrganizationMemberCalendar,
     UserCalendar,
 )
-from src.modules.feedback.model import Feedback  # noqa: F401
 from src.modules.invitation.model import Invitation  # noqa: F401
 from src.modules.organization.model import Organization, OrganizationCurrency  # noqa: F401
 from src.modules.organization_member.model import OrganizationMember  # noqa: F401

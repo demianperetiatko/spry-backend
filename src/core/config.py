@@ -102,25 +102,14 @@ class Settings(BaseSettings):
         default="",
         description="Admin API key for organization creation",
     )
-    GCP_PROJECT_ID: str = Field(
-        default="",
-        description="GCP project ID for Pub/Sub",
-    )
-    PUBSUB_RESYNC_TOPIC: str = Field(
-        default="calendar-resync-organization",
-        description="Pub/Sub topic name for organization resync messages",
-    )
     INVITATION_API_PREFIX: str = Field(
         default="/invitations",
         description="Backend API prefix for invitation endpoints",
     )
+
     FRONTEND_INVITATION_ACCEPTED_REDIRECT: str = Field(
         default="/login",
         description="Frontend redirect path after invitation acceptance",
-    )
-    SUPPORT_EMAIL: str = Field(
-        default="support@spryplan.com",
-        description="Support email for feedback notifications",
     )
 
     # Temporary compatibility flag: v1 frontend expects single-organization users.
