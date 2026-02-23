@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any
@@ -46,15 +45,6 @@ class EmailService(ABC):
         self,
         email: str,
         user_name: str | None = None,
-    ) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def send_feedback_notification(
-        self,
-        email: str,
-        user_name: str,
-        message: str,
     ) -> None:
         raise NotImplementedError
 
@@ -162,46 +152,6 @@ class MailjetEmailService(EmailService):
             if response.status_code != HTTPStatus.OK:
                 raise Exception(f"Email sending failed: {response.status_code} - {response.text}")
 
-    async def send_feedback_notification(
-        self,
-        email: str,
-        user_name: str,
-        message: str,
-    ) -> None:
-        template = "emails/feedback_notification.html"
-        subject = "📝 New Feedback from User"
-        context = {
-            "email": email,
-            "user_name": user_name,
-            "message": message,
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
-        }
-
-        html_content = _render_html(template, context)
-
-        payload = {
-            "Messages": [
-                {
-                    "From": {"Email": self.from_address, "Name": self.from_name},
-                    "To": [{"Email": settings.SUPPORT_EMAIL, "Name": "Spry Support"}],
-                    "Subject": subject,
-                    "HTMLPart": html_content,
-                    "TextPart": "",
-                }
-            ]
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                self.api_url,
-                auth=(self.api_key, self.secret_key),
-                json=payload,
-                timeout=30.0,
-            )
-
-            if response.status_code != HTTPStatus.OK:
-                raise Exception(f"Email sending failed: {response.status_code} - {response.text}")
-
     async def send_agenda_request(
         self,
         email: str,
@@ -274,16 +224,6 @@ class MockEmailService(EmailService):
         if user_name:
             print(f"[MOCK EMAIL] User: {user_name}")
         print(f"[MOCK EMAIL] Login link: {settings.frontend_domain}/login")
-
-    async def send_feedback_notification(
-        self,
-        email: str,
-        user_name: str,
-        message: str,
-    ) -> None:
-        print("[MOCK EMAIL] Feedback notification to support@spryplan.com")
-        print(f"[MOCK EMAIL] From: {user_name} ({email})")
-        print(f"[MOCK EMAIL] Message: {message}")
 
     async def send_agenda_request(
         self,

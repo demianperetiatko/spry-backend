@@ -3,14 +3,12 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
-from src.modules.analytics.common.schemas import SortOrderType
 from src.modules.auth.dependency import OrganizationContext, require_permission
 from src.modules.organization_team.schemas import (
     CreateTeamRequest,
     TeamResponse,
-    TeamSortByEnum,
     TeamsListResponse,
     UpdateTeamRequest,
 )
@@ -27,13 +25,9 @@ router = APIRouter(prefix="/organizations/{organization_id}/teams", tags=["organ
 async def get_teams(
     ctx: Annotated[OrganizationContext, require_permission(OrganizationPermission.TEAMS_VIEW)],
     service: OrganizationTeamService = Depends(get_organization_team_service),
-    sort_by: TeamSortByEnum = Query(TeamSortByEnum.NAME, description="Field to sort by"),
-    sort_order: SortOrderType = Query(SortOrderType.ASC, description="Sort order"),
 ) -> TeamsListResponse:
     return await service.get_teams(
         organization_id=ctx.organization.id,
-        sort_by=sort_by,
-        sort_order=sort_order,
     )
 
 

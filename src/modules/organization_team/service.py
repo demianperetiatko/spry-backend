@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.session import get_session
 from src.core.database.transaction import atomic
-from src.modules.analytics.common.schemas import SortOrderType
 from src.modules.enums import OrganizationMemberRoleEnum, OrganizationMemberStatusEnum
 from src.modules.organization_member.exceptions import MemberNotActiveError
 from src.modules.organization_member.model import OrganizationMember
@@ -32,7 +31,6 @@ from src.modules.organization_team.schemas import (
     TeamMemberRequest,
     TeamMemberResponse,
     TeamResponse,
-    TeamSortByEnum,
     TeamsListResponse,
     UpdateTeamRequest,
 )
@@ -56,11 +54,12 @@ class OrganizationTeamService:
         team_member_responses = [
             TeamMemberResponse(
                 id=team_member.member.user.id,
+                organization_member_id=team_member.organization_member_id,
                 user_id=team_member.member.user.id,
                 email=team_member.member.user.email,
                 name=team_member.member.user.name,
                 photo_url=team_member.member.user.photo_url,
-                role=team_member.type.value,
+                type=team_member.type,
             )
             for team_member in team.team_members
             if team_member.member and team_member.member.user
@@ -76,28 +75,11 @@ class OrganizationTeamService:
     async def get_teams(
         self,
         organization_id: uuid.UUID,
-        sort_by: TeamSortByEnum = TeamSortByEnum.NAME,
-        sort_order: SortOrderType = SortOrderType.ASC,
     ) -> TeamsListResponse:
         teams = await self.team_repo.get_teams_by_organization_id(organization_id)
-
-        reverse = sort_order == SortOrderType.DESC
-
-        sort_key_map = {
-            TeamSortByEnum.NAME: lambda t: (t.name or "").lower(),
-            TeamSortByEnum.MEMBERS_COUNT: lambda t: t.members_count,
-            TeamSortByEnum.MANAGER_EMAIL: lambda t: (t.manager_email or "").lower(),
-        }
-
-        data = sorted(
-            [self._map_to_response(team) for team in teams],
-            key=sort_key_map[sort_by],
-            reverse=reverse,
-        )
-
         return TeamsListResponse(
-            total_count=len(data),
-            data=data,
+            total_count=len(teams),
+            data=[self._map_to_response(team) for team in teams],
         )
 
     async def get_team_by_id(
@@ -129,7 +111,7 @@ class OrganizationTeamService:
                 OrganizationTeamMember(
                     team_id=team.id,
                     organization_member_id=member_id_map[member_req.user_id],
-                    type=member_req.role,
+                    type=member_req.type,
                 )
                 for member_req in payload.team_members
             ]
@@ -167,7 +149,7 @@ class OrganizationTeamService:
                 OrganizationTeamMember(
                     team_id=team.id,
                     organization_member_id=member_id_map[member_req.user_id],
-                    type=member_req.role,
+                    type=member_req.type,
                 )
                 for member_req in payload.team_members
             ]
