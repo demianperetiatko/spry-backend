@@ -32,7 +32,6 @@ from src.modules.organization_member.exceptions import (
     OrganizationCurrencyNotConfiguredError,
 )
 from src.modules.organization_member.model import OrganizationMember
-from src.modules.organization_member.protocol import MemberRemovalDelegate
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
     get_organization_member_repository,
@@ -71,7 +70,6 @@ class OrganizationMemberService:
         team_member_repo: OrganizationTeamMemberRepository,
         permissions_service: type[Permissions],
         email_service: EmailService,
-        member_removal_delegate: MemberRemovalDelegate,  # TODO(multi-org): remove param
         session: AsyncSession,
     ) -> None:
         self.member_repo = member_repo
@@ -82,7 +80,6 @@ class OrganizationMemberService:
         self.team_member_repo = team_member_repo
         self.permissions_service = permissions_service
         self.email_service = email_service
-        self.member_removal_delegate = member_removal_delegate  # TODO(multi-org): remove
         self.session = session
 
     async def get_organization_members(
@@ -93,16 +90,12 @@ class OrganizationMemberService:
         search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        sort_by: str | None = None,
-        sort_order: str | None = None,
     ) -> PaginatedMembersResponse:
         members, total = await self.member_repo.get_members_by_organization_id(
             organization_id=organization_id,
             search_query=search_query,
             limit=limit,
             offset=offset,
-            sort_by=sort_by,
-            sort_order=sort_order,
         )
 
         has_finance_permission = await self.permissions_service.member_has_permission(
@@ -134,18 +127,20 @@ class OrganizationMemberService:
                 if not team:
                     continue
 
-                team_role = team_member.type.value
+                team_roles = []
+                if team_member.type == OrganizationTeamMemberTypeEnum.MANAGER:
+                    team_roles.append("manager")
+                else:
+                    team_roles.append("member")
 
                 teams_details.append(
                     MemberTeamDetailResponse(
                         team_id=team.id,
                         team_name=team.name,
                         manager_id=team_manager_map.get(team.id),
-                        role=team_role,
+                        roles=team_roles,
                     )
                 )
-
-            permissions = await self.permissions_service.get_member_permissions(member, currency, self.member_repo)
 
             results.append(
                 MemberResponse(
@@ -154,8 +149,6 @@ class OrganizationMemberService:
                     photo_url=member.user.photo_url if member.user else None,
                     email=member.user.email,
                     status=member.status.value,
-                    role=member.role.value,
-                    permissions=permissions,
                     cost=cost,
                     teams=teams_details,
                 )
@@ -344,7 +337,11 @@ class OrganizationMemberService:
             if not team_member.team:
                 continue
 
-            team_role = team_member.type.value
+            team_roles = []
+            if team_member.type == OrganizationTeamMemberTypeEnum.MANAGER:
+                team_roles.append("manager")
+            else:
+                team_roles.append("member")
 
             manager_id = await self.team_member_repo.find_manager_id(team_member.team.id)
 
@@ -353,11 +350,9 @@ class OrganizationMemberService:
                     team_id=team_member.team.id,
                     team_name=team_member.team.name,
                     manager_id=manager_id,
-                    role=team_role,
+                    roles=team_roles,
                 )
             )
-
-        permissions = await self.permissions_service.get_member_permissions(updated_member, currency, self.member_repo)
 
         return MemberResponse(
             id=updated_member.user.id,
@@ -365,8 +360,6 @@ class OrganizationMemberService:
             photo_url=updated_member.user.photo_url if updated_member.user else None,
             email=updated_member.user.email,
             status=updated_member.status.value,
-            role=updated_member.role.value,
-            permissions=permissions,
             cost=cost,
             teams=teams_details,
         )
@@ -380,8 +373,7 @@ class OrganizationMemberService:
         if not member:
             raise MemberNotFoundError()
 
-        # TODO(multi-org): Remove delegation, revert to: await self.member_repo.remove(member)
-        await self.member_removal_delegate.on_member_removal(user_id)
+        await self.member_repo.remove(member)
 
     async def resend_invitation(
         self,
@@ -449,10 +441,6 @@ class OrganizationMemberService:
         return await self.member_repo.are_members_in_same_team(editor.id, target.id)
 
 
-from src.modules.organization_member.protocol import UserHardDeletionAdapter  # TODO(multi-org): remove  # noqa: E402
-from src.modules.user.service import UserService, get_user_service  # TODO(multi-org): remove  # noqa: E402
-
-
 async def get_organization_member_service(
     member_repo: OrganizationMemberRepository = Depends(get_organization_member_repository),
     user_repo: UserRepository = Depends(get_user_repository),
@@ -462,12 +450,8 @@ async def get_organization_member_service(
     team_member_repo: OrganizationTeamMemberRepository = Depends(get_organization_team_member_repository),
     permissions_service: type[Permissions] = Depends(get_permissions),
     email_service: EmailService = Depends(get_email_service),
-    user_service: UserService = Depends(get_user_service),  # TODO(multi-org): remove
     session: AsyncSession = Depends(get_session),
 ) -> OrganizationMemberService:
-    # TODO(multi-org): Remove adapter wiring
-    member_removal_delegate = UserHardDeletionAdapter(user_service)
-
     return OrganizationMemberService(
         member_repo=member_repo,
         user_repo=user_repo,
@@ -477,6 +461,5 @@ async def get_organization_member_service(
         team_member_repo=team_member_repo,
         permissions_service=permissions_service,
         email_service=email_service,
-        member_removal_delegate=member_removal_delegate,  # TODO(multi-org): remove
         session=session,
     )

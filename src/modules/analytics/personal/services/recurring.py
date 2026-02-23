@@ -12,12 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.modules.analytics.common.services.recurring_utils import (
-    extract_master_event_id,
-    get_sort_value,
-    parse_recurring_type,
-    resolve_recurrence_fallback,
-)
+from src.modules.analytics.common.services.recurring_utils import extract_master_event_id, get_sort_value, parse_recurring_type
 from src.modules.analytics.personal.calculator import AnalyticsCalculator, format_duration
 from src.modules.analytics.personal.dependency import AnalyticsContext
 from src.modules.analytics.personal.repository import PersonalAnalyticsRepository
@@ -176,25 +171,18 @@ class RecurringMeetingService:
 
         master_event_map = await self.resolve_master_events(master_event_ids, ctx.calendar_ids)
 
-        recurrence_fallback = await resolve_recurrence_fallback(self.session, grouped, master_event_map, ctx.calendar_ids)
-
         users = await self.repo.get_users_by_emails(list(organizer_emails))
         user_map = {u.email: u for u in users}
 
         results = []
         for recurring_id, group in grouped.items():
-            master = master_event_map.get(recurring_id)
-            recurring_type = parse_recurring_type(master)
-            if not recurring_type and recurring_id in recurrence_fallback:
-                recurring_type = parse_recurring_type(SimpleNamespace(recurrence=recurrence_fallback[recurring_id]))
-
             row = self._create_recurring_row(
                 recurring_id=recurring_id,
                 group=group,
+                master_event=master_event_map.get(recurring_id),
                 user_map=user_map,
                 hourly_cost=hourly_cost,
                 member_email=ctx.email,
-                recurring_type=recurring_type,
             )
             results.append(row)
 
@@ -222,10 +210,10 @@ class RecurringMeetingService:
     def _create_recurring_row(
         recurring_id: str,
         group: list[CalendarEvent],
+        master_event: CalendarEvent | Any | None,
         user_map: dict[str, User],
         hourly_cost: Decimal | None,
         member_email: str | None = None,
-        recurring_type: str = "",
     ) -> RecurringMeetingTableRow:
         first_event = group[0]
         total_duration = Decimal("0")
@@ -241,6 +229,7 @@ class RecurringMeetingService:
                 if declined:
                     continue
             total_duration += AnalyticsCalculator.duration_hours(event)
+        parsed_recurring_type = parse_recurring_type(master_event)
 
         cancelled_count = 0
         for event in group:
@@ -270,7 +259,7 @@ class RecurringMeetingService:
             meeting_profile=MeetingInfoDTO(
                 name=first_event.summary or "",
                 duration=format_duration(AnalyticsCalculator.duration_hours(first_event)),
-                recurring_type=recurring_type,
+                recurring_type=parsed_recurring_type,
             ),
             attendees=len(first_event.attendees) if first_event.attendees else 0,
             cancellation_rate=cancellation_rate,

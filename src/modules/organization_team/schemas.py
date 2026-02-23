@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 import uuid
-from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.modules.enums import OrganizationTeamMemberTypeEnum
 
 
-class TeamSortByEnum(str, Enum):
-    NAME = "name"
-    MEMBERS_COUNT = "members_count"
-    MANAGER_EMAIL = "manager_email"
-
-
 class TeamMemberRequest(BaseModel):
     user_id: uuid.UUID = Field(description="User ID")
-    role: OrganizationTeamMemberTypeEnum = Field(description="Team member role (member/manager)")
+    type: OrganizationTeamMemberTypeEnum = Field(description="Team member type (member/manager)")
 
-    @field_validator("role")
+    @field_validator("type")
     @classmethod
-    def validate_role(cls, value: OrganizationTeamMemberTypeEnum) -> OrganizationTeamMemberTypeEnum:
+    def validate_type(cls, value: OrganizationTeamMemberTypeEnum) -> OrganizationTeamMemberTypeEnum:
         allowed_types = [OrganizationTeamMemberTypeEnum.MEMBER, OrganizationTeamMemberTypeEnum.MANAGER]
         if value not in allowed_types:
-            raise ValueError(f"Invalid role. Allowed values are: {', '.join(t.value for t in allowed_types)}")
+            raise ValueError(f"Invalid type. Allowed values are: {', '.join(t.value for t in allowed_types)}")
         return value
 
 
@@ -33,7 +26,7 @@ class _TeamBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_manager(self) -> "_TeamBase":
-        manager_count = sum(1 for m in self.team_members if m.role == OrganizationTeamMemberTypeEnum.MANAGER)
+        manager_count = sum(1 for m in self.team_members if m.type == OrganizationTeamMemberTypeEnum.MANAGER)
         if manager_count != 1:
             raise ValueError(f"There must be exactly one member with type '{OrganizationTeamMemberTypeEnum.MANAGER.value}'.")
         return self
@@ -51,11 +44,21 @@ class TeamMemberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(description="User ID")
+    organization_member_id: uuid.UUID = Field(description="Organization member ID")
     user_id: uuid.UUID = Field(description="User ID")
     email: str = Field(description="User email")
     name: str | None = Field(default=None, description="User name")
     photo_url: str | None = Field(default=None, description="User photo URL")
-    role: str = Field(description="Member role in team (manager, member)")
+    type: OrganizationTeamMemberTypeEnum = Field(description="Team member type")
+    roles: list[str] = Field(default_factory=list, description="Member roles in team")
+
+    @model_validator(mode="after")
+    def set_roles(self) -> "TeamMemberResponse":
+        if self.type == OrganizationTeamMemberTypeEnum.MANAGER:
+            self.roles = ["manager"]
+        else:
+            self.roles = ["member"]
+        return self
 
 
 class TeamResponse(BaseModel):
@@ -75,7 +78,7 @@ class TeamResponse(BaseModel):
     @model_validator(mode="after")
     def extract_manager_info(self) -> "TeamResponse":
         manager = next(
-            (m for m in self.members if m.role == "manager"),
+            (m for m in self.members if m.type == OrganizationTeamMemberTypeEnum.MANAGER),
             None,
         )
         if manager:
