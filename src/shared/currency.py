@@ -71,8 +71,8 @@ class Currency:
                     from_currency_schema,
                     from_str_schema,
                 ],
-                serialization=core_schema.plain_serializer_function_ser_schema(to_str),
             ),
+            serialization=core_schema.plain_serializer_function_ser_schema(to_str),
         )
 
 
