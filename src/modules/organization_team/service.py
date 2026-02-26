@@ -59,7 +59,7 @@ class OrganizationTeamService:
                 email=team_member.member.user.email,
                 name=team_member.member.user.name,
                 photo_url=team_member.member.user.photo_url,
-                type=team_member.type,
+                role=team_member.type.value,
             )
             for team_member in team.team_members
             if team_member.member and team_member.member.user
@@ -111,7 +111,7 @@ class OrganizationTeamService:
                 OrganizationTeamMember(
                     team_id=team.id,
                     organization_member_id=member_id_map[member_req.user_id],
-                    type=member_req.type,
+                    type=member_req.role,
                 )
                 for member_req in payload.team_members
             ]
@@ -149,7 +149,7 @@ class OrganizationTeamService:
                 OrganizationTeamMember(
                     team_id=team.id,
                     organization_member_id=member_id_map[member_req.user_id],
-                    type=member_req.type,
+                    type=member_req.role,
                 )
                 for member_req in payload.team_members
             ]
