@@ -14,7 +14,7 @@ class MemberTeamDetailResponse(BaseModel):
     team_id: uuid.UUID = Field(description="Team ID")
     team_name: str = Field(description="Team name")
     manager_id: uuid.UUID | None = Field(default=None, description="Manager user ID")
-    roles: list[str] = Field(default_factory=list, description="Member roles in this team (manager, member)")
+    role: str = Field(description="Member role in this team (manager, member)")
 
 
 class MemberResponse(BaseModel):
@@ -25,6 +25,8 @@ class MemberResponse(BaseModel):
     photo_url: str | None = Field(default=None, description="User photo URL")
     email: str = Field(description="User email")
     status: str = Field(description="Member status")
+    role: str = Field(description="Organization-level role (admin, member)")
+    permissions: list[str] = Field(default_factory=list, description="Member permissions")
     cost: RoundedDecimal | None = Field(default=None, description="Total cost (if permission granted)")
     teams: list[MemberTeamDetailResponse] = Field(default_factory=list, description="Teams the member belongs to")
 
