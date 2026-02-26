@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database.session import get_session, sessionmanager
+from src.core.database.session import get_session
 from src.core.database.transaction import atomic
-from src.modules.calendar.client import GoogleCalendarClient
-from src.modules.calendar.repository import CalendarRepository
-from src.modules.calendar.service import CalendarService
 from src.modules.enums import CalendarTypeEnum, UserStatusEnum
 from src.modules.organization.repository import (
     OrganizationCurrencyRepository,
@@ -123,12 +118,6 @@ class UserService:
                 if updated:
                     await self.user_repo.update(user)
 
-        try:
-            _task = asyncio.create_task(self._trigger_full_resync(user.id))  # noqa: RUF006
-        except RuntimeError:
-            # If no current event loop (e.g., in tests) - execute synchronously
-            await self._trigger_full_resync(user.id)
-
         return user, is_newly_activated
 
     async def _update_google_access_tokens(
@@ -169,23 +158,6 @@ class UserService:
 
         user.status = UserStatusEnum.ACTIVE
         await self.user_repo.update(user)
-
-    async def _trigger_full_resync(self, user_id: uuid.UUID) -> None:
-        """
-        After successful login, trigger full resync of user's calendar in background.
-        """
-        try:
-            async with sessionmanager.session() as session:
-                calendar_repo = CalendarRepository(session)
-                google_client = GoogleCalendarClient()
-                calendar_service = CalendarService(
-                    calendar_repo=calendar_repo,
-                    session=session,
-                    google_client=google_client,
-                )
-                await calendar_service.manual_resync_for_user(user_id)
-        except Exception as exc:
-            logger.warning("Failed to trigger full resync for user %s: %s", user_id, exc)
 
 
 async def get_user_service(
