@@ -24,7 +24,6 @@ class OrganizationMemberInfo(BaseModel):
     role: OrganizationMemberRoleEnum = Field(description="Member role")
     status: OrganizationMemberStatusEnum = Field(description="Member status")
     member_id: UUID = Field(description="Organization member ID")
-    type: str | None = Field(default=None, description="User type in this organization (admin/manager/member)")
     permissions: list[str] = Field(default_factory=list, description="User permissions in this organization")
 
 
