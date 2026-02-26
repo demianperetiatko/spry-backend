@@ -127,20 +127,18 @@ class OrganizationMemberService:
                 if not team:
                     continue
 
-                team_roles = []
-                if team_member.type == OrganizationTeamMemberTypeEnum.MANAGER:
-                    team_roles.append("manager")
-                else:
-                    team_roles.append("member")
+                team_role = team_member.type.value
 
                 teams_details.append(
                     MemberTeamDetailResponse(
                         team_id=team.id,
                         team_name=team.name,
                         manager_id=team_manager_map.get(team.id),
-                        roles=team_roles,
+                        role=team_role,
                     )
                 )
+
+            permissions = await self.permissions_service.get_member_permissions(member, currency, self.member_repo)
 
             results.append(
                 MemberResponse(
@@ -149,6 +147,8 @@ class OrganizationMemberService:
                     photo_url=member.user.photo_url if member.user else None,
                     email=member.user.email,
                     status=member.status.value,
+                    role=member.role.value,
+                    permissions=permissions,
                     cost=cost,
                     teams=teams_details,
                 )
@@ -337,11 +337,7 @@ class OrganizationMemberService:
             if not team_member.team:
                 continue
 
-            team_roles = []
-            if team_member.type == OrganizationTeamMemberTypeEnum.MANAGER:
-                team_roles.append("manager")
-            else:
-                team_roles.append("member")
+            team_role = team_member.type.value
 
             manager_id = await self.team_member_repo.find_manager_id(team_member.team.id)
 
@@ -350,9 +346,11 @@ class OrganizationMemberService:
                     team_id=team_member.team.id,
                     team_name=team_member.team.name,
                     manager_id=manager_id,
-                    roles=team_roles,
+                    role=team_role,
                 )
             )
+
+        permissions = await self.permissions_service.get_member_permissions(updated_member, currency, self.member_repo)
 
         return MemberResponse(
             id=updated_member.user.id,
@@ -360,6 +358,8 @@ class OrganizationMemberService:
             photo_url=updated_member.user.photo_url if updated_member.user else None,
             email=updated_member.user.email,
             status=updated_member.status.value,
+            role=updated_member.role.value,
+            permissions=permissions,
             cost=cost,
             teams=teams_details,
         )

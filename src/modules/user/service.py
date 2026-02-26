@@ -86,11 +86,6 @@ class UserService:
             currency = await self.currency_repo.find_by_id(member.organization.organizations_currency_id)
             permissions = await self.permissions_service.get_member_permissions(member, currency, self.org_member_repo)
 
-            user_type = "admin" if member.role.value == "admin" else None
-            if not user_type:
-                is_manager = await self.org_member_repo.is_manager_of_organization(member)
-                user_type = "manager" if is_manager else "member"
-
             organizations.append(
                 OrganizationMemberInfo(
                     organization_id=member.organization_id,
@@ -98,7 +93,6 @@ class UserService:
                     role=member.role,
                     status=member.status,
                     member_id=member.id,
-                    type=user_type,
                     permissions=permissions,
                 )
             )
