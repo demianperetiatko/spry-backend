@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import and_, delete, func, or_, select, text
@@ -9,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from src.core.database.session import sessionmanager
 from src.modules.calendar.models import (
     CalendarCacheMetadata,
     CalendarEvent,
@@ -390,10 +393,23 @@ class CalendarRepository:
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
-    async def acquire_sync_lock(self, user_calendar_id: uuid.UUID) -> bool:
-        lock_key = self._build_lock_key(user_calendar_id)
-        result = await self.session.execute(text("SELECT pg_try_advisory_xact_lock(:lock_key)").bindparams(lock_key=lock_key))
-        return bool(result.scalar())
+    @staticmethod
+    @asynccontextmanager
+    async def sync_lock(user_calendar_id: uuid.UUID) -> AsyncIterator[bool]:
+        lock_key = CalendarRepository._build_lock_key(user_calendar_id)
+        conn = await sessionmanager._engine.connect()
+        try:
+            result = await conn.execute(text("SELECT pg_try_advisory_lock(:lock_key)").bindparams(lock_key=lock_key))
+            acquired = bool(result.scalar())
+            if not acquired:
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                await conn.execute(text("SELECT pg_advisory_unlock(:lock_key)").bindparams(lock_key=lock_key))
+        finally:
+            await conn.close()
 
     async def get_google_event_ids(
         self,

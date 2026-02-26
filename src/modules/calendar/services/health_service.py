@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class CalendarHealthService:
-    """Service for calendar health checks and manual resyncs."""
-
     RESYNC_MEMBER_DELAY = 0.25
 
     def __init__(
@@ -48,7 +46,6 @@ class CalendarHealthService:
         self.session = session
 
     async def ensure_calendar_health(self, user_id: uuid.UUID) -> None:
-        """Ensure calendar health for a user across all their organizations."""
         org_member_repo = OrganizationMemberRepositorySQLAlchemy(self.session)
         active_members = await org_member_repo.get_active_members_by_user_id(user_id)
 
@@ -92,10 +89,19 @@ class CalendarHealthService:
                 for calendar in calendars:
                     try:
                         await self.webhook_service.enable_push_notifications(calendar.id)
-                        logger.debug(f"Updated webhook channel for calendar {calendar.id}")
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to enable push notifications for calendar {calendar.id} (member {member.id}): {e}",
+                        )
+
+                    try:
+                        # TODO: Currently performing a heavy FULL resync on every login.
+                        #  Post-MVP, change this to an incremental sync or only resync if the webhook was actually re-created.
+                        await self._manual_resync_user_calendar(calendar.user_calendar.id)
+                        logger.debug(f"Resynced calendar {calendar.id}")
                     except Exception as e:
                         logger.error(
-                            f"Failed to update webhook channel for calendar {calendar.id} (member {member.id}): {e}",
+                            f"Failed to resync calendar {calendar.id} (member {member.id}): {e}",
                             exc_info=True,
                         )
             except Exception as e:
@@ -117,7 +123,6 @@ class CalendarHealthService:
         return {"status": "ok", "results": results}
 
     async def manual_resync_for_user(self, user_id: uuid.UUID) -> dict[str, object]:
-        """Manually resync all calendars for a user."""
         org_member_repo = OrganizationMemberRepositorySQLAlchemy(self.session)
         members = await org_member_repo.get_active_members_by_user_id(user_id)
         if not members:
@@ -131,7 +136,6 @@ class CalendarHealthService:
         return {"status": "ok", "results": results}
 
     async def _process_members_resync(self, members: list) -> list[dict]:
-        """Process resync for a list of members."""
         results: list[dict] = []
         seen_user_calendar_ids: set[uuid.UUID] = set()
 
@@ -180,25 +184,29 @@ class CalendarHealthService:
         return results
 
     async def _manual_resync_user_calendar(self, user_calendar_id: uuid.UUID) -> dict[str, object]:
-        """Manually resync a specific user calendar."""
         org_calendar = await self.calendar_repo.get_calendar_by_user_calendar_id(user_calendar_id)
         if not org_calendar:
             raise ServiceException("Calendar not found", status_code=404)
 
         user_calendar = org_calendar.user_calendar
-        lock_acquired = await self.calendar_repo.acquire_sync_lock(user_calendar.id)
-        if not lock_acquired:
-            raise ServiceException("Sync already in progress", status_code=409)
 
-        try:
-            return await self._execute_manual_sync_logic(user_calendar)
-        except Exception as exc:
-            logger.error(f"Manual sync failed for {user_calendar.id}: {exc}")
-            await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error=str(exc))
-            raise
+        async with CalendarRepository.sync_lock(user_calendar.id) as acquired:
+            if not acquired:
+                raise ServiceException("Sync already in progress", status_code=409)
+
+            try:
+                return await self._execute_manual_sync_logic(user_calendar)
+            except Exception as exc:
+                logger.error(f"Manual sync failed for {user_calendar.id}: {exc}")
+                await self.token_service.mark_sync_status(user_calendar.id, CalendarSyncStatusEnum.FAILED, sync_error=str(exc))
+                raise
+
+    # TODO: [Data Safety] Prevent empty states during Full Resync or Stale Token handling.
+    #  Currently, the system performs a `DELETE ALL` before fetching data from Google.
+    #  If the subsequent Google API request fails (e.g., timeout, rate limit), the user
+    #  is left with an empty calendar in the database until the next successful sync.
 
     async def _execute_manual_sync_logic(self, user_calendar: UserCalendar) -> dict[str, object]:
-        """Execute the manual sync logic for a user calendar."""
         fallback_used = False
 
         async with atomic(self.session):
@@ -239,6 +247,25 @@ class CalendarHealthService:
             use_events, user_calendar.id, metadata.timezone
         )
 
+        # Guard: Don't delete if we got no events to upsert (possible API/parsing error)
+        if not to_upsert and use_events:
+            logger.error(
+                f"All {len(use_events)} events failed to parse during manual resync for user_calendar {user_calendar.id}, "
+                "skipping to prevent data loss"
+            )
+            async with atomic(self.session):
+                await self.calendar_repo.update_sync_state(
+                    user_calendar_id=user_calendar.id,
+                    sync_token=None,
+                    sync_status=CalendarSyncStatusEnum.FAILED,
+                    sync_error="manual_resync_all_events_parse_failed",
+                )
+            return {
+                "user_calendar_id": str(user_calendar.id),
+                "skipped": True,
+                "reason": "all_events_parse_failed",
+            }
+
         google_event_ids_in_upsert = {event.get("google_event_id") for event in to_upsert if event.get("google_event_id")}
         master_events_to_upsert = await self.sync_engine.get_master_events_to_upsert(
             use_events,
@@ -276,7 +303,7 @@ class CalendarHealthService:
             if master_events_to_upsert:
                 await self.calendar_repo.upsert_events(master_events_to_upsert, None)
 
-            sync_token_update = use_sync_token if use_sync_token is not None else metadata.sync_token
+            sync_token_update = use_sync_token  # Don't fall back to old token; None forces full sync next time
             await self.calendar_repo.update_sync_state(
                 user_calendar_id=user_calendar.id,
                 sync_token=sync_token_update,
