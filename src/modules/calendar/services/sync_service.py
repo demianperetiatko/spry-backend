@@ -127,13 +127,11 @@ class CalendarSyncEngine:
                 events, user_calendar.id, metadata.timezone
             )
 
-            # Guard: Don't delete if we got no events to upsert (possible API/parsing error)
             if not to_upsert and events:
                 logger.error(
                     f"All {len(events)} events failed to parse for user_calendar {user_calendar.id}, "
                     "skipping sync to prevent data loss"
                 )
-                # Mark as failed and clear sync_token to force full sync next time
                 async with atomic(self.session):
                     await self.calendar_repo.update_sync_state(
                         user_calendar_id=user_calendar.id,
@@ -143,7 +141,6 @@ class CalendarSyncEngine:
                     )
                 return
 
-            # Warn if suspiciously few events parsed during full sync
             if (
                 use_sync_token is None
                 and len(to_upsert) < MIN_EXPECTED_PARSED_EVENTS
@@ -162,6 +159,8 @@ class CalendarSyncEngine:
                 metadata.timezone,
                 google_event_ids_in_upsert,
             )
+
+            await self.propagate_recurrence_to_instances(to_upsert, master_events_to_upsert, user_calendar.id)
 
             google_ids_seen: set[str] = {
                 event.get("google_event_id") for event in to_upsert + master_events_to_upsert if event.get("google_event_id")
@@ -189,7 +188,7 @@ class CalendarSyncEngine:
                 if master_events_to_upsert:
                     await self.calendar_repo.upsert_events(master_events_to_upsert, None)
 
-                sync_token_update = next_sync_token  # Don't fall back to stale token; None forces full sync next time
+                sync_token_update = next_sync_token
                 await self.calendar_repo.update_sync_state(
                     user_calendar_id=user_calendar.id,
                     sync_token=sync_token_update,
@@ -233,7 +232,6 @@ class CalendarSyncEngine:
 
             _, to_upsert, attendees = GoogleEventMapper.process_events_payload(events, user_calendar.id, metadata.timezone)
 
-            # Guard: Don't delete if we got no events to upsert (possible API/parsing error)
             if not to_upsert and events:
                 logger.error(
                     f"All {len(events)} events failed to parse during safe resync for user_calendar {user_calendar.id}, "
@@ -248,6 +246,12 @@ class CalendarSyncEngine:
                     )
                 return
 
+            if len(to_upsert) < MIN_EXPECTED_PARSED_EVENTS and len(events) > SUSPICIOUS_RAW_EVENT_COUNT:
+                logger.warning(
+                    f"Safe resync for user_calendar {user_calendar.id}: only {len(to_upsert)}/{len(events)} "
+                    "events parsed successfully, possible parsing issue"
+                )
+
             google_event_ids_in_upsert = {event.get("google_event_id") for event in to_upsert if event.get("google_event_id")}
             master_events_to_upsert = await self.get_master_events_to_upsert(
                 events,
@@ -256,6 +260,8 @@ class CalendarSyncEngine:
                 metadata.timezone,
                 google_event_ids_in_upsert,
             )
+
+            await self.propagate_recurrence_to_instances(to_upsert, master_events_to_upsert, user_calendar.id)
 
             async with atomic(self.session):
                 await self.calendar_repo.delete_events_by_user_calendar_id(user_calendar.id)
@@ -273,6 +279,40 @@ class CalendarSyncEngine:
                     sync_error=None,
                 )
 
+    async def propagate_recurrence_to_instances(
+        self,
+        to_upsert: list[dict],
+        master_events_to_upsert: list[dict],
+        user_calendar_id: uuid.UUID,
+    ) -> None:
+        recurrence_map: dict[str, list[str]] = {}
+        for master in master_events_to_upsert:
+            gid = master.get("google_event_id")
+            rec = master.get("recurrence")
+            if gid and rec:
+                recurrence_map[gid] = rec
+
+        needed_ids = {
+            evt["recurring_event_id"]
+            for evt in to_upsert
+            if evt.get("recurring_event_id") and evt["recurring_event_id"] not in recurrence_map
+        }
+
+        if needed_ids:
+            stmt = select(CalendarEvent.google_event_id, CalendarEvent.recurrence).where(
+                CalendarEvent.google_event_id.in_(list(needed_ids)),
+                CalendarEvent.user_calendar_id == user_calendar_id,
+                CalendarEvent.recurrence.isnot(None),
+            )
+            result = await self.session.execute(stmt)
+            for gid, rec in result.all():
+                recurrence_map[gid] = rec
+
+        for evt in to_upsert:
+            rid = evt.get("recurring_event_id")
+            if rid and not evt.get("recurrence") and rid in recurrence_map:
+                evt["recurrence"] = recurrence_map[rid]
+
     async def get_master_events_to_upsert(
         self,
         events: list[dict],
@@ -281,7 +321,6 @@ class CalendarSyncEngine:
         default_tz: str,
         exclude_google_event_ids: set[str],
     ) -> list[dict]:
-        """Get master events that need to be upserted."""
         master_event_ids = {event.get("recurringEventId") for event in events if event.get("recurringEventId")}
         if not master_event_ids:
             return []

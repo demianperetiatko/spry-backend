@@ -275,6 +275,8 @@ class CalendarHealthService:
             google_event_ids_in_upsert,
         )
 
+        await self.sync_engine.propagate_recurrence_to_instances(to_upsert, master_events_to_upsert, user_calendar.id)
+
         google_ids_seen: set[str] = {
             event.get("google_event_id") for event in to_upsert + master_events_to_upsert if event.get("google_event_id")
         }
