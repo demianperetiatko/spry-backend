@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -41,7 +40,6 @@ class SortByType(str, Enum):
 
 
 class PersonalAnalyticsParams(BaseModel):
-    member_id: UUID
     start_date: str
     end_date: str
 

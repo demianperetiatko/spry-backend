@@ -44,7 +44,6 @@ class TeamMemberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(description="User ID")
-    organization_member_id: uuid.UUID = Field(description="Organization member ID")
     user_id: uuid.UUID = Field(description="User ID")
     email: str = Field(description="User email")
     name: str | None = Field(default=None, description="User name")
