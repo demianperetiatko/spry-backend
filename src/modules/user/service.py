@@ -87,7 +87,6 @@ class UserService:
                     organization_name=member.organization.name,
                     role=member.role,
                     status=member.status,
-                    member_id=member.id,
                     permissions=permissions,
                 )
             )

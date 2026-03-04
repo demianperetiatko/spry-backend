@@ -54,7 +54,6 @@ class OrganizationTeamService:
         team_member_responses = [
             TeamMemberResponse(
                 id=team_member.member.user.id,
-                organization_member_id=team_member.organization_member_id,
                 user_id=team_member.member.user.id,
                 email=team_member.member.user.email,
                 name=team_member.member.user.name,
