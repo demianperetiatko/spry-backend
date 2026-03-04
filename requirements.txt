@@ -32,6 +32,7 @@ itsdangerous>=2.1.0
 google-cloud-storage>=2.10.0
 google-auth>=2.40.0
 protobuf~=6.33.1
+functions-framework~=3.10.1
 
 # Utilities
 python-dotenv>=1.0.0
