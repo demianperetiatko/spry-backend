@@ -23,7 +23,6 @@ class OrganizationMemberInfo(BaseModel):
     organization_name: str | None = Field(default=None, description="Organization name")
     role: OrganizationMemberRoleEnum = Field(description="Member role")
     status: OrganizationMemberStatusEnum = Field(description="Member status")
-    member_id: UUID = Field(description="Organization member ID")
     permissions: list[str] = Field(default_factory=list, description="User permissions in this organization")
 
 
