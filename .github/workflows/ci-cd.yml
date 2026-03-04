@@ -179,6 +179,6 @@ jobs:
             --region europe-central2 \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --function update_data \
-            --signature-type cloudevent \
+            --source . \
             --allow-unauthenticated \
             --quiet
