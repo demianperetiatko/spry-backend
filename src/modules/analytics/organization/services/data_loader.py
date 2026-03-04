@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class MemberContext:
-    member_id: UUID
+    user_id: UUID
     email: str
     calendar_ids: list[UUID]
 
@@ -30,7 +30,7 @@ class OrganizationAnalyticsDataLoader(AnalyticsDataLoaderBase):
             email = getattr(member.user, "email", None)
             calendars = calendar_map.get(member.id, [])
             if email and calendars:
-                contexts.append(MemberContext(member_id=member.id, email=email, calendar_ids=calendars))
+                contexts.append(MemberContext(user_id=member.user_id, email=email, calendar_ids=calendars))
         return contexts
 
     async def get_comparative_events(

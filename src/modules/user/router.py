@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from src.modules.auth.dependency import get_auth_user
 from src.modules.user.model import User
-from src.modules.user.schemas import OrganizationMemberInfo, UserInfo
+from src.modules.user.schemas import OrganizationMemberInfo, UserInfo, UserWithOrganizationsInfo
 from src.modules.user.service import UserService, get_user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -37,6 +37,21 @@ async def delete_user(
     await service.delete_user(user)
     request.session.clear()
     return {"status": "ok"}
+
+
+@router.get("/me", response_model=UserWithOrganizationsInfo)
+async def get_current_user(
+    user: User = Depends(get_auth_user),
+    service: UserService = Depends(get_user_service),
+) -> UserWithOrganizationsInfo:
+    organizations = await service.get_user_organizations(user)
+    return UserWithOrganizationsInfo(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        photo_url=user.photo_url,
+        organizations=organizations,
+    )
 
 
 @router.get("/organizations", response_model=list[OrganizationMemberInfo])
