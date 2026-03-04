@@ -171,3 +171,14 @@ jobs:
           gcloud app deploy --quiet \
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --version "dev-${{ github.run_number }}"
+
+
+      - name: Deploy to Cloud Run (from source)
+        run: |
+          gcloud run deploy dev-spry-worker \
+            --region europe-central2 \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --function update_data \
+            --signature-type cloudevent \
+            --allow-unauthenticated \
+            --quiet
