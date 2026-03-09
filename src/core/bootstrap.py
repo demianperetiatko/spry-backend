@@ -6,6 +6,7 @@ from src.modules.calendar.models import (  # noqa: F401
     OrganizationMemberCalendar,
     UserCalendar,
 )
+from src.modules.feedback.model import Feedback  # noqa: F401
 from src.modules.invitation.model import Invitation  # noqa: F401
 from src.modules.organization.model import (  # noqa: F401
     Organization,
