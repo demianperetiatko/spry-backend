@@ -112,6 +112,11 @@ class Settings(BaseSettings):
         description="Frontend redirect path after invitation acceptance",
     )
 
+    SUPPORT_EMAIL: str = Field(
+        default="support@spryplan.com",
+        description="Support email for feedback notifications",
+    )
+
     # Temporary compatibility flag: v1 frontend expects single-organization users.
     # Set to False to re-enable multi-organization membership when redesign is ready.
     SINGLE_ORG_POLICY_ENABLED: bool = Field(default=True, description="Enforce single org per user (temporary)")
