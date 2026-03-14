@@ -13,6 +13,7 @@ from src.modules.enums import CalendarTypeEnum, UserStatusEnum
 
 if TYPE_CHECKING:
     from src.modules.calendar.models import UserCalendar
+    from src.modules.feedback.model import Feedback
     from src.modules.invitation.model import Invitation
     from src.modules.organization_member.model import OrganizationMember
 
@@ -37,6 +38,11 @@ class User(Base):
     )
     invitations: Mapped[list["Invitation"]] = relationship(
         "Invitation",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    feedbacks: Mapped[list["Feedback"]] = relationship(
+        "Feedback",
         back_populates="user",
         cascade="all, delete-orphan",
     )

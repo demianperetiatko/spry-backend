@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, UploadFile
@@ -68,11 +69,13 @@ class UserService:
         await self.user_repo.update(user)
         return user
 
-    async def delete_user(self, user: User) -> None:
+    async def delete_user(self, user_id: uuid.UUID) -> None:
+        user = await self.user_repo.find_by_id(user_id)
         is_admin = await self.org_member_repo.is_user_admin_in_any_organization(user.id)
         if is_admin:
             raise UserIsAdminError()
-        await self.user_repo.remove(user)
+        async with atomic(self.session):
+            await self.user_repo.remove(user)
 
     async def get_user_organizations(self, user: User) -> list[OrganizationMemberInfo]:
         members = await self.org_member_repo.get_active_members_by_user_id(user.id)
