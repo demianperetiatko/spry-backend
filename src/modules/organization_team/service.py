@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.session import get_session
 from src.core.database.transaction import atomic
+from src.modules.analytics.common.schemas import SortOrderType
 from src.modules.enums import OrganizationMemberRoleEnum, OrganizationMemberStatusEnum
 from src.modules.organization_member.exceptions import MemberNotActiveError
 from src.modules.organization_member.model import OrganizationMember
@@ -31,6 +32,7 @@ from src.modules.organization_team.schemas import (
     TeamMemberRequest,
     TeamMemberResponse,
     TeamResponse,
+    TeamSortByEnum,
     TeamsListResponse,
     UpdateTeamRequest,
 )
@@ -74,11 +76,28 @@ class OrganizationTeamService:
     async def get_teams(
         self,
         organization_id: uuid.UUID,
+        sort_by: TeamSortByEnum = TeamSortByEnum.NAME,
+        sort_order: SortOrderType = SortOrderType.ASC,
     ) -> TeamsListResponse:
         teams = await self.team_repo.get_teams_by_organization_id(organization_id)
+
+        reverse = sort_order == SortOrderType.DESC
+
+        sort_key_map = {
+            TeamSortByEnum.NAME: lambda t: (t.name or "").lower(),
+            TeamSortByEnum.MEMBERS_COUNT: lambda t: t.members_count,
+            TeamSortByEnum.MANAGER_EMAIL: lambda t: (t.manager_email or "").lower(),
+        }
+
+        data = sorted(
+            [self._map_to_response(team) for team in teams],
+            key=sort_key_map[sort_by],
+            reverse=reverse,
+        )
+
         return TeamsListResponse(
-            total_count=len(teams),
-            data=[self._map_to_response(team) for team in teams],
+            total_count=len(data),
+            data=data,
         )
 
     async def get_team_by_id(
