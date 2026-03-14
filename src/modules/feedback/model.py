@@ -30,4 +30,4 @@ class Feedback(Base):
         server_default=func.now(),
     )
 
-    user: Mapped[User] = relationship("User")
+    user: Mapped[User] = relationship("User", back_populates="feedbacks")
