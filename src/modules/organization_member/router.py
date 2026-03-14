@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
+from src.modules.analytics.common.schemas import SortOrderType
 from src.modules.auth.dependency import OrganizationContext, require_permission
 from src.modules.organization.repository import (
     OrganizationCurrencyRepository,
@@ -13,6 +14,7 @@ from src.modules.organization.repository import (
 from src.modules.organization_member.schemas import (
     AddMembersRequest,
     MemberResponse,
+    MemberSortByEnum,
     PaginatedMembersResponse,
     UpdateMemberRequest,
 )
@@ -33,6 +35,8 @@ async def get_organization_members(
     search_query: str | None = Query(None, description="Search by member name or email"),
     limit: int = Query(20, ge=1, le=100, description="Number of items per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
+    sort_by: MemberSortByEnum = Query(MemberSortByEnum.EMAIL, description="Field to sort by"),
+    sort_order: SortOrderType = Query(SortOrderType.ASC, description="Sort order"),
 ) -> PaginatedMembersResponse:
     currency = await currency_repo.find_by_id(ctx.organization.organizations_currency_id)
     return await service.get_organization_members(
@@ -42,6 +46,8 @@ async def get_organization_members(
         search_query=search_query,
         limit=limit,
         offset=offset,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 

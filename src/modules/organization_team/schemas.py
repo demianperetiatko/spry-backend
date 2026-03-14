@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import uuid
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.modules.enums import OrganizationTeamMemberTypeEnum
+
+
+class TeamSortByEnum(str, Enum):
+    NAME = "name"
+    MEMBERS_COUNT = "members_count"
+    MANAGER_EMAIL = "manager_email"
 
 
 class TeamMemberRequest(BaseModel):
