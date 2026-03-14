@@ -32,6 +32,7 @@ from src.modules.organization_member.exceptions import (
     OrganizationCurrencyNotConfiguredError,
 )
 from src.modules.organization_member.model import OrganizationMember
+from src.modules.organization_member.protocol import MemberRemovalDelegate
 from src.modules.organization_member.repository import (
     OrganizationMemberRepository,
     get_organization_member_repository,
@@ -70,6 +71,7 @@ class OrganizationMemberService:
         team_member_repo: OrganizationTeamMemberRepository,
         permissions_service: type[Permissions],
         email_service: EmailService,
+        member_removal_delegate: MemberRemovalDelegate,  # TODO(multi-org): remove param
         session: AsyncSession,
     ) -> None:
         self.member_repo = member_repo
@@ -80,6 +82,7 @@ class OrganizationMemberService:
         self.team_member_repo = team_member_repo
         self.permissions_service = permissions_service
         self.email_service = email_service
+        self.member_removal_delegate = member_removal_delegate  # TODO(multi-org): remove
         self.session = session
 
     async def get_organization_members(
@@ -377,7 +380,8 @@ class OrganizationMemberService:
         if not member:
             raise MemberNotFoundError()
 
-        await self.member_repo.remove(member)
+        # TODO(multi-org): Remove delegation, revert to: await self.member_repo.remove(member)
+        await self.member_removal_delegate.on_member_removal(user_id)
 
     async def resend_invitation(
         self,
@@ -445,6 +449,10 @@ class OrganizationMemberService:
         return await self.member_repo.are_members_in_same_team(editor.id, target.id)
 
 
+from src.modules.organization_member.protocol import UserHardDeletionAdapter  # TODO(multi-org): remove  # noqa: E402
+from src.modules.user.service import UserService, get_user_service  # TODO(multi-org): remove  # noqa: E402
+
+
 async def get_organization_member_service(
     member_repo: OrganizationMemberRepository = Depends(get_organization_member_repository),
     user_repo: UserRepository = Depends(get_user_repository),
@@ -454,8 +462,12 @@ async def get_organization_member_service(
     team_member_repo: OrganizationTeamMemberRepository = Depends(get_organization_team_member_repository),
     permissions_service: type[Permissions] = Depends(get_permissions),
     email_service: EmailService = Depends(get_email_service),
+    user_service: UserService = Depends(get_user_service),  # TODO(multi-org): remove
     session: AsyncSession = Depends(get_session),
 ) -> OrganizationMemberService:
+    # TODO(multi-org): Remove adapter wiring
+    member_removal_delegate = UserHardDeletionAdapter(user_service)
+
     return OrganizationMemberService(
         member_repo=member_repo,
         user_repo=user_repo,
@@ -465,5 +477,6 @@ async def get_organization_member_service(
         team_member_repo=team_member_repo,
         permissions_service=permissions_service,
         email_service=email_service,
+        member_removal_delegate=member_removal_delegate,  # TODO(multi-org): remove
         session=session,
     )

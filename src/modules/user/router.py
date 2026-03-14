@@ -34,7 +34,7 @@ async def delete_user(
     user: User = Depends(get_auth_user),
     service: UserService = Depends(get_user_service),
 ) -> dict[str, str]:
-    await service.delete_user(user)
+    await service.delete_user(user.id)
     request.session.clear()
     return {"status": "ok"}
 
