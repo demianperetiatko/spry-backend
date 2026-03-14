@@ -2,10 +2,19 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.shared.rounded_decimal import RoundedDecimal
+
+
+class MemberSortByEnum(str, Enum):
+    EMAIL = "email"
+    STATUS = "status"
+    ROLE = "role"
+    COST = "cost"
+    TEAMS = "teams"
 
 
 class MemberTeamDetailResponse(BaseModel):

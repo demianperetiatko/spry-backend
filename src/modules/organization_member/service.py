@@ -90,12 +90,16 @@ class OrganizationMemberService:
         search_query: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        sort_by: str | None = None,
+        sort_order: str | None = None,
     ) -> PaginatedMembersResponse:
         members, total = await self.member_repo.get_members_by_organization_id(
             organization_id=organization_id,
             search_query=search_query,
             limit=limit,
             offset=offset,
+            sort_by=sort_by,
+            sort_order=sort_order,
         )
 
         has_finance_permission = await self.permissions_service.member_has_permission(
