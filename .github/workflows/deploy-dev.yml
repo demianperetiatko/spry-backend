@@ -86,7 +86,7 @@ jobs:
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --version "dev-${{ github.run_number }}"
 
-      - name: Deploy to Cloud Run (from source)
+      - name: Deploy to Cloud Run worker (from source)
         run: |
           gcloud run deploy dev-spry-worker \
             --region europe-central2 \
@@ -94,4 +94,21 @@ jobs:
             --function update_data \
             --source . \
             --allow-unauthenticated \
+            --quiet
+
+      - name: Deploy webapp to Cloud Run (from source)
+        run: |
+          gcloud run deploy dev-spry-webapp \
+            --region europe-central2 \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --source . \
+            --no-allow-unauthenticated \
+            --set-env-vars "APP_ENV=${{ secrets.APP_ENV_DEV }}" \
+            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY_DEV }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DEV }}" \
+            --set-env-vars "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY_DEV }}" \
+            --set-env-vars "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY_DEV }}" \
+            --set-env-vars "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME_DEV }}" \
             --quiet
