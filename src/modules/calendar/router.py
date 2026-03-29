@@ -10,7 +10,8 @@ from src.modules.auth.dependency import OrganizationContext, get_auth_user, get_
 from src.modules.auth.dependency import User as AuthUser
 from src.modules.calendar.dependency import CalendarServiceDep
 from src.modules.calendar.services.webhook_service import WebhookValidationError
-from src.modules.calendar.tasks import background_incremental_sync_task, background_resync_organization_task
+from src.modules.calendar.tasks import background_incremental_sync_task
+from src.shared.pubsub import publish_resync_organization
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,6 @@ async def manual_resync_calendar_for_user(
 @router.post("/resync-all")
 async def manual_resync_calendar_for_organization(
     org_ctx: Annotated[OrganizationContext, Depends(get_organization_context)],
-    background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
-    background_tasks.add_task(background_resync_organization_task, org_ctx.organization.id)
-    return {"status": "ok", "message": "Resync started in background"}
+    publish_resync_organization(org_ctx.organization.id)
+    return {"status": "ok", "message": "Resync triggered via worker"}
