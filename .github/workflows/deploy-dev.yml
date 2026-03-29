@@ -79,6 +79,8 @@ jobs:
           sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
           sed -i "s|\${BACKEND_DOMAIN}|${{ vars.BACKEND_DOMAIN }}|g" app.yaml
           sed -i "s|\${ADMIN_API_KEY}|${{ secrets.ADMIN_API_KEY }}|g" app.yaml
+          sed -i "s|\${GCP_PROJECT_ID}|${{ secrets.GCP_PROJECT_ID }}|g" app.yaml
+          sed -i "s|\${PUBSUB_RESYNC_TOPIC}|${{ vars.PUBSUB_RESYNC_TOPIC }}|g" app.yaml
 
       - name: Deploy to App Engine (dev)
         run: |
