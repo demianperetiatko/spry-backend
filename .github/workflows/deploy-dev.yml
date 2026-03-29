@@ -101,4 +101,6 @@ jobs:
             --set-env-vars "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY_DEV }}" \
             --set-env-vars "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY_DEV }}" \
             --set-env-vars "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME_DEV }}" \
+            --set-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" \
+            --set-env-vars "PUBSUB_RESYNC_TOPIC=${{ vars.PUBSUB_RESYNC_TOPIC }}" \
             --quiet

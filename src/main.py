@@ -16,6 +16,7 @@ from src.modules.auth.router import router as auth_router
 from src.modules.calendar.router import router as calendar_router
 from src.modules.calendar.router import webhook_router as calendar_webhook_router
 from src.modules.calendar.subscriber import setup_calendar_subscriber
+from src.modules.calendar.worker_router import worker_router as calendar_worker_router
 from src.modules.feedback.router import router as feedback_router
 from src.modules.home.router import router as home_router
 from src.modules.invitation.router import router as invitation_router
@@ -88,6 +89,7 @@ app.include_router(analytics_personal_router)
 app.include_router(analytics_organization_router)
 app.include_router(home_router)
 app.include_router(feedback_router)
+app.include_router(calendar_worker_router)
 
 
 if __name__ == "__main__":
