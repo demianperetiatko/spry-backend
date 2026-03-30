@@ -13,6 +13,7 @@ from src.core.exceptions import NotFoundException, ServiceException
 from src.modules.analytics.organization.router import router as analytics_organization_router
 from src.modules.analytics.personal.router import router as analytics_personal_router
 from src.modules.auth.router import router as auth_router
+from src.modules.calendar.router import admin_router as calendar_admin_router
 from src.modules.calendar.router import router as calendar_router
 from src.modules.calendar.router import webhook_router as calendar_webhook_router
 from src.modules.calendar.subscriber import setup_calendar_subscriber
@@ -90,6 +91,7 @@ app.include_router(analytics_organization_router)
 app.include_router(home_router)
 app.include_router(feedback_router)
 app.include_router(calendar_worker_router)
+app.include_router(calendar_admin_router)
 
 
 if __name__ == "__main__":
