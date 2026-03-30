@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import and_, delete, func, or_, select, text
@@ -11,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from src.core.database.session import sessionmanager
 from src.modules.calendar.models import (
     CalendarCacheMetadata,
     CalendarEvent,
@@ -144,7 +141,12 @@ class CalendarRepository:
 
         return metadata
 
-    async def upsert_events(self, events: list[dict], attendees_by_event: dict | None = None, chunk_size: int = 400) -> None:
+    async def upsert_events(
+        self,
+        events: list[dict],
+        attendees_by_event: dict[str, list[dict]] | None = None,
+        chunk_size: int = 400,
+    ) -> None:
         if not events:
             return
 
@@ -154,34 +156,44 @@ class CalendarRepository:
             batch = events[i : i + chunk_size]
 
             stmt = insert(CalendarEvent).values(batch)
-            update_cols = {c.name: getattr(stmt.excluded, c.name) for c in stmt.table.c if c.name not in {"id", "created_at"}}
+            update_cols = {
+                c.name: getattr(stmt.excluded, c.name)
+                for c in stmt.table.c
+                if c.name not in {"id", "created_at", "user_calendar_id", "google_event_id"}
+            }
             stmt = stmt.on_conflict_do_update(
-                index_elements=["id"],
+                constraint="uq_event_calendar",
                 set_=update_cols,
-            )
-            await self.session.execute(stmt)
+            ).returning(CalendarEvent.id, CalendarEvent.google_event_id)
+
+            result = await self.session.execute(stmt)
+            google_id_to_db_id: dict[str, uuid.UUID] = {row[1]: row[0] for row in result.all()}
             await self.session.flush()
 
             if attendees_by_event:
                 batch_google_ids = {item.get("google_event_id") for item in batch if item.get("google_event_id")}
                 batch_attendees = {gid: attendees_by_event[gid] for gid in batch_google_ids if gid in attendees_by_event}
                 if batch_attendees:
-                    await self._replace_attendees(batch_attendees)
+                    await self._replace_attendees(batch_attendees, google_id_to_db_id)
 
-    async def _replace_attendees(self, attendees_by_event: dict[str, list[dict]]) -> None:
-        google_event_ids = list(attendees_by_event.keys())
-        if not google_event_ids:
+    async def _replace_attendees(
+        self,
+        attendees_by_event: dict[str, list[dict]],
+        google_id_to_db_id: dict[str, uuid.UUID],
+    ) -> None:
+        if not attendees_by_event or not google_id_to_db_id:
             return
 
-        stmt = select(CalendarEvent.id, CalendarEvent.google_event_id).where(CalendarEvent.google_event_id.in_(google_event_ids))
-        result = await self.session.execute(stmt)
-        google_id_to_uuid = {row[1]: row[0] for row in result.all()}
+        resolved_event_uuids: list[uuid.UUID] = []
+        for google_id in attendees_by_event:
+            db_id = google_id_to_db_id.get(google_id)
+            if db_id:
+                resolved_event_uuids.append(db_id)
 
-        if not google_id_to_uuid:
+        if not resolved_event_uuids:
             return
 
-        event_uuids = list(google_id_to_uuid.values())
-        existing_stmt = select(CalendarEventAttendee).where(CalendarEventAttendee.calendar_event_id.in_(event_uuids))
+        existing_stmt = select(CalendarEventAttendee).where(CalendarEventAttendee.calendar_event_id.in_(resolved_event_uuids))
         existing_result = await self.session.execute(existing_stmt)
         existing_attendees = existing_result.scalars().all()
 
@@ -192,9 +204,9 @@ class CalendarRepository:
             existing_by_event[att.calendar_event_id].add(att.email)
 
         new_by_event: dict[uuid.UUID, set[str]] = {}
-        rows_to_insert = []
+        rows_to_insert: list[dict] = []
         for google_id, atts in attendees_by_event.items():
-            event_uuid = google_id_to_uuid.get(google_id)
+            event_uuid = google_id_to_db_id.get(google_id)
             if not event_uuid:
                 continue
             new_by_event[event_uuid] = set()
@@ -204,16 +216,16 @@ class CalendarRepository:
                     new_by_event[event_uuid].add(email)
                     rows_to_insert.append({"calendar_event_id": event_uuid, **att})
 
-        to_delete = []
+        to_delete: list[tuple[uuid.UUID, str]] = []
         for event_uuid, existing_emails in existing_by_event.items():
             new_emails = new_by_event.get(event_uuid, set())
             for email in existing_emails - new_emails:
                 to_delete.append((event_uuid, email))
 
         if to_delete:
-            chunk_size = 100
-            for i in range(0, len(to_delete), chunk_size):
-                chunk = to_delete[i : i + chunk_size]
+            att_chunk_size = 100
+            for j in range(0, len(to_delete), att_chunk_size):
+                chunk = to_delete[j : j + att_chunk_size]
                 conditions = [
                     and_(
                         CalendarEventAttendee.calendar_event_id == event_uuid,
@@ -347,7 +359,6 @@ class CalendarRepository:
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def get_calendars_for_members(self, member_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[OrganizationMemberCalendar]]:
-        """Batch fetch calendars for multiple members in a single query."""
         if not member_ids:
             return {}
 
@@ -394,55 +405,9 @@ class CalendarRepository:
         return list(result.scalars().all())
 
     @staticmethod
-    @asynccontextmanager
-    async def sync_lock(user_calendar_id: uuid.UUID) -> AsyncIterator[bool]:
+    async def acquire_sync_lock(session: AsyncSession, user_calendar_id: uuid.UUID) -> None:
         lock_key = CalendarRepository._build_lock_key(user_calendar_id)
-        conn = await sessionmanager._engine.connect()
-        try:
-            result = await conn.execute(text("SELECT pg_try_advisory_lock(:lock_key)").bindparams(lock_key=lock_key))
-            acquired = bool(result.scalar())
-            if not acquired:
-                yield False
-                return
-            try:
-                yield True
-            finally:
-                await conn.execute(text("SELECT pg_advisory_unlock(:lock_key)").bindparams(lock_key=lock_key))
-        finally:
-            await conn.close()
-
-    async def get_google_event_ids(
-        self,
-        user_calendar_id: uuid.UUID,
-        start_dt: datetime | None = None,
-        end_dt: datetime | None = None,
-        batch_size: int = 10000,
-    ) -> set[str]:
-        base_stmt = select(CalendarEvent.google_event_id).where(CalendarEvent.user_calendar_id == user_calendar_id)
-        if start_dt:
-            if start_dt.tzinfo is None:
-                start_dt = start_dt.replace(tzinfo=timezone.utc)
-            base_stmt = base_stmt.where(CalendarEvent.start_datetime >= start_dt)
-        if end_dt:
-            if end_dt.tzinfo is None:
-                end_dt = end_dt.replace(tzinfo=timezone.utc)
-            base_stmt = base_stmt.where(CalendarEvent.start_datetime <= end_dt)
-
-        result_set: set[str] = set()
-        offset = 0
-
-        while True:
-            stmt = base_stmt.limit(batch_size).offset(offset)
-            result = await self.session.execute(stmt)
-            rows = result.all()
-            if not rows:
-                break
-            result_set.update(row[0] for row in rows if row[0])
-            if len(rows) < batch_size:
-                break
-            offset += batch_size
-
-        return result_set
+        await session.execute(text("SELECT pg_advisory_xact_lock(:lock_key)").bindparams(lock_key=lock_key))
 
     async def delete_events_before(self, user_calendar_id: uuid.UUID, before_dt: datetime) -> None:
         if before_dt.tzinfo is None:
@@ -459,3 +424,37 @@ class CalendarRepository:
             CalendarEvent.user_calendar_id == user_calendar_id, CalendarEvent.start_datetime > after_dt
         )
         await self.session.execute(stmt)
+
+    async def delete_orphaned_events(
+        self,
+        user_calendar_id: uuid.UUID,
+        google_event_ids_from_api: list[str],
+        time_min: datetime | None = None,
+        time_max: datetime | None = None,
+    ) -> int:
+        if not google_event_ids_from_api:
+            return 0
+
+        if time_min and time_min.tzinfo is None:
+            time_min = time_min.replace(tzinfo=timezone.utc)
+        if time_max and time_max.tzinfo is None:
+            time_max = time_max.replace(tzinfo=timezone.utc)
+
+        delete_stmt = text("""
+            DELETE FROM calendar_events
+            WHERE user_calendar_id = :uc_id
+              AND google_event_id NOT IN (SELECT UNNEST(CAST(:api_ids AS varchar[])))
+              AND (CAST(:time_min AS timestamptz) IS NULL OR start_datetime >= :time_min)
+              AND (CAST(:time_max AS timestamptz) IS NULL OR start_datetime <= :time_max)
+        """)
+
+        result = await self.session.execute(
+            delete_stmt,
+            {
+                "uc_id": user_calendar_id,
+                "api_ids": google_event_ids_from_api,
+                "time_min": time_min,
+                "time_max": time_max,
+            },
+        )
+        return result.rowcount

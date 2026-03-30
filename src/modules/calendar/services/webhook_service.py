@@ -37,7 +37,6 @@ class CalendarWebhookService:
 
     @staticmethod
     def is_channel_valid(metadata: CalendarCacheMetadata) -> bool:
-        """Check if a webhook channel is valid and not expiring soon."""
         if not (metadata.channel_id and metadata.resource_id and metadata.channel_expiration):
             return False
 
@@ -53,61 +52,54 @@ class CalendarWebhookService:
             raise ServiceException("Calendar not found", status_code=404)
 
         user_calendar = org_calendar.user_calendar
+        metadata = await self.calendar_repo.ensure_sync_state(user_calendar.id)
 
-        async with CalendarRepository.sync_lock(user_calendar.id) as acquired:
-            if not acquired:
-                logger.warning(f"Sync lock already held for user calendar {user_calendar.id}, skipping push notifications")
-                return
+        if self.is_channel_valid(metadata):
+            return
 
-            metadata = await self.calendar_repo.ensure_sync_state(user_calendar.id, with_lock=True)
+        credentials = await self.token_service.get_valid_credentials(user_calendar)
 
-            if self.is_channel_valid(metadata):
-                return
-
-            credentials = await self.token_service.get_valid_credentials(user_calendar)
-
-            # Stop existing channel if any
-            if metadata.channel_id and metadata.resource_id:
-                try:
-                    credentials = await self.gateway.stop_channel_with_retry(
-                        credentials, user_calendar, metadata.channel_id, metadata.resource_id
-                    )
-                except TokenInvalidError:
-                    user_id = user_calendar.user_access_info.user_id
-                    send_token_expiry_notification(user_id)
-                    return
-                except Exception:
-                    pass  # Ignore errors when stopping old channel
-
-            new_channel_id = str(uuid.uuid4())
-            webhook_url = f"{settings.backend_domain.rstrip('/')}/integrations/google/webhook"
-
-            if not webhook_url.startswith("https://"):
-                raise ServiceException("Webhook URL must use HTTPS", code="invalid_config")
-
+        if metadata.channel_id and metadata.resource_id:
             try:
-                c_id, r_id, exp_ts, credentials = await self.gateway.watch_events_with_retry(
-                    credentials, user_calendar, new_channel_id, webhook_url
+                credentials = await self.gateway.stop_channel_with_retry(
+                    credentials, user_calendar, metadata.channel_id, metadata.resource_id
                 )
             except TokenInvalidError:
                 user_id = user_calendar.user_access_info.user_id
                 send_token_expiry_notification(user_id)
                 return
+            except Exception:
+                pass
 
-            expiration_dt = None
-            if exp_ts:
-                try:
-                    expiration_dt = datetime.fromtimestamp(int(exp_ts) / 1000, tz=timezone.utc)
-                except (ValueError, TypeError):
-                    pass
+        new_channel_id = str(uuid.uuid4())
+        webhook_url = f"{settings.backend_domain.rstrip('/')}/integrations/google/webhook"
 
-            async with atomic(self.session):
-                await self.calendar_repo.update_sync_state(
-                    user_calendar_id=user_calendar.id,
-                    channel_id=c_id,
-                    resource_id=r_id,
-                    channel_expiration=expiration_dt,
-                )
+        if not webhook_url.startswith("https://"):
+            raise ServiceException("Webhook URL must use HTTPS", code="invalid_config")
+
+        try:
+            c_id, r_id, exp_ts, credentials = await self.gateway.watch_events_with_retry(
+                credentials, user_calendar, new_channel_id, webhook_url
+            )
+        except TokenInvalidError:
+            user_id = user_calendar.user_access_info.user_id
+            send_token_expiry_notification(user_id)
+            return
+
+        expiration_dt = None
+        if exp_ts:
+            try:
+                expiration_dt = datetime.fromtimestamp(int(exp_ts) / 1000, tz=timezone.utc)
+            except (ValueError, TypeError):
+                pass
+
+        async with atomic(self.session):
+            await self.calendar_repo.update_sync_state(
+                user_calendar_id=user_calendar.id,
+                channel_id=c_id,
+                resource_id=r_id,
+                channel_expiration=expiration_dt,
+            )
 
     async def disable_push_notifications(self, calendar_id: uuid.UUID) -> None:
         org_calendar = await self.calendar_repo.get_calendar(calendar_id)
@@ -127,11 +119,8 @@ class CalendarWebhookService:
         except TokenInvalidError:
             user_id = user_calendar.user_access_info.user_id
             send_token_expiry_notification(user_id)
-            # Still clear metadata since token is invalid - can't stop channel anyway
             channel_stopped = True
         except Exception as e:
-            # Don't clear metadata if we failed to stop the channel on Google's side
-            # This allows retry later
             logger.warning(f"Failed to stop webhook channel {metadata.channel_id} for calendar {calendar_id}: {e}")
             return
 
