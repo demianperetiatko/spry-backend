@@ -135,7 +135,7 @@ class CalendarEvent(Base):
         Index("ix_calendar_events_google_event_id", "google_event_id"),
     )
 
-    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     google_event_id: Mapped[str] = mapped_column(String(255), nullable=False)
     etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
     summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -198,8 +198,8 @@ class CalendarEventAttendee(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    calendar_event_id: Mapped[str] = mapped_column(
-        String(255),
+    calendar_event_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("calendar_events.id", ondelete="CASCADE"),
         nullable=False,
     )
