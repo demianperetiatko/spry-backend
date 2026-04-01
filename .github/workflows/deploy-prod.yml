@@ -78,6 +78,8 @@ jobs:
           sed -i "s|\${FRONTEND_DOMAIN}|${{ vars.FRONTEND_DOMAIN }}|g" app.yaml
           sed -i "s|\${BACKEND_DOMAIN}|${{ vars.BACKEND_DOMAIN }}|g" app.yaml
           sed -i "s|\${ADMIN_API_KEY}|${{ secrets.ADMIN_API_KEY }}|g" app.yaml
+          sed -i "s|\${GCP_PROJECT_ID}|${{ secrets.GCP_PROJECT_ID }}|g" app.yaml
+          sed -i "s|\${PUBSUB_RESYNC_TOPIC}|${{ vars.PUBSUB_RESYNC_TOPIC }}|g" app.yaml
 
       - name: Deploy to App Engine (prod)
         run: |
@@ -85,3 +87,22 @@ jobs:
             --project "${{ secrets.GCP_PROJECT_ID }}" \
             --version "prod-${{ github.run_number }}" \
             --promote
+
+      - name: Deploy webapp to Cloud Run (from source)
+        run: |
+          gcloud run deploy spry-worker \
+            --region europe-central2 \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --source . \
+            --no-allow-unauthenticated \
+            --set-env-vars "APP_ENV=${{ secrets.APP_ENV_DEV }}" \
+            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY_DEV }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_DEV }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DEV }}" \
+            --set-env-vars "MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY_DEV }}" \
+            --set-env-vars "MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY_DEV }}" \
+            --set-env-vars "GCP_BUCKET_NAME=${{ secrets.GCP_BUCKET_NAME_DEV }}" \
+            --set-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" \
+            --set-env-vars "PUBSUB_RESYNC_TOPIC=${{ vars.PUBSUB_RESYNC_TOPIC }}" \
+            --quiet
