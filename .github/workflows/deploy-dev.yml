@@ -63,6 +63,7 @@ jobs:
 
       - name: Prepare app.yaml
         run: |
+          sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml          
           sed -i "s|\${APP_ENV}|${{ secrets.APP_ENV_DEV }}|g" app.yaml
           sed -i "s|\${DATABASE_URL}|${{ secrets.DATABASE_URL }}|g" app.yaml
           sed -i "s|\${SECRET_KEY}|${{ secrets.SECRET_KEY_DEV }}|g" app.yaml
