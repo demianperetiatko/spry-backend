@@ -117,7 +117,7 @@ class OrganizationTeamService:
         payload: CreateTeamRequest,
     ) -> TeamResponse:
         member_id_map = await self._resolve_member_ids_by_users(payload.team_members, organization_id)
-        await self._ensure_members_active(member_id_map.values())
+        # await self._ensure_members_active(member_id_map.values())
         member_ids = list(member_id_map.values())
         await self._validate_members_belong_to_org(member_ids, organization_id)
 
