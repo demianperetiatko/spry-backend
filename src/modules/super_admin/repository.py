@@ -35,11 +35,7 @@ class SuperAdminRepositorySQLAlchemy(
         return await self._scalar(stmt)
 
     async def get_all_organizations(self) -> list[Organization]:
-        stmt = (
-            select(Organization)
-            .distinct(Organization.id)
-            .execution_options(populate_existing=True)
-        )
+        stmt = select(Organization).distinct(Organization.id).execution_options(populate_existing=True)
         result = await self._execute(stmt)
         seen: set[uuid.UUID] = set()
         organizations = []

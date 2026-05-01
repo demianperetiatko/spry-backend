@@ -1,6 +1,7 @@
 import functions_framework
 import base64
 
+
 @functions_framework.cloud_event
 def update_data(cloud_event):
     data = cloud_event.data or {}

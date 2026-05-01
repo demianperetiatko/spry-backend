@@ -505,9 +505,11 @@ class OrganizationMetricsService:
             (
                 "cross_team",
                 "With other teams",
-                lambda e: (emails := self.data_loader.get_attendee_emails(e))
-                and emails.issubset(org_emails)
-                and not emails.issubset(team_emails),
+                lambda e: (
+                    (emails := self.data_loader.get_attendee_emails(e))
+                    and emails.issubset(org_emails)
+                    and not emails.issubset(team_emails)
+                ),
             ),
             (
                 "external",

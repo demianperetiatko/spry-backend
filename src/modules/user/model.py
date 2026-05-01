@@ -30,9 +30,7 @@ class User(Base):
         default=UserStatusEnum.PENDING,
     )
 
-    access_info: Mapped["UserAccessInfo"] = relationship(
-        "UserAccessInfo", back_populates="user", cascade="all, delete-orphan"
-    )
+    access_info: Mapped["UserAccessInfo"] = relationship("UserAccessInfo", back_populates="user", cascade="all, delete-orphan")
     organization_members: Mapped[list["OrganizationMember"]] = relationship(
         "OrganizationMember",
         back_populates="user",

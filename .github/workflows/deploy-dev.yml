@@ -61,6 +61,19 @@ jobs:
         run: |
           echo '${{ secrets.GCP_SERVICE_KEY_JSON_DEV }}' > "${{ secrets.GCP_SERVICE_KEY_PATH_DEV }}"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run database migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Prepare app.yaml
         run: |
           sed -i "s|\${SERVICE}|${{ vars.SERVICE }}|g" app.yaml          

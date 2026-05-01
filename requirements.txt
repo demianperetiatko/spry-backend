@@ -39,3 +39,6 @@ functions-framework~=3.10.1
 python-dotenv>=1.0.0
 pycountry>=24.0.0
 pydantic_core~=2.41.5
+
+# Code Quality
+ruff>=0.15.12
