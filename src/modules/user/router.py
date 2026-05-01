@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 from src.modules.auth.dependency import get_auth_user
+from src.modules.super_admin.service import SuperAdminService, get_super_admin_service
 from src.modules.user.model import User
 from src.modules.user.schemas import OrganizationMemberInfo, UserInfo, UserWithOrganizationsInfo
 from src.modules.user.service import UserService, get_user_service
@@ -43,8 +44,13 @@ async def delete_user(
 async def get_current_user(
     user: User = Depends(get_auth_user),
     service: UserService = Depends(get_user_service),
+    super_admin_service: SuperAdminService = Depends(get_super_admin_service),
 ) -> UserWithOrganizationsInfo:
-    organizations = await service.get_user_organizations(user)
+    is_super_admin = await super_admin_service.is_super_admin(user.id)
+    if is_super_admin:
+        organizations = await super_admin_service.get_all_organizations()
+    else:
+        organizations = await service.get_user_organizations(user)
     return UserWithOrganizationsInfo(
         id=user.id,
         email=user.email,
@@ -58,5 +64,8 @@ async def get_current_user(
 async def get_user_organizations(
     user: User = Depends(get_auth_user),
     service: UserService = Depends(get_user_service),
+    super_admin_service: SuperAdminService = Depends(get_super_admin_service),
 ) -> list[OrganizationMemberInfo]:
+    if await super_admin_service.is_super_admin(user.id):
+        return await super_admin_service.get_all_organizations()
     return await service.get_user_organizations(user)

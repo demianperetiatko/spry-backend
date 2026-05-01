@@ -17,6 +17,7 @@ from src.modules.organization_team.model import (  # noqa: F401
     OrganizationTeam,
     OrganizationTeamMember,
 )
+from src.modules.super_admin.model import SuperAdmin  # noqa: F401
 from src.modules.user.model import User  # noqa: F401
 
 

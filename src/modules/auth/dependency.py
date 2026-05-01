@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Path, Request, status
 
 from src.core.exceptions import NotFoundException
+from src.modules.enums import OrganizationMemberRoleEnum
 from src.modules.organization.model import Organization
 from src.modules.organization.repository import (
     OrganizationCurrencyRepository,
@@ -21,6 +22,7 @@ from src.modules.organization_member.repository import (
 )
 from src.modules.permissions.enums import OrganizationPermission
 from src.modules.permissions.service import Permissions, get_permissions
+from src.modules.super_admin.service import SuperAdminService, get_super_admin_service
 from src.modules.user.model import User
 from src.modules.user.repository import UserRepository, get_user_repository
 
@@ -72,6 +74,7 @@ async def get_organization_context(
     organization_id: Annotated[uuid.UUID, Path(...)],
     org_repo: OrgRepoDep,
     member_repo: MemberRepoDep,
+    super_admin_service: Annotated[SuperAdminService, Depends(get_super_admin_service)],
     user: User = Depends(get_auth_user),
 ) -> OrganizationContext:
     org = await org_repo.get_by_id(organization_id)
@@ -82,13 +85,25 @@ async def get_organization_context(
         )
 
     member = await member_repo.get_by_user_id_and_organization_id(user.id, organization_id)
-    if not member:
+    if member:
+        return OrganizationContext(user=user, organization=org, member=member)
+
+    if not await super_admin_service.is_super_admin(user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is not a member of this organization",
         )
 
-    return OrganizationContext(user=user, organization=org, member=member)
+    all_members, _ = await member_repo.get_members_by_organization_id(organization_id)
+    admin_members = [m for m in all_members if m.role == OrganizationMemberRoleEnum.ADMIN]
+    proxy_member = admin_members[0] if admin_members else (all_members[0] if all_members else None)
+    if not proxy_member:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No members found in organization",
+        )
+
+    return OrganizationContext(user=user, organization=org, member=proxy_member)
 
 
 class PermissionChecker:
