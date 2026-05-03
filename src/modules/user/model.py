@@ -31,7 +31,7 @@ class User(Base):
     )
 
     access_info: Mapped["UserAccessInfo"] = relationship(
-        "UserAccessInfo", back_populates="user", cascade="all, delete-orphan",
+        "UserAccessInfo", back_populates="user", cascade="all, delete-orphan"
     )
     organization_members: Mapped[list["OrganizationMember"]] = relationship(
         "OrganizationMember",
