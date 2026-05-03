@@ -92,7 +92,6 @@ class MailjetEmailService(EmailService):
             subject = "🚀 You're the first admin for your organization on Spry!"
             context = {
                 "invitation_link": link,
-                "organization_name": organization_name,
             }
         else:
             template = "emails/user_invitation.html"
