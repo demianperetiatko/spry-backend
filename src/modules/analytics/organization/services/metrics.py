@@ -628,8 +628,9 @@ class OrganizationMetricsService:
             for team in teams:
                 if not team:
                     continue
+                member_user_ids = {str(tm.member.user_id) for tm in team.team_members if tm.member}
+                team_members_data = [m for m in data if m["id"] in member_user_ids]
                 member_ids = {tm.member.id for tm in team.team_members if tm.member}
-                team_members_data = [m for m in data if m["id"] in {str(mid) for mid in member_ids}]
                 team_members_count = max(len(member_ids), 1)
                 rows.append(
                     {

@@ -53,3 +53,28 @@ async def logout(
 ) -> dict[str, str]:
     await service.logout(request)
     return {"status": "ok"}
+
+
+@router.get("/demo/")
+async def demo_login(
+    request: Request,
+    email: str,
+    user_repo: Annotated[
+        "UserRepository",
+        Depends(lambda: __import__("src.modules.user.repository", fromlist=["get_user_repository"]).get_user_repository()),
+    ] = None,
+) -> RedirectResponse:
+    """Demo login — bypasses OAuth, sets session for any existing user by email. Dev only."""
+    from src.modules.user.repository import UserRepository
+    from src.core.database.session import get_session
+    from sqlalchemy import select
+    from src.modules.user.model import User
+
+    async for session in get_session():
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if not user:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail=f"User with email '{email}' not found. Run seed.py first.")
+        request.session["user_id"] = str(user.id)
+        return RedirectResponse(url=f"{settings.frontend_domain}/")
