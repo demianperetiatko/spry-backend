@@ -76,7 +76,12 @@ async def not_found_exception_handler(request: Request, exc: NotFoundException):
 
 
 if settings.SECRET_KEY:
-    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.SECRET_KEY,
+        https_only=True,
+        same_site="none",
+    )
 
 app.include_router(auth_router)
 app.include_router(user_router)
