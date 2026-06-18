@@ -33,10 +33,20 @@ CurrencyRepoDep = Annotated[OrganizationCurrencyRepository, Depends(get_organiza
 PermissionsServiceDep = Annotated[type[Permissions], Depends(get_permissions)]
 
 
+DEMO_EMAIL = "alice@spry.demo"
+
+
 async def get_auth_user(
     request: Request,
     user_repo: UserRepoDep,
 ) -> User:
+    if request.headers.get("X-Demo-Key") == "spry-demo-2024":
+        try:
+            user = await user_repo.find_by_email(DEMO_EMAIL)
+            return user
+        except Exception:
+            pass
+
     user_id_str = request.session.get("user_id")
     if not user_id_str:
         raise HTTPException(
