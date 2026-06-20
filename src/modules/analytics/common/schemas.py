@@ -17,13 +17,30 @@ class SortOrderType(str, Enum):
     DESC = "desc"
 
 
-class AnalyticsDateRangeParams(BaseModel):
-    start_date: str
-    end_date: str
+def _today_str() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    @field_validator("start_date", "end_date")
+
+def _month_start_str() -> str:
+    today = datetime.now(timezone.utc)
+    return today.replace(day=1).strftime("%Y-%m-%d")
+
+
+class AnalyticsDateRangeParams(BaseModel):
+    start_date: str = ""
+    end_date: str = ""
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.start_date:
+            object.__setattr__(self, "start_date", _month_start_str())
+        if not self.end_date:
+            object.__setattr__(self, "end_date", _today_str())
+
+    @field_validator("start_date", "end_date", mode="before")
     @classmethod
     def validate_date_format(cls, value: str) -> str:
+        if not value:
+            return value
         try:
             datetime.strptime(value, "%Y-%m-%d")
             return value

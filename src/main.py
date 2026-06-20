@@ -19,6 +19,10 @@ from src.modules.calendar.router import webhook_router as calendar_webhook_route
 from src.modules.calendar.subscriber import setup_calendar_subscriber
 from src.modules.calendar.worker_router import worker_router as calendar_worker_router
 from src.modules.feedback.router import router as feedback_router
+from src.modules.insights.router import personal_router as insights_personal_router
+from src.modules.insights.router import settings_router as insights_settings_router
+from src.modules.insights.router import team_insights_router
+from src.modules.insights.router import org_insights_router
 from src.modules.home.router import router as home_router
 from src.modules.invitation.router import router as invitation_router
 from src.modules.organization.router import router as organization_router
@@ -95,6 +99,10 @@ app.include_router(analytics_personal_router)
 app.include_router(analytics_organization_router)
 app.include_router(home_router)
 app.include_router(feedback_router)
+app.include_router(insights_personal_router)
+app.include_router(insights_settings_router)
+app.include_router(team_insights_router)
+app.include_router(org_insights_router)
 app.include_router(calendar_worker_router)
 app.include_router(calendar_admin_router)
 

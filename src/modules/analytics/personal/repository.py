@@ -29,6 +29,23 @@ class PersonalAnalyticsRepository(AnalyticsRepositoryBase):
         result = await self.session.execute(statement)
         return result.scalars().all()
 
+    async def get_calendar_ids_for_members(
+        self,
+        member_ids: Sequence[uuid.UUID],
+    ) -> dict[uuid.UUID, list[uuid.UUID]]:
+        """Batch lookup: returns {member_id: [calendar_id, ...]} in one query."""
+        if not member_ids:
+            return {}
+        statement = select(
+            OrganizationMemberCalendar.organization_member_id,
+            OrganizationMemberCalendar.user_calendar_id,
+        ).where(OrganizationMemberCalendar.organization_member_id.in_(member_ids))
+        result = await self.session.execute(statement)
+        mapping: dict[uuid.UUID, list[uuid.UUID]] = {}
+        for member_id, calendar_id in result.all():
+            mapping.setdefault(member_id, []).append(calendar_id)
+        return mapping
+
 
 async def get_personal_analytics_repository(
     session: AsyncSession = Depends(get_session),
